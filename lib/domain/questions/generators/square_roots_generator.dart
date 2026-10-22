@@ -2,6 +2,7 @@ import 'dart:math';
 
 import '../../../core/enums/enums.dart';
 import '../difficulty_ranges.dart';
+import '../pattern_constants.dart';
 import '../question.dart';
 import '../question_generator.dart';
 
@@ -10,10 +11,15 @@ class SquareRootsGenerator extends QuestionGenerator {
   Topic get topic => Topic.squareRoots;
 
   @override
+  String patternOf(Difficulty difficulty, List<int> operands) =>
+      PatternConstants.patternOf(topic, difficulty, operands);
+
+  @override
   Question generate({
     required Difficulty difficulty,
     required Random random,
     Question? previousQuestion,
+    String? pattern,
   }) {
     final (min, max) = switch (difficulty) {
       Difficulty.easy => (
@@ -28,18 +34,30 @@ class SquareRootsGenerator extends QuestionGenerator {
           DifficultyRanges.squareRootsHardMin,
           DifficultyRanges.squareRootsHardMax,
         ),
-      Difficulty.mixed => throw ArgumentError('Cannot generate Difficulty.mixed directly'),
+      Difficulty.mixed =>
+        throw ArgumentError('Cannot generate Difficulty.mixed directly'),
     };
-    int n;
+
+    Question q;
+    int tries = 0;
     do {
-      n = min + random.nextInt(max - min + 1);
-    } while (difficulty == Difficulty.hard && n % 10 == 0);
-    return Question(
-      topic: Topic.squareRoots,
-      difficulty: difficulty,
-      displayText: '√${n * n}',
-      operands: [n * n, n],
-      correctAnswer: n,
-    );
+      int n;
+      do {
+        n = min + random.nextInt(max - min + 1);
+      } while (difficulty == Difficulty.hard && n % 10 == 0);
+
+      final pat = patternOf(difficulty, [n * n, n]);
+      q = Question(
+        topic: Topic.squareRoots,
+        difficulty: difficulty,
+        displayText: '√${n * n}',
+        operands: [n * n, n],
+        correctAnswer: n,
+        pattern: pat,
+      );
+      tries++;
+    } while (pattern != null && q.pattern != pattern && tries < 50);
+
+    return q;
   }
 }

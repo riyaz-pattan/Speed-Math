@@ -2,6 +2,7 @@ import 'dart:math';
 
 import '../../../core/enums/enums.dart';
 import '../difficulty_ranges.dart';
+import '../pattern_constants.dart';
 import '../question.dart';
 import '../question_generator.dart';
 
@@ -15,28 +16,48 @@ class MultiplicationGenerator extends QuestionGenerator {
   Topic get topic => Topic.multiplication;
 
   @override
+  String patternOf(Difficulty difficulty, List<int> operands) =>
+      PatternConstants.patternOf(topic, difficulty, operands);
+
+  @override
   Question generate({
     required Difficulty difficulty,
     required Random random,
     Question? previousQuestion,
+    String? pattern,
   }) {
-    switch (difficulty) {
-      case Difficulty.easy:
-        return _generateEasy(random);
-      case Difficulty.medium:
-        return _generateMedium(random);
-      case Difficulty.hard:
-        return _generateHard(random);
-      case Difficulty.mixed:
-        throw ArgumentError('Cannot generate questions with Difficulty.mixed directly');
-    }
+    Question q;
+    int tries = 0;
+    do {
+      final raw = switch (difficulty) {
+        Difficulty.easy => _generateEasy(random),
+        Difficulty.medium => _generateMedium(random),
+        Difficulty.hard => _generateHard(random),
+        Difficulty.mixed => throw ArgumentError(
+            'Cannot generate questions with Difficulty.mixed directly'),
+      };
+      final pat = patternOf(difficulty, raw.operands);
+      q = Question(
+        topic: raw.topic,
+        difficulty: raw.difficulty,
+        displayText: raw.displayText,
+        operands: raw.operands,
+        correctAnswer: raw.correctAnswer,
+        pattern: pat,
+      );
+      tries++;
+    } while (pattern != null && q.pattern != pattern && tries < 50);
+
+    return q;
   }
 
   Question _generateEasy(Random random) {
     int a, b;
     do {
-      a = _randRange(random, DifficultyRanges.multiplicationEasyAMin, DifficultyRanges.multiplicationEasyAMax);
-      b = _randRange(random, DifficultyRanges.multiplicationEasyBMin, DifficultyRanges.multiplicationEasyBMax);
+      a = _randRange(random, DifficultyRanges.multiplicationEasyAMin,
+          DifficultyRanges.multiplicationEasyAMax);
+      b = _randRange(random, DifficultyRanges.multiplicationEasyBMin,
+          DifficultyRanges.multiplicationEasyBMax);
     } while (_isTrivialFactor(a) || _isTrivialFactor(b));
 
     return Question(
@@ -51,8 +72,10 @@ class MultiplicationGenerator extends QuestionGenerator {
   Question _generateMedium(Random random) {
     int a, b;
     do {
-      a = _randRange(random, DifficultyRanges.multiplicationMediumMin, DifficultyRanges.multiplicationMediumMax);
-      b = _randRange(random, DifficultyRanges.multiplicationMediumMin, DifficultyRanges.multiplicationMediumMax);
+      a = _randRange(random, DifficultyRanges.multiplicationMediumMin,
+          DifficultyRanges.multiplicationMediumMax);
+      b = _randRange(random, DifficultyRanges.multiplicationMediumMin,
+          DifficultyRanges.multiplicationMediumMax);
     } while (_isTrivialFactor(a) || _isTrivialFactor(b));
 
     return Question(
@@ -67,12 +90,12 @@ class MultiplicationGenerator extends QuestionGenerator {
   Question _generateHard(Random random) {
     int a, b;
     do {
-      a = _randRange(random, DifficultyRanges.multiplicationHardAMin, DifficultyRanges.multiplicationHardAMax);
-      b = _randRange(random, DifficultyRanges.multiplicationHardBMin, DifficultyRanges.multiplicationHardBMax);
+      a = _randRange(random, DifficultyRanges.multiplicationHardAMin,
+          DifficultyRanges.multiplicationHardAMax);
+      b = _randRange(random, DifficultyRanges.multiplicationHardBMin,
+          DifficultyRanges.multiplicationHardBMax);
     } while (
-        _isTrivialFactor(a) ||
-        _isTrivialFactor(b) ||
-        _allEndInZero([a, b]));
+        _isTrivialFactor(a) || _isTrivialFactor(b) || _allEndInZero([a, b]));
 
     return Question(
       topic: Topic.multiplication,

@@ -2,6 +2,7 @@ import 'dart:math';
 
 import '../../../core/enums/enums.dart';
 import '../difficulty_ranges.dart';
+import '../pattern_constants.dart';
 import '../question.dart';
 import '../question_generator.dart';
 
@@ -15,10 +16,15 @@ class SquaresGenerator extends QuestionGenerator {
   Topic get topic => Topic.squares;
 
   @override
+  String patternOf(Difficulty difficulty, List<int> operands) =>
+      PatternConstants.patternOf(topic, difficulty, operands);
+
+  @override
   Question generate({
     required Difficulty difficulty,
     required Random random,
     Question? previousQuestion,
+    String? pattern,
   }) {
     final (min, max) = switch (difficulty) {
       Difficulty.easy => (
@@ -33,21 +39,31 @@ class SquaresGenerator extends QuestionGenerator {
           DifficultyRanges.squaresHardMin,
           DifficultyRanges.squaresHardMax,
         ),
-      Difficulty.mixed => throw ArgumentError('Cannot generate Difficulty.mixed directly'),
+      Difficulty.mixed =>
+        throw ArgumentError('Cannot generate Difficulty.mixed directly'),
     };
 
-    int n;
+    Question q;
+    int tries = 0;
     do {
-      n = min + random.nextInt(max - min + 1);
-      // Hard: exclude multiples of 10 (trivially easy to square)
-    } while (difficulty == Difficulty.hard && n % 10 == 0);
+      int n;
+      do {
+        n = min + random.nextInt(max - min + 1);
+        // Hard: exclude multiples of 10 (trivially easy to square)
+      } while (difficulty == Difficulty.hard && n % 10 == 0);
 
-    return Question(
-      topic: Topic.squares,
-      difficulty: difficulty,
-      displayText: '$n²',
-      operands: [n, n],
-      correctAnswer: n * n,
-    );
+      final pat = patternOf(difficulty, [n, n]);
+      q = Question(
+        topic: Topic.squares,
+        difficulty: difficulty,
+        displayText: '$n²',
+        operands: [n, n],
+        correctAnswer: n * n,
+        pattern: pat,
+      );
+      tries++;
+    } while (pattern != null && q.pattern != pattern && tries < 50);
+
+    return q;
   }
 }

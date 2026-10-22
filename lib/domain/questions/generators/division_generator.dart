@@ -2,6 +2,7 @@ import 'dart:math';
 
 import '../../../core/enums/enums.dart';
 import '../difficulty_ranges.dart';
+import '../pattern_constants.dart';
 import '../question.dart';
 import '../question_generator.dart';
 
@@ -17,33 +18,53 @@ class DivisionGenerator extends QuestionGenerator {
   Topic get topic => Topic.division;
 
   @override
+  String patternOf(Difficulty difficulty, List<int> operands) =>
+      PatternConstants.patternOf(topic, difficulty, operands);
+
+  @override
   Question generate({
     required Difficulty difficulty,
     required Random random,
     Question? previousQuestion,
+    String? pattern,
   }) {
-    switch (difficulty) {
-      case Difficulty.easy:
-        return _generateEasy(random);
-      case Difficulty.medium:
-        return _generateMedium(random);
-      case Difficulty.hard:
-        return _generateHard(random);
-      case Difficulty.mixed:
-        throw ArgumentError('Cannot generate questions with Difficulty.mixed directly');
-    }
+    Question q;
+    int tries = 0;
+    do {
+      final raw = switch (difficulty) {
+        Difficulty.easy => _generateEasy(random),
+        Difficulty.medium => _generateMedium(random, pattern: pattern),
+        Difficulty.hard => _generateHard(random),
+        Difficulty.mixed => throw ArgumentError(
+            'Cannot generate questions with Difficulty.mixed directly'),
+      };
+      final pat = patternOf(difficulty, raw.operands);
+      q = Question(
+        topic: raw.topic,
+        difficulty: raw.difficulty,
+        displayText: raw.displayText,
+        operands: raw.operands,
+        correctAnswer: raw.correctAnswer,
+        pattern: pat,
+      );
+      tries++;
+    } while (pattern != null && q.pattern != pattern && tries < 50);
+
+    return q;
   }
 
   /// Easy: 2-digit ÷ 1-digit (divisor 2-9)
   Question _generateEasy(Random random) {
     while (true) {
-      final divisor = _randRange(random, DifficultyRanges.divisionEasyDivisorMin, DifficultyRanges.divisionEasyDivisorMax);
+      final divisor = _randRange(random, DifficultyRanges.divisionEasyDivisorMin,
+          DifficultyRanges.divisionEasyDivisorMax);
       final minQ = (DifficultyRanges.divisionEasyDividendMin / divisor).ceil();
       final maxQ = (DifficultyRanges.divisionEasyDividendMax / divisor).floor();
       if (minQ > maxQ) continue;
       final quotient = _randRange(random, minQ, maxQ);
       final dividend = quotient * divisor;
-      if (dividend < DifficultyRanges.divisionEasyDividendMin || dividend > DifficultyRanges.divisionEasyDividendMax) continue;
+      if (dividend < DifficultyRanges.divisionEasyDividendMin ||
+          dividend > DifficultyRanges.divisionEasyDividendMax) continue;
       if (_isTrivialDivision(dividend, divisor)) continue;
 
       return Question(
@@ -57,7 +78,13 @@ class DivisionGenerator extends QuestionGenerator {
   }
 
   /// Medium: randomly pick between 3-digit ÷ 1-digit and 2-digit ÷ 2-digit
-  Question _generateMedium(Random random) {
+  Question _generateMedium(Random random, {String? pattern}) {
+    if (pattern == PatternConstants.divMSingleDigit) {
+      return _generateMedium3by1(random);
+    } else if (pattern == PatternConstants.divMTwoDigit) {
+      return _generateMedium2by2(random);
+    }
+
     if (random.nextBool()) {
       return _generateMedium3by1(random);
     } else {
@@ -103,7 +130,8 @@ class DivisionGenerator extends QuestionGenerator {
       DifficultyRanges.divisionMedium2by2DivisorMax,
       DifficultyRanges.divisionMedium2by2DividendMax ~/ quotient,
     );
-    final divisor = _randRange(random, DifficultyRanges.divisionMedium2by2DivisorMin, maxDivisor);
+    final divisor = _randRange(
+        random, DifficultyRanges.divisionMedium2by2DivisorMin, maxDivisor);
     final dividend = quotient * divisor;
 
     return Question(
@@ -118,14 +146,16 @@ class DivisionGenerator extends QuestionGenerator {
   /// Hard: 4-digit ÷ 2-digit (divisor 10-99)
   Question _generateHard(Random random) {
     while (true) {
-      final divisor = _randRange(random, DifficultyRanges.divisionHardDivisorMin, DifficultyRanges.divisionHardDivisorMax);
+      final divisor = _randRange(random, DifficultyRanges.divisionHardDivisorMin,
+          DifficultyRanges.divisionHardDivisorMax);
       if (divisor == 10) continue;
       final minQ = (DifficultyRanges.divisionHardDividendMin / divisor).ceil();
       final maxQ = (DifficultyRanges.divisionHardDividendMax / divisor).floor();
       if (minQ > maxQ) continue;
       final quotient = _randRange(random, minQ, maxQ);
       final dividend = quotient * divisor;
-      if (dividend < DifficultyRanges.divisionHardDividendMin || dividend > DifficultyRanges.divisionHardDividendMax) continue;
+      if (dividend < DifficultyRanges.divisionHardDividendMin ||
+          dividend > DifficultyRanges.divisionHardDividendMax) continue;
       if (_isTrivialDivision(dividend, divisor)) continue;
       if (_allEndInZero([dividend, divisor])) continue;
 
