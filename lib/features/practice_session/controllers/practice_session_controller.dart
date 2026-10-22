@@ -21,6 +21,7 @@ import '../../../domain/questions/question_source.dart';
 import '../../../domain/questions/session_random.dart';
 import '../../../domain/scoring/badge_evaluator.dart';
 import '../../../domain/scoring/score_calculator.dart';
+import '../../../domain/scoring/session_insight_generator.dart';
 import '../../../domain/scoring/session_summary.dart';
 import '../models/practice_models.dart';
 
@@ -823,6 +824,87 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
     final wrongAttempts =
         state.attempts.where((a) => !a.isCorrect).toList();
 
+    int totalSessionsBefore = 0;
+    double? historicalAvgTimeMs;
+    double? historicalAccuracy;
+    double? recentAvgTimeMs;
+    double? recentAccuracy;
+
+    try {
+      final allSessions = await _sessionRepository.getCompletedSessions();
+      final pastSessions =
+          allSessions.where((s) => s.id != savedSession.id).toList();
+      totalSessionsBefore = pastSessions.length;
+      if (pastSessions.isNotEmpty) {
+        double totalTime = 0;
+        int totalQuestions = 0;
+        int totalCorrect = 0;
+        for (final s in pastSessions) {
+          totalQuestions += s.totalQuestions;
+          totalCorrect += s.correctCount;
+          if (s.correctCount > 0 && s.avgTimeMs > 0) {
+            totalTime += (s.avgTimeMs * s.correctCount);
+          }
+        }
+        if (totalQuestions > 0) {
+          historicalAccuracy = totalCorrect / totalQuestions;
+        }
+        if (totalCorrect > 0) {
+          historicalAvgTimeMs = totalTime / totalCorrect;
+        }
+
+        final recent = pastSessions.take(5).toList();
+        int recentQuestions = 0;
+        int recentCorrect = 0;
+        double recentTime = 0;
+        for (final s in recent) {
+          recentQuestions += s.totalQuestions;
+          recentCorrect += s.correctCount;
+          if (s.correctCount > 0 && s.avgTimeMs > 0) {
+            recentTime += (s.avgTimeMs * s.correctCount);
+          }
+        }
+        if (recentQuestions > 0) {
+          recentAccuracy = recentCorrect / recentQuestions;
+        }
+        if (recentCorrect > 0) {
+          recentAvgTimeMs = recentTime / recentCorrect;
+        }
+      }
+    } catch (_) {}
+
+    final insightContext = SessionInsightContext(
+      totalSessionsBefore: totalSessionsBefore,
+      historicalAvgTimeMs: historicalAvgTimeMs,
+      historicalAccuracy: historicalAccuracy,
+      recentAvgTimeMs: recentAvgTimeMs,
+      recentAccuracy: recentAccuracy,
+      clearedMistakesCount: clearedMistakesCount,
+      stillToPracticeCount: stillToPractice,
+    );
+
+    String? coachInsight;
+    try {
+      final insightGen = await SessionInsightGenerator.loadFromBundle();
+      coachInsight = insightGen.generateInsight(
+        session: savedSession,
+        attempts: attemptsToSave,
+        summary: summary,
+        kind: state.config.kind,
+        mode: state.config.mode,
+        context: insightContext,
+      );
+    } catch (_) {
+      coachInsight = SessionInsightGenerator().generateInsight(
+        session: savedSession,
+        attempts: attemptsToSave,
+        summary: summary,
+        kind: state.config.kind,
+        mode: state.config.mode,
+        context: insightContext,
+      );
+    }
+
     return PracticeResultData(
       savedSession: savedSession,
       savedAttempts: attemptsToSave,
@@ -834,6 +916,7 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
       newMistakesSavedCount: newMistakesSavedCount,
       clearedMistakesCount: clearedMistakesCount,
       stillToPracticeCount: stillToPractice,
+      coachInsight: coachInsight,
     );
   }
 

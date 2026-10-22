@@ -421,6 +421,7 @@ class PracticeResultData {
   final int newMistakesSavedCount;
   final int clearedMistakesCount;
   final int stillToPracticeCount;
+  final String? coachInsight;
 
   const PracticeResultData({
     required this.savedSession,
@@ -433,5 +434,6 @@ class PracticeResultData {
     this.newMistakesSavedCount = 0,
     this.clearedMistakesCount = 0,
     this.stillToPracticeCount = 0,
+    this.coachInsight,
   });
 }

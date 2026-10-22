@@ -36,6 +36,7 @@ flutter:
     - assets/coach/intents.json
     - assets/coach/coach_phrases.json
     - assets/coach/tips.json
+    - assets/coach/insight_phrases.json
 
   fonts:
     - family: Poppins

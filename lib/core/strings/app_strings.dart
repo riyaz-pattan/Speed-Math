@@ -84,9 +84,6 @@ abstract final class AppStrings {
   static const String practiceThese = 'Practice these';
   static const String mistakesToRevise = 'mistakes to revise';
   static const String noMistakesToRevise = 'No mistakes to revise! Keep practicing.';
-  static const String newMistakesSaved = 'New mistakes saved';
-  static const String cleared = 'Cleared';
-  static const String stillToPractice = 'Still to practice';
   static const String allTopics = 'All topics';
   static const String noMistakesInBank = 'No mistakes to revise!';
   static const String noMistakesInBankSubtitle =

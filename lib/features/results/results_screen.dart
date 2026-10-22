@@ -131,13 +131,17 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
 
                     // Tidy Stats Grid
                     _buildStatsGrid(context, colorScheme),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
+
+                    // Dynamic Coach Insight Card
+                    if (resultData.coachInsight != null) ...[
+                      _buildCoachInsightCard(context, colorScheme),
+                      const SizedBox(height: 24),
+                    ],
 
                     // Per-Topic Breakdown for Mixed or Mistake Practice
                     if (isNotDrill) ...[
                       _buildTopicBreakdownSection(context, colorScheme),
-                      const SizedBox(height: 20),
-                      _buildMistakeBankMetricsCard(context, colorScheme),
                       const SizedBox(height: 24),
                     ],
 
@@ -714,101 +718,69 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
     );
   }
 
-  Widget _buildMistakeBankMetricsCard(
+  Widget _buildCoachInsightCard(
     BuildContext context,
     ColorScheme colorScheme,
   ) {
-    final isMistakePractice =
-        resultData.config.mode == PracticeMode.mistakes;
+    final insight = resultData.coachInsight;
+    if (insight == null || insight.isEmpty) return const SizedBox.shrink();
 
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: colorScheme.outline.withValues(alpha: 0.15),
+          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.bookmark_added_rounded,
-                size: 20,
-                color: Color(0xFF6366F1),
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.psychology_rounded,
+                size: 22,
+                color: AppTheme.primaryColor,
               ),
-              const SizedBox(width: 8),
-              Text(
-                isMistakePractice
-                    ? 'Mistakes practice results'
-                    : 'Mistakes updated',
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildMetricColumn(
-                label: AppStrings.newMistakesSaved,
-                value: '${resultData.newMistakesSavedCount}',
-                color: Colors.amber[800]!,
-                colorScheme: colorScheme,
-              ),
-              if (isMistakePractice) ...[
-                _buildMetricColumn(
-                  label: AppStrings.cleared,
-                  value: '${resultData.clearedMistakesCount}',
-                  color: Colors.green,
-                  colorScheme: colorScheme,
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Coach insight',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
+                  ),
                 ),
-                _buildMetricColumn(
-                  label: AppStrings.stillToPractice,
-                  value: '${resultData.stillToPracticeCount}',
-                  color: const Color(0xFF6366F1),
-                  colorScheme: colorScheme,
+                const SizedBox(height: 6),
+                Text(
+                  insight,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    height: 1.45,
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
               ],
-            ],
+            ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildMetricColumn({
-    required String label,
-    required String value,
-    required Color color,
-    required ColorScheme colorScheme,
-  }) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            color: colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
     );
   }
 
