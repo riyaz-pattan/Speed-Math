@@ -1,0 +1,206 @@
+{
+  "greeting": [
+    "Hey! I am your Coach. Ask me anything about your practice, speed, weak spots, or plans.",
+    "Hello! Ready to train? Tell me what you want to know about your calculations or today's plan.",
+    "Hi there! I am tracking your practice on this device. How can I help you improve today?",
+    "Hey! Good to see you. Ask about your speed, accuracy, weak spots, or pick a suggestion below."
+  ],
+  "help": [
+    "I can analyze your speed and accuracy, show weak spots, suggest daily plans, review mistakes, give calculation tips, and set up practice drills.",
+    "Here is what I can do: check your weak and strong areas, show progress trends, guide today's practice, explain mistakes, and share mental math tips.",
+    "Ask me things like: 'Where am I weak?', 'How is my division?', 'Make me a plan for today', 'Am I improving?', or 'Practice division hard 20 questions'.",
+    "I help you build mental math speed. You can ask for your report summary, weak topics, progress vs last week, shortcuts, or today's practice blocks."
+  ],
+  "thanks": [
+    "You are welcome! Keep practicing and your pace will grow naturally.",
+    "Glad to help! Consistent daily practice makes all the difference.",
+    "Anytime! Whenever you want to check your numbers or drill a topic, I am here.",
+    "Happy to help! Let me know if you want to jump into practice or check another topic."
+  ],
+  "goodbye": [
+    "Great work today! Rest your eyes, and I will see you next session.",
+    "Goodbye! Come back whenever you are ready for a quick speed drill.",
+    "See you later! Keep up the daily rhythm.",
+    "Take care! Your mental math skills will be right here when you return."
+  ],
+  "smalltalk": [
+    "I am your offline speed math Coach, built right into this phone to help you calculate faster.",
+    "Doing well and ready to train! I keep track of your practice numbers and help guide your sessions.",
+    "I am an on-device training coach designed to make your mental calculations fast and accurate.",
+    "I feel great whenever you beat your best times! What would you like to work on?"
+  ],
+  "out_of_scope": [
+    "I only focus on your math practice, speed, weak areas, daily plans, and calculation tips on this phone. Try one of these questions instead:",
+    "I cannot help with general topics or trivia. I am strictly your speed math coach! Here are some things you can ask me:",
+    "That is outside my training zone. I only track and guide your mental math practice on this device. Check these suggestions:",
+    "I only answer questions about your mental math drills, scores, and practice plans. Try asking one of these:"
+  ],
+  "low_confidence": [
+    "I am not quite sure what you mean. Here are three things you can ask me right now:",
+    "I did not catch that clearly. Try tapping one of these questions or rephrase in simpler words:",
+    "I could not understand that question. Would one of these helpful topics answer what you need?",
+    "I am not certain about that request. You can tap any of these suggested questions to get started:"
+  ],
+  "ask_topic": [
+    "Which topic would you like to check? Pick one below:",
+    "Which math topic are you asking about? Choose below to see your details:",
+    "Tell me the topic you have in mind from the chips below:",
+    "Which topic would you like to focus on? Select one here:"
+  ],
+  "not_enough_data": [
+    "You have answered {answered} of 10 questions needed to unlock your full report. Complete a few more drills to see your overall stats!",
+    "I need just a little more data: you are at {answered} of 10 answered questions. Practice any topic to unlock your Speed Score and insights.",
+    "Early training stage: {answered} of 10 questions answered so far. Finish another practice session and I will have your performance numbers ready.",
+    "You have completed {answered} of 10 questions. Keep going—after 10 answers, your full speed and accuracy breakdown will appear here."
+  ],
+  "report_summary": [
+    "Here is your latest summary. Speed Score: {score} ({label}). This week you completed {sessions} sessions and answered {questions} questions with {accuracy} accuracy.",
+    "Overall status: Speed Score is {score} ({label}). Over the last 7 days you logged {minutes} minutes across {sessions} sessions at {accuracy} precision.",
+    "Your practice snapshot: Speed Score stands at {score} ({label}). In the past week you answered {questions} questions ({accuracy} accuracy, averaging {time} per correct answer).",
+    "Current performance: {score} Speed Score ({label}). You finished {sessions} sessions in the last 7 days with an average time of {time} per correct answer."
+  ],
+  "weak_areas_found": [
+    "Your main weak spot is {top_weak}. Accuracy is {accuracy} with an average time of {time}. Targeted practice here will give you the biggest speed gain.",
+    "Here is where you are losing the most time: {top_weak} ({accuracy} accuracy, {time} per answer). Let's drill this level to build confidence.",
+    "Your lowest mastery bucket is {top_weak}. You are currently averaging {time} at {accuracy} accuracy. A quick 10-question drill will help sharpen this.",
+    "Focus needed on {top_weak}: accuracy sits at {accuracy} and pace is {time}. Working on this area will lift your overall Speed Score."
+  ],
+  "no_weak_areas": [
+    "No glaring weak spots found! Your accuracy and pace are solid across all your practiced topics.",
+    "You do not have any critical weak areas right now. All your practiced levels show steady confidence.",
+    "Your accuracy is consistently strong across your active topics. Keep varying your drills to stay sharp.",
+    "Great news—no weak areas flagged in your recent drills. Consider stepping up to Hard difficulty!"
+  ],
+  "strong_areas_found": [
+    "Your strongest calculation area is {top_strong}! You have achieved {accuracy} accuracy with a fast average of {time} per answer.",
+    "You excel at {top_strong}. With {accuracy} accuracy and a quick {time} pace, your recall here is firmly established.",
+    "Your top strength right now is {top_strong} ({accuracy} accuracy, {time} average). You can solve these almost automatically.",
+    "Impressive speed on {top_strong}: averaging {time} per correct answer with {accuracy} precision. Keep that sharp momentum!"
+  ],
+  "no_strong_areas": [
+    "You need at least 5 answers in a topic bucket to qualify as a confirmed strength. Keep practicing!",
+    "No confirmed strengths yet—once you log 5 consistent answers in a bucket, your top skills will appear here.",
+    "Still building your core skills. Complete a few more sessions in the same topic to establish your strongest areas.",
+    "Keep practicing! After a couple more drills, I will highlight the calculations you solve fastest."
+  ],
+  "focus_weak": [
+    "I recommend focusing on {bucket}. Your accuracy is {accuracy} and you average {time}. Sharpening this bucket will boost your overall speed.",
+    "Your top priority right now is {bucket}. It is your lowest-scoring active area. Tap below to run a focused drill.",
+    "Work on {bucket} today. Raising your {accuracy} accuracy here will bring the highest improvement to your daily score.",
+    "Put your energy into {bucket}. Improving from {time} per answer will make your calculations noticeably faster."
+  ],
+  "focus_neglected": [
+    "You have not practiced {topic} in {days} days. Regular recall prevents rustiness—let's do a quick refresher.",
+    "It has been {days} days since your last {topic} session. A fast 2-minute drill will bring your speed right back.",
+    "Time for a {topic} tune-up: it has been {days} days since you last practiced it. Keep all 9 topics fresh in memory.",
+    "{topic} has been quiet for {days} days. Running a quick session today will protect your hard-earned pace."
+  ],
+  "focus_mistakes": [
+    "You have {count} mistakes waiting to be reviewed. Clearing them first will prevent repeat errors in future drills.",
+    "I suggest tackling your {count} mistakes for review. Revisiting questions you missed cements the correct patterns.",
+    "Focus on your mistakes list: you have {count} questions waiting for review. A short review session will clear them out.",
+    "Your best focus right now is review: {count} mistakes are lined up. Practicing them turns weak spots into strengths."
+  ],
+  "focus_general": [
+    "Start with a balanced 20-question mixed practice to touch all your core topics and keep your reflexes alert.",
+    "I recommend a 2-minute mixed timer session to keep your calculation rhythm active across multiple operations.",
+    "Jump into a quick 10-question drill on your favorite topic to warm up your mental pace for the day.",
+    "Try a mixed drill today: switching between addition, subtraction and multiplication builds real exam speed."
+  ],
+  "daily_plan_overview": [
+    "Here is your customized training plan for today ({completed} of {total} blocks completed). Tap a block below to begin:",
+    "Today's plan is ready! You have finished {completed} of {total} blocks. Let's tackle the next step:",
+    "Your daily 15-minute training routine: {completed} of {total} blocks done. Consistency is the secret to mental speed:",
+    "Here are your 3 practice blocks for today ({completed}/{total} done). Ready for your next session?"
+  ],
+  "progress_improving": [
+    "Great news: your speed improved by {speed_diff} this week, and you are averaging {time} per correct answer!",
+    "You are getting faster! Your pace dropped by {speed_diff} compared to last week. Keep up the rhythm.",
+    "Strong progress: your calculations are {speed_diff} faster than the previous 7 days ({time} average).",
+    "Positive momentum! Average time per answer fell by {speed_diff} to {time}. Your training is paying off."
+  ],
+  "progress_slipping": [
+    "Your average time rose by {speed_diff} this week to {time}. Focus on smooth, steady answers rather than rushing.",
+    "Pace slowed slightly by {speed_diff} this week ({time} average). Slowing down a bit to ensure clean answers is normal.",
+    "You are averaging {time} per answer, about {speed_diff} slower than last week. Prioritize accuracy and speed will follow.",
+    "Your weekly average time is {time} (up {speed_diff}). Don't stress—steady daily practice will bring it back down."
+  ],
+  "progress_steady": [
+    "Your calculation speed is steady at {time} per correct answer, matching your pace from the previous week.",
+    "Consistent pace: you are maintaining an average of {time} per answer with {accuracy} accuracy.",
+    "Steady performance: no major speed shift from last week ({time} average). You have built a reliable baseline.",
+    "Your speed is holding firm at {time} per answer. You are ready to push for slightly faster times on familiar questions."
+  ],
+  "progress_no_data": [
+    "I need data from two separate 7-day windows to show your progress trend. Keep practicing daily!",
+    "Progress comparisons appear once you have practiced across two consecutive weeks. Keep up the streak!",
+    "Not enough weekly history yet. Continue your daily sessions and I will show your speed curve soon.",
+    "Weekly comparison will unlock after a few more days of practice. You are building the foundation now."
+  ],
+  "topic_status_with_data": [
+    "Status for {topic}: {level} level. Accuracy is {accuracy} with an average time of {time} across {attempts} attempts. Trend: {trend}.",
+    "{topic} overview: currently at {level}. You have answered {attempts} questions at {accuracy} accuracy, averaging {time}. Trend is {trend}.",
+    "Here is your {topic} breakdown: {level} level, {accuracy} precision, and {time} per correct answer ({attempts} attempts). Trend: {trend}.",
+    "Performance in {topic}: level is {level} with {attempts} attempts logged. Accuracy stands at {accuracy} and speed at {time} ({trend})."
+  ],
+  "topic_status_no_data": [
+    "You have not practiced {topic} yet. Tap below to launch your first drill and establish your baseline!",
+    "No practice attempts recorded for {topic}. Start a quick 10-question drill to see how fast you are.",
+    "{topic} is waiting for your first session. Try an Easy drill below to get your initial skill rating.",
+    "No data yet for {topic}. Launch a practice session now to begin tracking your mastery here."
+  ],
+  "speed_summary": [
+    "Your current average speed is {time} per correct answer. This week you answered {questions} questions across {sessions} sessions.",
+    "Speed overview: averaging {time} per correct answer over the last 7 days. Consistency is key to dropping this number further.",
+    "You are solving correct questions in an average of {time}. Keep practicing daily to shave off another half second!",
+    "Overall pace: {time} per correct answer across {questions} questions answered this week."
+  ],
+  "accuracy_summary": [
+    "Your overall accuracy is {accuracy} over the last 7 days ({correct} correct out of {total} answered).",
+    "Accuracy check: currently at {accuracy}. In mental math, precision always comes before raw speed.",
+    "You have achieved {accuracy} accuracy this week across {sessions} sessions. Clean inputs help your speed grow faster.",
+    "Your precision stands at {accuracy} ({total} questions answered). Keeping accuracy above 85% is ideal for competitive speed."
+  ],
+  "mistakes_found": [
+    "You currently have {count} mistakes waiting to be revised. Most are in {top_topic}. Tap below to practice them:",
+    "There are {count} mistakes on your review list. Practicing them now will ensure you don't repeat them during timed drills:",
+    "Review reminder: {count} missed questions are ready for practice ({top_topic} has the most). Let's clear them out:",
+    "You have {count} mistakes to review. A quick session will cement the right answers in your memory:"
+  ],
+  "no_mistakes": [
+    "Awesome! You have zero mistakes waiting for review. Your mistake list is completely clean.",
+    "No mistakes to review right now! Every question you missed has been successfully cleared.",
+    "Your mistake list is empty. Keep up the high precision in your next practice session!",
+    "Zero errors pending review! You have practiced all your previous misses."
+  ],
+  "tip_intro": [
+    "Here is a mental math shortcut for {topic}: {title}.\n\n{text}\n\nExample: {example}",
+    "Try this calculation technique for {topic}: {title}.\n\n{text}\n\nExample: {example}",
+    "Mental math tip ({topic}) — {title}:\n\n{text}\n\nExample: {example}",
+    "Shortcut for {topic}: {title}.\n\n{text}\n\nExample: {example}"
+  ],
+  "motivation_with_data": [
+    "Feeling stuck is normal when your brain is adapting to new speed thresholds. Look at your real progress: you have already answered {total} questions and achieved {accuracy} accuracy in {best_topic}!",
+    "Mental math speed grows in plateaus, not straight lines. You have already logged {total} answers with an average speed of {time}. Stay consistent and the next leap will happen.",
+    "Take a breath: speed follows familiarity. You already reached {accuracy} in {best_topic}! Slow down slightly to get clean answers, and your confidence will bounce right back.",
+    "Don't be discouraged! You have put in {minutes} minutes of mental effort across {total} questions. Every session rewires your recall to be quicker."
+  ],
+  "motivation_no_data": [
+    "Every fast mental calculator started right where you are now. The secret isn't genius—it is just doing 10 questions a day. Try one easy drill to get rolling!",
+    "Speed comes from familiarity, not rushing. Start with Easy difficulty, take all the time you need, and watch how quickly your brain catches the patterns.",
+    "It is completely normal to feel slow at the start. Mental math is a muscle: 5 minutes a day builds lasting confidence. Let's do a friendly 10-question set!",
+    "Don't worry about the clock at first. Focus on getting clean answers, and speed will follow automatically within a week of daily practice."
+  ],
+  "start_practice_confirm": [
+    "Ready to practice {topic} on {difficulty} ({target})? Tap Start when you are set:",
+    "I have set up {topic} on {difficulty} with {target}. Tap Start to begin:",
+    "Here is your drill: {topic} ({difficulty}), {target}. Whenever you are ready, tap Start:",
+    "Configured: {topic} • {difficulty} • {target}. Tap below to launch your session:"
+  ],
+  "activity": [
+    "Here is your practice activity:\n• Today: {questions_today} questions across {sessions_today} sessions ({minutes_today} min)\n• Last 7 days: {questions_week} questions in {sessions_week} sessions ({minutes_week} min)\n• All time: {questions_total} questions ({minutes_total} total practice minutes).",
+    "Your training volume so far:\n• Today: {questions_today} questions answered in {minutes_today} minutes ({sessions_today} sessions)\n• Past week: {questions_week} questions over {minutes_week} minutes\n• All time: {questions_total} questions across {sessions_total} sessions.",
+    "Practice breakdown:\n• Today: {sessions_today} sessions, {questions_today} questions ({minutes_today} min)\n• This week: {sessions_week} sessions, {questions_week} questions ({minutes_week} min)\n• Lifetime: {questions_total} questions answered over {minutes_total} minutes of dedicated training.",
+    "Activity summary:\n• Today: {questions_today} questions ({minutes_today} minutes of practice)\n• Last 7 days: {questions_week} questions across {sessions_week} sessions\n• Total: {questions_total} questions completed all time."
+  ]
+}

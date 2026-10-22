@@ -1,0 +1,955 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../app/theme.dart';
+import '../../core/enums/enums.dart';
+import '../../core/services/haptic_service.dart';
+import '../../core/strings/app_strings.dart';
+import '../../core/widgets/question_text_widget.dart';
+import '../../data/models/attempt.dart';
+import '../../data/repositories/settings_repository.dart';
+import '../../domain/questions/session_random.dart';
+import '../../domain/scoring/session_summary.dart';
+import '../practice_session/models/practice_models.dart';
+
+/// Redesigned results screen featuring score hero card with soft gradient,
+/// accuracy circular ring, highlighted badges, tidy stats grid, mistake reviews,
+/// and primary "Play Again" with side-by-side secondary actions.
+class ResultsScreen extends ConsumerStatefulWidget {
+  final PracticeResultData resultData;
+
+  const ResultsScreen({
+    super.key,
+    required this.resultData,
+  });
+
+  @override
+  ConsumerState<ResultsScreen> createState() => _ResultsScreenState();
+}
+
+class _ResultsScreenState extends ConsumerState<ResultsScreen> {
+  PracticeResultData get resultData => widget.resultData;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final settings = ref.read(settingsRepositoryProvider);
+      if (settings.hapticsEnabled) {
+        ref.read(hapticServiceProvider).resultsCelebration(
+          strength: settings.vibrationStrength,
+        );
+      }
+    });
+  }
+
+  String _formatDuration(int ms) {
+    final totalSeconds = (ms / 1000).round();
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
+    if (minutes > 0) {
+      return '${minutes}m ${seconds}s';
+    }
+    return '${seconds}s';
+  }
+
+  String _formatAvgTime(double ms) {
+    if (ms <= 0) return '0.0s';
+    return '${(ms / 1000).toStringAsFixed(1)}s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isCompleted = resultData.savedSession?.completed ?? false;
+    final isNotDrill = resultData.config.kind != SessionKind.drill ||
+        resultData.config.mode == PracticeMode.smart ||
+        resultData.config.mode == PracticeMode.mistakes;
+    final topicColor = isNotDrill
+        ? AppTheme.mixedColor
+        : AppTheme.getTopicColor(resultData.config.topic);
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/home');
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.close_rounded),
+            onPressed: () => context.go('/home'),
+          ),
+          title: Text(
+            isCompleted ? AppStrings.sessionComplete : 'Session Ended',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  children: [
+                    // Subtle banner when session ended early
+                    if (!isCompleted)
+                      _buildEndedEarlyBanner(context, colorScheme),
+
+                    // Highlighted Badges (New Best Score, New Top-3 Time) — only for drill, only completed
+                    if (!isNotDrill &&
+                        isCompleted &&
+                        (resultData.isNewBestScore || resultData.isNewTop3Time))
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          alignment: WrapAlignment.center,
+                          children: [
+                            if (resultData.isNewBestScore)
+                              _buildBadge(
+                                icon: Icons.emoji_events_rounded,
+                                label: AppStrings.newBestScore,
+                                color: const Color(0xFFF59E0B),
+                              ),
+                            if (resultData.isNewTop3Time)
+                              _buildBadge(
+                                icon: Icons.bolt_rounded,
+                                label: AppStrings.newTop3Time,
+                                color: const Color(0xFF06B6D4),
+                              ),
+                          ],
+                        ),
+                      ),
+
+                    // Large Score Hero Card with soft gradient & Accuracy Ring
+                    _buildScoreHeroCard(context, colorScheme, topicColor),
+                    const SizedBox(height: 20),
+
+                    // Tidy Stats Grid
+                    _buildStatsGrid(context, colorScheme),
+                    const SizedBox(height: 24),
+
+                    // Per-Topic Breakdown for Mixed or Mistake Practice
+                    if (isNotDrill) ...[
+                      _buildTopicBreakdownSection(context, colorScheme),
+                      const SizedBox(height: 20),
+                      _buildMistakeBankMetricsCard(context, colorScheme),
+                      const SizedBox(height: 24),
+                    ],
+
+                    // Review Mistakes Section
+                    _buildMistakesSection(context, colorScheme),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+
+              // Bottom Action Buttons: ONE big "Play Again" + two secondary buttons side-by-side
+              _buildBottomActions(context, colorScheme),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEndedEarlyBanner(BuildContext context, ColorScheme colorScheme) {
+    final String detailText;
+    if (resultData.config.mode == PracticeMode.timer) {
+      detailText = '${_formatDuration(resultData.summary.totalTimeMs)} practiced';
+    } else {
+      detailText =
+          '${resultData.summary.totalQuestions} of ${resultData.config.modeValue} questions answered';
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            size: 18,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Ended early - $detailText',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBadge({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScoreHeroCard(
+    BuildContext context,
+    ColorScheme colorScheme,
+    Color topicColor,
+  ) {
+    final summary = resultData.summary;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        gradient: AppTheme.primaryGradient,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryColor.withValues(alpha: 0.32),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Topic and difficulty pill
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              resultData.config.kind == SessionKind.mixed || resultData.config.mode == PracticeMode.smart
+                  ? 'Mixed practice • ${resultData.config.mode == PracticeMode.timer ? "${resultData.config.modeValue ~/ 60}m" : "${resultData.config.modeValue}Q"}'
+                  : (resultData.config.kind == SessionKind.mistakes || resultData.config.mode == PracticeMode.mistakes
+                      ? 'Mistakes practice • ${resultData.config.modeValue}Q'
+                      : '${resultData.config.topic.displayName} - ${resultData.config.difficulty.displayName} • ${resultData.config.mode.displayName}'),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+
+          // Score and Accuracy Ring row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              // Final Score Block
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppStrings.finalScore.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white.withValues(alpha: 0.75),
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    summary.totalScore.toStringAsFixed(0),
+                    style: const TextStyle(
+                      fontSize: 52,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      height: 1.1,
+                      letterSpacing: -1.0,
+                    ),
+                  ),
+                ],
+              ),
+
+              // Accuracy Ring
+              _AccuracyRing(accuracy: summary.accuracy),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Contextual session headline
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Text(
+              _getSessionHeadline(summary),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.1,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getSessionHeadline(SessionSummary summary) {
+    if (summary.totalQuestions == 0) {
+      return 'Session ended with 0 questions attempted.';
+    }
+    if (summary.skippedCount == summary.totalQuestions) {
+      return 'You skipped every question. Try answering, even slowly — speed comes later.';
+    }
+    if (summary.correctCount == summary.totalQuestions &&
+        summary.wrongCount == 0 &&
+        summary.skippedCount == 0) {
+      return 'Outstanding! Perfect score with zero errors.';
+    }
+    if (summary.skippedCount > summary.correctCount + summary.wrongCount) {
+      return 'You skipped several questions. Give them a shot next time!';
+    }
+    if (summary.accuracy >= 0.8) {
+      return 'Great accuracy! Keep pushing your speed.';
+    }
+    if (summary.accuracy >= 0.5) {
+      return 'Good effort! Practice turns effort into instinct.';
+    }
+    return 'Keep practicing! Every attempt sharpens your skills.';
+  }
+
+  Widget _buildStatsGrid(BuildContext context, ColorScheme colorScheme) {
+    final summary = resultData.summary;
+    final avgTimePerCorrectMs = summary.avgTimeMsPerCorrect;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetricTile(
+                  icon: Icons.check_circle_rounded,
+                  label: AppStrings.correct,
+                  value: '${summary.correctCount}',
+                  color: AppTheme.additionColor,
+                ),
+              ),
+              Container(width: 1, height: 44, color: colorScheme.outline.withValues(alpha: 0.15)),
+              Expanded(
+                child: _buildMetricTile(
+                  icon: Icons.cancel_rounded,
+                  label: AppStrings.wrong,
+                  value: '${summary.wrongCount}',
+                  color: Colors.redAccent,
+                ),
+              ),
+              Container(width: 1, height: 44, color: colorScheme.outline.withValues(alpha: 0.15)),
+              Expanded(
+                child: _buildMetricTile(
+                  icon: Icons.skip_next_rounded,
+                  label: AppStrings.skipped,
+                  value: '${summary.skippedCount}',
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetricTile(
+                  icon: Icons.speed_rounded,
+                  label: 'Avg. / Correct',
+                  value: _formatAvgTime(avgTimePerCorrectMs),
+                  color: colorScheme.primary,
+                ),
+              ),
+              Container(width: 1, height: 44, color: colorScheme.outline.withValues(alpha: 0.15)),
+              Expanded(
+                child: _buildMetricTile(
+                  icon: Icons.timer_outlined,
+                  label: 'Total Time',
+                  value: _formatDuration(summary.totalTimeMs),
+                  color: colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricTile({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 15, color: color),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: color.withValues(alpha: 0.85),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMistakesSection(BuildContext context, ColorScheme colorScheme) {
+    final mistakes = resultData.wrongAttempts;
+    final summary = resultData.summary;
+
+    final isPerfect = summary.totalQuestions > 0 &&
+        summary.correctCount == summary.totalQuestions &&
+        summary.wrongCount == 0 &&
+        summary.skippedCount == 0;
+
+    if (isPerfect) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppTheme.additionColor.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: AppTheme.additionColor.withValues(alpha: 0.25),
+          ),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.stars_rounded, color: AppTheme.additionColor, size: 28),
+            SizedBox(width: 12),
+            Text(
+              'Perfect score! Zero mistakes.',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.additionColor,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (mistakes.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final allSkipped = summary.skippedCount == summary.totalQuestions;
+    final headerTitle = allSkipped
+        ? 'Skipped Questions'
+        : (summary.skippedCount > 0 ? 'Review Mistakes & Skips' : 'Review Mistakes');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              headerTitle,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: (allSkipped ? Colors.grey : Colors.red).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${mistakes.length} to review',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: allSkipped ? Colors.grey.shade700 : Colors.redAccent,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ...mistakes.map((attempt) {
+          final isSkipped = attempt.isSkipped;
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isSkipped
+                    ? Colors.grey.withValues(alpha: 0.3)
+                    : Colors.red.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      QuestionTextWidget(
+                        text: attempt.question.displayText,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.start,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Text(
+                            isSkipped
+                                ? 'Skipped'
+                                : 'You: ${attempt.userAnswer ?? "—"}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: isSkipped ? Colors.grey : Colors.redAccent,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Answer: ${attempt.question.correctAnswer}',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.additionColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  _formatAvgTime(attempt.timeMs.toDouble()),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildTopicBreakdownSection(
+    BuildContext context,
+    ColorScheme colorScheme,
+  ) {
+    // Group attempts by topic
+    final Map<Topic, List<Attempt>> topicGroups = {};
+    for (final a in resultData.savedAttempts) {
+      topicGroups.putIfAbsent(a.topic, () => []).add(a);
+    }
+
+    if (topicGroups.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Performance by Topic',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 10),
+        ...topicGroups.entries.map((entry) {
+          final topic = entry.key;
+          final attempts = entry.value;
+          final total = attempts.length;
+          final correct = attempts.where((a) => a.isCorrect).length;
+          final totalTime = attempts.fold<int>(0, (sum, a) => sum + a.timeMs);
+          final avgTimeMs = total > 0 ? (totalTime / total.toDouble()) : 0.0;
+          final topicColor = AppTheme.getTopicColor(topic);
+
+          return Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: topicColor.withValues(alpha: 0.25),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: topicColor.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      topic.symbol,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: topicColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      topic.displayName,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '$correct / $total',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: topicColor,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Text(
+                    _formatAvgTime(avgTimeMs),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildMistakeBankMetricsCard(
+    BuildContext context,
+    ColorScheme colorScheme,
+  ) {
+    final isMistakePractice =
+        resultData.config.mode == PracticeMode.mistakes;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: colorScheme.outline.withValues(alpha: 0.15),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.bookmark_added_rounded,
+                size: 20,
+                color: Color(0xFF6366F1),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isMistakePractice
+                    ? 'Mistakes practice results'
+                    : 'Mistakes updated',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildMetricColumn(
+                label: AppStrings.newMistakesSaved,
+                value: '${resultData.newMistakesSavedCount}',
+                color: Colors.amber[800]!,
+                colorScheme: colorScheme,
+              ),
+              if (isMistakePractice) ...[
+                _buildMetricColumn(
+                  label: AppStrings.cleared,
+                  value: '${resultData.clearedMistakesCount}',
+                  color: Colors.green,
+                  colorScheme: colorScheme,
+                ),
+                _buildMetricColumn(
+                  label: AppStrings.stillToPractice,
+                  value: '${resultData.stillToPracticeCount}',
+                  color: const Color(0xFF6366F1),
+                  colorScheme: colorScheme,
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricColumn({
+    required String label,
+    required String value,
+    required Color color,
+    required ColorScheme colorScheme,
+  }) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBottomActions(BuildContext context, ColorScheme colorScheme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        border: Border(
+          top: BorderSide(
+            color: colorScheme.outline.withValues(alpha: 0.12),
+          ),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ONE big primary button "Play Again"
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: FilledButton.icon(
+              onPressed: () {
+                final freshConfig = resultData.config.copyWith(
+                  sessionSeed: SessionRandom.newSessionSeed(),
+                );
+                context.pushReplacement('/practice/session', extra: freshConfig);
+              },
+              icon: const Icon(Icons.replay_rounded, size: 22),
+              label: const Text(
+                AppStrings.playAgain,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Two smaller secondary buttons side-by-side: "Change Setup" and "Home"
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => context.go('/practice'),
+                  icon: const Icon(Icons.tune_rounded, size: 18),
+                  label: const Text(
+                    AppStrings.changeSetup,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => context.go('/home'),
+                  icon: const Icon(Icons.home_rounded, size: 18),
+                  label: const Text(
+                    AppStrings.home,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Circular progress ring displaying accuracy percentage in center.
+class _AccuracyRing extends StatelessWidget {
+  final double accuracy;
+
+  const _AccuracyRing({required this.accuracy});
+
+  @override
+  Widget build(BuildContext context) {
+    final percent = (accuracy * 100).round();
+    final ringColor = accuracy >= 0.8
+        ? AppTheme.additionColor
+        : accuracy >= 0.5
+            ? const Color(0xFFF59E0B)
+            : const Color(0xFFEF4444);
+
+    return SizedBox(
+      width: 82,
+      height: 82,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          CircularProgressIndicator(
+            value: accuracy.clamp(0.0, 1.0),
+            strokeWidth: 8,
+            backgroundColor: Colors.white.withValues(alpha: 0.22),
+            valueColor: AlwaysStoppedAnimation<Color>(ringColor),
+            strokeCap: StrokeCap.round,
+          ),
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '$percent%',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  'ACC',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white.withValues(alpha: 0.82),
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

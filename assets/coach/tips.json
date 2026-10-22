@@ -1,0 +1,155 @@
+{
+  "addition": [
+    {
+      "title": "Left-to-Right Addition",
+      "text": "Add the largest place values first (tens, then ones) to build the total in your head naturally.",
+      "example": "47 + 38 = (40 + 30) + (7 + 8) = 70 + 15 = 85"
+    },
+    {
+      "title": "Round and Compensate",
+      "text": "When adding a number close to a multiple of 10, round up and subtract the extra at the end.",
+      "example": "56 + 29 = 56 + 30 - 1 = 86 - 1 = 85"
+    },
+    {
+      "title": "Making Tens",
+      "text": "Borrow a small number from one addend to round the other to a clean multiple of 10.",
+      "example": "68 + 14 = 68 + 2 + 12 = 70 + 12 = 82"
+    }
+  ],
+  "subtraction": [
+    {
+      "title": "Add Up Instead",
+      "text": "Instead of borrowing backwards, count forwards from the subtracted number to the target.",
+      "example": "83 - 57: 57 + 3 = 60, then 60 + 23 = 83; 3 + 23 = 26"
+    },
+    {
+      "title": "Round and Compensate",
+      "text": "Round the subtracted number to a clean multiple of 10, then add back the difference.",
+      "example": "74 - 28 = 74 - 30 + 2 = 44 + 2 = 46"
+    },
+    {
+      "title": "Same Change Rule",
+      "text": "Add the same amount to both numbers to turn the subtrahend into a clean multiple of 10.",
+      "example": "92 - 47 = (92 + 3) - (47 + 3) = 95 - 50 = 45"
+    }
+  ],
+  "multiplication": [
+    {
+      "title": "Multiply by 5 Shortcut",
+      "text": "To multiply any number by 5, divide it by 2 and multiply by 10 (or append a zero).",
+      "example": "48 × 5 = (48 ÷ 2) × 10 = 24 × 10 = 240"
+    },
+    {
+      "title": "Split and Distribute",
+      "text": "Split a 2-digit number into tens and ones, multiply each separately, and sum the products.",
+      "example": "14 × 7 = (10 × 7) + (4 × 7) = 70 + 28 = 98"
+    },
+    {
+      "title": "Double and Halve",
+      "text": "Double one factor and halve the other to simplify the mental calculation.",
+      "example": "25 × 16 = 50 × 8 = 100 × 4 = 400"
+    }
+  ],
+  "division": [
+    {
+      "title": "Divide by 5 Shortcut",
+      "text": "To divide by 5, double the dividend and divide by 10 (drop the zero or shift the decimal).",
+      "example": "140 ÷ 5 = (140 × 2) ÷ 10 = 280 ÷ 10 = 28"
+    },
+    {
+      "title": "Factor the Divisor",
+      "text": "Break composite divisors into smaller prime factors and divide in two quick steps.",
+      "example": "168 ÷ 12 = (168 ÷ 4) ÷ 3 = 42 ÷ 3 = 14"
+    },
+    {
+      "title": "Partial Quotients",
+      "text": "Split the dividend into large friendly multiples of the divisor.",
+      "example": "156 ÷ 6 = (120 ÷ 6) + (36 ÷ 6) = 20 + 6 = 26"
+    }
+  ],
+  "squares": [
+    {
+      "title": "Numbers Ending in 5",
+      "text": "Multiply the tens digit by (tens digit + 1), then append 25 to the end.",
+      "example": "35²: 3 × 4 = 12, then append 25 to get 1225"
+    },
+    {
+      "title": "Base 50 Method",
+      "text": "For numbers near 50 with difference d: the hundreds are (25 ± d) and the end is d².",
+      "example": "47² (d = 3 below 50): 25 - 3 = 22, 3² = 09 -> 2209"
+    },
+    {
+      "title": "Difference of Squares",
+      "text": "Calculate a² using (a - d)(a + d) + d² by picking d that rounds to a multiple of 10.",
+      "example": "23² = (20 × 26) + 3² = 520 + 9 = 529"
+    }
+  ],
+  "cubes": [
+    {
+      "title": "Check the Last Digit",
+      "text": "Cubes of 1, 4, 5, 6, 9, 0 keep their ending digit; 2 pairs with 8, and 3 pairs with 7.",
+      "example": "7³ ends in 3 (343); 8³ ends in 2 (512)"
+    },
+    {
+      "title": "Stepwise Cubing (n² × n)",
+      "text": "Recall or compute the square first, then multiply once more by n using distribution.",
+      "example": "12³ = 12² × 12 = 144 × 12 = 1440 + 288 = 1728"
+    },
+    {
+      "title": "Cubes of Multiples of 10",
+      "text": "Cube the non-zero digit and append three zeroes for every zero in the base.",
+      "example": "20³ = 2³ × 1000 = 8 × 1000 = 8000"
+    }
+  ],
+  "squareRoots": [
+    {
+      "title": "Last Digit Clues",
+      "text": "Look at the last digit: ending in 1 means the root ends in 1 or 9; ending in 9 means 3 or 7.",
+      "example": "√841: ends in 1 (must be 21 or 29). Since 30² = 900, √841 = 29"
+    },
+    {
+      "title": "Bracket Between Tens",
+      "text": "Identify which multiples of 10 surround the square, then test the midpoint ending in 5.",
+      "example": "√576: between 20²=400 and 30²=900; since 25²=625, √576 = 24"
+    },
+    {
+      "title": "Roots of Numbers Ending in 25",
+      "text": "If a square ends in 25, the root ends in 5. The leading digits equal n × (n + 1).",
+      "example": "√1225: ends in 5; 12 = 3 × 4, so √1225 = 35"
+    }
+  ],
+  "cubeRoots": [
+    {
+      "title": "Unique Last Digit",
+      "text": "Unlike squares, every digit 0-9 produces a unique ending digit in cubes (2<->8, 3<->7, others unchanged).",
+      "example": "∛2197: ends in 7, so unit digit is 3. 1000 < 2197 < 8000, so ∛2197 = 13"
+    },
+    {
+      "title": "Strip Last Three Digits",
+      "text": "Ignore the hundreds, tens and ones. Match the remaining thousands to the nearest cube below it.",
+      "example": "∛4096: ignore 096; thousands = 4 (between 1³=1 and 2³=8, tens is 1). Last digit is 6 -> 16"
+    },
+    {
+      "title": "Master Cubes up to 10",
+      "text": "Memorizing 1³ through 10³ allows finding any perfect cube root up to 1,000,000 instantaneously.",
+      "example": "7³ = 343, so ∛343 = 7"
+    }
+  ],
+  "exponents": [
+    {
+      "title": "Powers of 2 Chain",
+      "text": "Double continuously to reach high powers of 2 mentally.",
+      "example": "2⁵ = 32 -> 2⁶ = 64 -> 2⁷ = 128 -> 2⁸ = 256"
+    },
+    {
+      "title": "Split Exponents (a^(m+n))",
+      "text": "Split a tricky exponent into the sum of two familiar exponents and multiply the results.",
+      "example": "3⁵ = 3³ × 3² = 27 × 9 = 243"
+    },
+    {
+      "title": "Power of a Power ((a^m)^n)",
+      "text": "Rewrite even powers as squares of known values.",
+      "example": "4⁴ = (4²)² = 16² = 256"
+    }
+  ]
+}
