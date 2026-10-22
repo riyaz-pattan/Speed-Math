@@ -20,12 +20,16 @@ class Question {
   /// The correct integer answer.
   final int correctAnswer;
 
+  /// The specific pattern / question type (e.g. 'add_e_one_carry').
+  final String? pattern;
+
   const Question({
     required this.topic,
     required this.difficulty,
     required this.displayText,
     required this.operands,
     required this.correctAnswer,
+    this.pattern,
   });
 
   /// The first operand (for database storage as operand_a).
