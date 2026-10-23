@@ -68,13 +68,18 @@ class PracticeConfig {
   final bool correctSoundEnabled;
   final bool wrongSoundEnabled;
   final double soundVolume;
+  final double? correctSoundVolume;
+  final double? wrongSoundVolume;
   final KeypadStyle keypadStyle;
   final List<Topic> selectedTopics;
   final List<dynamic>? initialMistakes;
   final SessionKind kind;
   final bool focusOnWeakAreas;
+  final bool similarMistakes;
 
   bool get autoAdvance => autoSubmit;
+  double get effectiveCorrectSoundVolume => correctSoundVolume ?? soundVolume;
+  double get effectiveWrongSoundVolume => wrongSoundVolume ?? soundVolume;
 
   const PracticeConfig({
     required this.topic,
@@ -84,6 +89,7 @@ class PracticeConfig {
     required this.sessionSeed,
     SessionKind? kind,
     this.focusOnWeakAreas = true,
+    this.similarMistakes = false,
     bool? autoSubmit,
     bool? autoAdvance,
     this.hapticsEnabled = true,
@@ -92,6 +98,8 @@ class PracticeConfig {
     bool? correctSoundEnabled,
     bool? wrongSoundEnabled,
     this.soundVolume = 1.0,
+    this.correctSoundVolume,
+    this.wrongSoundVolume,
     this.keypadStyle = KeypadStyle.phone,
     List<Topic>? selectedTopics,
     this.initialMistakes,
@@ -117,6 +125,8 @@ class PracticeConfig {
     bool correctSoundEnabled = false,
     bool wrongSoundEnabled = false,
     double soundVolume = 1.0,
+    double? correctSoundVolume,
+    double? wrongSoundVolume,
     KeypadStyle keypadStyle = KeypadStyle.phone,
     List<dynamic>? initialMistakes,
   }) {
@@ -136,6 +146,8 @@ class PracticeConfig {
       correctSoundEnabled: correctSoundEnabled,
       wrongSoundEnabled: wrongSoundEnabled,
       soundVolume: soundVolume,
+      correctSoundVolume: correctSoundVolume,
+      wrongSoundVolume: wrongSoundVolume,
       keypadStyle: keypadStyle,
       initialMistakes: initialMistakes,
     );
@@ -160,6 +172,7 @@ class PracticeConfig {
     int? sessionSeed,
     SessionKind? kind,
     bool? focusOnWeakAreas,
+    bool? similarMistakes,
     bool? autoSubmit,
     bool? autoAdvance,
     bool? hapticsEnabled,
@@ -168,6 +181,8 @@ class PracticeConfig {
     bool? correctSoundEnabled,
     bool? wrongSoundEnabled,
     double? soundVolume,
+    double? correctSoundVolume,
+    double? wrongSoundVolume,
     KeypadStyle? keypadStyle,
     List<Topic>? selectedTopics,
     List<dynamic>? initialMistakes,
@@ -183,6 +198,7 @@ class PracticeConfig {
       sessionSeed: sessionSeed ?? this.sessionSeed,
       kind: kind ?? this.kind,
       focusOnWeakAreas: focusOnWeakAreas ?? this.focusOnWeakAreas,
+      similarMistakes: similarMistakes ?? this.similarMistakes,
       autoSubmit: autoSubmit ?? autoAdvance ?? this.autoSubmit,
       hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
       vibrationStrength: vibrationStrength ?? this.vibrationStrength,
@@ -190,6 +206,8 @@ class PracticeConfig {
       wrongSoundEnabled: newWrongSound,
       soundEnabled: soundEnabled ?? (newCorrectSound || newWrongSound),
       soundVolume: soundVolume ?? this.soundVolume,
+      correctSoundVolume: correctSoundVolume ?? this.correctSoundVolume,
+      wrongSoundVolume: wrongSoundVolume ?? this.wrongSoundVolume,
       keypadStyle: keypadStyle ?? this.keypadStyle,
       selectedTopics: selectedTopics ?? this.selectedTopics,
       initialMistakes: initialMistakes ?? this.initialMistakes,

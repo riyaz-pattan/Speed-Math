@@ -352,6 +352,73 @@ class DebugSampleDataService {
         addedAt: now.subtract(const Duration(days: 5)),
         dueCounter: 0,
       ),
+
+      // New topics sample mistakes
+      MistakeEntry(
+        topic: Topic.percentages,
+        difficulty: Difficulty.easy,
+        questionText: '25% of 360',
+        operands: const [25, 360],
+        correctAnswer: 90,
+        stage: 0,
+        correctStreak: 0,
+        wrongCount: 1,
+        source: MistakeSource.wrong,
+        addedAt: now.subtract(const Duration(hours: 6)),
+        dueCounter: 0,
+      ),
+      MistakeEntry(
+        topic: Topic.fractions,
+        difficulty: Difficulty.medium,
+        questionText: '3/8 of 640',
+        operands: const [3, 8, 640],
+        correctAnswer: 240,
+        stage: 1,
+        correctStreak: 1,
+        wrongCount: 1,
+        source: MistakeSource.slow,
+        addedAt: now.subtract(const Duration(days: 2)),
+        dueCounter: 0,
+      ),
+      MistakeEntry(
+        topic: Topic.simplification,
+        difficulty: Difficulty.easy,
+        questionText: '12 × 4 - 15',
+        operands: const [12, 4, 15],
+        correctAnswer: 33,
+        stage: 0,
+        correctStreak: 0,
+        wrongCount: 2,
+        source: MistakeSource.wrong,
+        addedAt: now.subtract(const Duration(days: 1)),
+        dueCounter: 0,
+      ),
+      MistakeEntry(
+        topic: Topic.averages,
+        difficulty: Difficulty.easy,
+        questionText: 'Average of 45, 65, 70',
+        operands: const [45, 65, 70],
+        correctAnswer: 60,
+        stage: 2,
+        correctStreak: 2,
+        wrongCount: 1,
+        source: MistakeSource.wrong,
+        addedAt: now.subtract(const Duration(days: 4)),
+        dueCounter: 0,
+      ),
+      MistakeEntry(
+        topic: Topic.missingNumber,
+        difficulty: Difficulty.easy,
+        questionText: '? + 17 = 54',
+        operands: const [17, 54],
+        correctAnswer: 37,
+        stage: 1,
+        correctStreak: 1,
+        wrongCount: 1,
+        source: MistakeSource.skipped,
+        addedAt: now.subtract(const Duration(days: 3)),
+        dueCounter: 0,
+      ),
     ];
 
     final batch = db.batch();
@@ -598,6 +665,53 @@ class DebugSampleDataService {
       avgTimeMsEma: 2900.0,
       lastPracticedAt: currSqDate,
     ));
+
+    // 6. Ratings for new topics
+    await repoSkill.saveRating(SkillRating(
+      topic: Topic.percentages,
+      difficulty: Difficulty.easy,
+      mastery: 0.85,
+      attemptsCount: 25,
+      accuracyEma: 0.90,
+      avgTimeMsEma: 3200.0,
+      lastPracticedAt: now.subtract(const Duration(hours: 18)),
+    ));
+    await repoSkill.saveRating(SkillRating(
+      topic: Topic.fractions,
+      difficulty: Difficulty.medium,
+      mastery: 0.72,
+      attemptsCount: 20,
+      accuracyEma: 0.80,
+      avgTimeMsEma: 4100.0,
+      lastPracticedAt: now.subtract(const Duration(days: 2)),
+    ));
+    await repoSkill.saveRating(SkillRating(
+      topic: Topic.simplification,
+      difficulty: Difficulty.easy,
+      mastery: 0.76,
+      attemptsCount: 18,
+      accuracyEma: 0.82,
+      avgTimeMsEma: 4800.0,
+      lastPracticedAt: now.subtract(const Duration(days: 3)),
+    ));
+    await repoSkill.saveRating(SkillRating(
+      topic: Topic.averages,
+      difficulty: Difficulty.easy,
+      mastery: 0.80,
+      attemptsCount: 15,
+      accuracyEma: 0.85,
+      avgTimeMsEma: 5200.0,
+      lastPracticedAt: now.subtract(const Duration(days: 1)),
+    ));
+    await repoSkill.saveRating(SkillRating(
+      topic: Topic.missingNumber,
+      difficulty: Difficulty.easy,
+      mastery: 0.82,
+      attemptsCount: 22,
+      accuracyEma: 0.86,
+      avgTimeMsEma: 3400.0,
+      lastPracticedAt: now.subtract(const Duration(hours: 8)),
+    ));
   }
 
   /// Clears all database records including skill ratings and mistake bank (debug only).
@@ -607,6 +721,7 @@ class DebugSampleDataService {
     await db.delete(DatabaseHelper.tableAttempts);
     await db.delete(DatabaseHelper.tableSessions);
     await db.delete(SkillRepository.tableSkillRatings);
+    await db.delete(DatabaseHelper.tablePatternSkills);
     await db.delete(DatabaseHelper.tableMistakeBank);
 
     final prefs = await SharedPreferences.getInstance();

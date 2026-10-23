@@ -17,6 +17,7 @@ class Attempt {
   final bool isSkipped;
   final int timeMs;
   final DateTime createdAt;
+  final String? pattern;
 
   const Attempt({
     this.id,
@@ -32,6 +33,7 @@ class Attempt {
     this.isSkipped = false,
     this.timeMs = 0,
     required this.createdAt,
+    this.pattern,
   });
 
   /// Converts this [Attempt] instance into a database map.
@@ -49,6 +51,7 @@ class Attempt {
       'is_skipped': isSkipped ? 1 : 0,
       'time_ms': timeMs,
       'created_at': createdAt.toIso8601String(),
+      'pattern': pattern,
     };
     if (id != null) {
       map['id'] = id;
@@ -72,6 +75,7 @@ class Attempt {
       isSkipped: ((map['is_skipped'] as num?)?.toInt() ?? 0) == 1,
       timeMs: (map['time_ms'] as num?)?.toInt() ?? 0,
       createdAt: DateTime.parse(map['created_at'] as String),
+      pattern: map['pattern'] as String?,
     );
   }
 
@@ -90,6 +94,7 @@ class Attempt {
     bool? isSkipped,
     int? timeMs,
     DateTime? createdAt,
+    String? pattern,
   }) {
     return Attempt(
       id: id ?? this.id,
@@ -105,6 +110,7 @@ class Attempt {
       isSkipped: isSkipped ?? this.isSkipped,
       timeMs: timeMs ?? this.timeMs,
       createdAt: createdAt ?? this.createdAt,
+      pattern: pattern ?? this.pattern,
     );
   }
 

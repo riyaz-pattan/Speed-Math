@@ -24,7 +24,12 @@ class AppTheme {
   static const Color squareRootsColor = Color(0xFFF59E0B); // Amber
   static const Color cubeRootsColor = Color(0xFF06B6D4); // Cyan
   static const Color exponentsColor = Color(0xFFEF4444); // Red
-  static const Color mixedColor = Color(0xFF6366F1); // Indigo / Violet for Smart Practice
+  static const Color percentagesColor = Color(0xFF65A30D); // Lime
+  static const Color fractionsColor = Color(0xFFF43F5E); // Rose
+  static const Color simplificationColor = Color(0xFF4F46E5); // Indigo
+  static const Color averagesColor = Color(0xFFEA580C); // Deep Orange
+  static const Color missingNumberColor = Color(0xFF64748B); // Slate
+  static const Color mixedColor = Color(0xFF8B5CF6); // Violet for Mixed practice
 
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [primaryColor, violetAccent],
@@ -43,6 +48,11 @@ class AppTheme {
       Topic.squareRoots => squareRootsColor,
       Topic.cubeRoots => cubeRootsColor,
       Topic.exponents => exponentsColor,
+      Topic.percentages => percentagesColor,
+      Topic.fractions => fractionsColor,
+      Topic.simplification => simplificationColor,
+      Topic.averages => averagesColor,
+      Topic.missingNumber => missingNumberColor,
       Topic.mixed => mixedColor,
     };
   }
@@ -67,6 +77,11 @@ class AppTheme {
       Topic.squareRoots => Icons.square_foot_rounded,
       Topic.cubeRoots => Icons.hub_rounded,
       Topic.exponents => Icons.superscript_rounded,
+      Topic.percentages => Icons.pie_chart_outline_rounded,
+      Topic.fractions => Icons.call_split_rounded,
+      Topic.simplification => Icons.functions_rounded,
+      Topic.averages => Icons.bar_chart_rounded,
+      Topic.missingNumber => Icons.help_outline_rounded,
       Topic.mixed => Icons.auto_awesome_rounded,
     };
   }

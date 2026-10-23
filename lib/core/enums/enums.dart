@@ -11,6 +11,11 @@ enum Topic {
   squareRoots(symbol: '√'),
   cubeRoots(symbol: '³√'),
   exponents(symbol: 'x^y'),
+  percentages(symbol: '%'),
+  fractions(symbol: '½'),
+  simplification(symbol: '( )'),
+  averages(symbol: 'x̄'),
+  missingNumber(symbol: '?'),
   mixed(symbol: '±');
 
   const Topic({required this.symbol});
@@ -27,6 +32,11 @@ enum Topic {
     Topic.squareRoots => AppStrings.squareRoots,
     Topic.cubeRoots => AppStrings.cubeRoots,
     Topic.exponents => AppStrings.exponents,
+    Topic.percentages => AppStrings.percentages,
+    Topic.fractions => AppStrings.fractions,
+    Topic.simplification => AppStrings.simplification,
+    Topic.averages => AppStrings.averages,
+    Topic.missingNumber => AppStrings.missingNumber,
     Topic.mixed => AppStrings.mixedTopics,
   };
 

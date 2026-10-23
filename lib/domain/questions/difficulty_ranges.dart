@@ -147,4 +147,87 @@ abstract final class DifficultyRanges {
   static const int exponentsHardPowMin = 3;
   static const int exponentsHardPowMax = 6;
   static const int exponentsHardMaxResult = 1000000;
+
+  // --- Percentages (x% of N) ---
+  // Easy: x in [10, 20, 25, 50], N multiple of 20 up to 400
+  static const List<int> percentagesEasyPercentages = [10, 20, 25, 50];
+  static const int percentagesEasyNMultiple = 20;
+  static const int percentagesEasyNMin = 20;
+  static const int percentagesEasyNMax = 400;
+
+  // Medium: x multiple of 5 (5..95), N multiple of 20 (100..1000)
+  static const int percentagesMediumXMin = 5;
+  static const int percentagesMediumXMax = 95;
+  static const int percentagesMediumXMultiple = 5;
+  static const int percentagesMediumNMin = 100;
+  static const int percentagesMediumNMax = 1000;
+  static const int percentagesMediumNMultiple = 20;
+
+  // Hard: x% of A ± y% of B, x, y multiples of 5, A, B multiples of 20 (200..1500)
+  static const int percentagesHardXMin = 5;
+  static const int percentagesHardXMax = 95;
+  static const int percentagesHardNMin = 200;
+  static const int percentagesHardNMax = 1500;
+  static const int percentagesHardNMultiple = 20;
+
+  // --- Fractions (a/b of N) ---
+  // Easy: b in [2, 3, 4, 5, 6, 8, 10], a < b, N multiple of b up to 200
+  static const List<int> fractionsEasyDenominators = [2, 3, 4, 5, 6, 8, 10];
+  static const int fractionsEasyNMax = 200;
+
+  // Medium: b in 2..12, a < b, N multiple of b in 100..1000
+  static const int fractionsMediumDenomMin = 2;
+  static const int fractionsMediumDenomMax = 12;
+  static const int fractionsMediumNMin = 100;
+  static const int fractionsMediumNMax = 1000;
+
+  // Hard: a/b of N ± c/d of M, b, d in 2..12, N, M in 100..600
+  static const int fractionsHardDenomMin = 2;
+  static const int fractionsHardDenomMax = 12;
+  static const int fractionsHardNMin = 100;
+  static const int fractionsHardNMax = 600;
+
+  // --- Simplification (BODMAS) ---
+  // Easy: small numbers, forms: a + b × c, a × b - c, a × b + c, a + b ÷ c
+  static const int simplificationEasyMin = 2;
+  static const int simplificationEasyMax = 12;
+  static const int simplificationEasyAddendMax = 50;
+
+  // Medium: numbers up to 50, result up to 5000, brackets and two operations
+  static const int simplificationMediumOperandMax = 50;
+  static const int simplificationMediumResultMax = 5000;
+
+  // Hard: includes square and exact division, result up to 10000
+  static const int simplificationHardSquareBaseMin = 12;
+  static const int simplificationHardSquareBaseMax = 35;
+  static const int simplificationHardResultMax = 10000;
+
+  // --- Averages ---
+  // Easy: 3 two-digit numbers (10..99), sum divisible by 3
+  static const int averagesEasyCount = 3;
+  static const int averagesEasyMin = 10;
+  static const int averagesEasyMax = 99;
+
+  // Medium: 5 numbers of 2 to 3 digits (20..300), sum divisible by 5
+  static const int averagesMediumCount = 5;
+  static const int averagesMediumMin = 20;
+  static const int averagesMediumMax = 300;
+
+  // Hard: Average of 5 numbers is A (20..150), 4 numbers given, find 5th
+  static const int averagesHardCount = 5;
+  static const int averagesHardAverageMin = 20;
+  static const int averagesHardAverageMax = 150;
+
+  // --- Missing Number ---
+  // Easy: ? + a = b, 6 × ? = 48, etc. (numbers 2..99)
+  static const int missingNumberEasyOperandMin = 2;
+  static const int missingNumberEasyOperandMax = 99;
+
+  // Medium: ? × 23 = 391, ? / 14 = 12, 205 - ? = 118 (numbers up to 500)
+  static const int missingNumberMediumOperandMin = 4;
+  static const int missingNumberMediumOperandMax = 500;
+
+  // Hard: ? × 17 - 45 = 392, (? + 18) × 7 = 245
+  static const int missingNumberHardOperandMin = 3;
+  static const int missingNumberHardOperandMax = 500;
 }

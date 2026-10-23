@@ -113,6 +113,50 @@ class PatternConstants {
   static const String expHSmallBase = 'exp_h_small_base';
   static const String expHLargeBase = 'exp_h_large_base';
 
+  // --- PERCENTAGES PATTERNS ---
+  static const String pctETenFifty = 'pct_e_ten_fifty';
+  static const String pctETwentyTwentyfive = 'pct_e_twenty_twentyfive';
+  static const String pctMQuarterMult = 'pct_m_quarter_mult';
+  static const String pctMTenthMult = 'pct_m_tenth_mult';
+  static const String pctMFifthMult = 'pct_m_fifth_mult';
+  static const String pctHAddition = 'pct_h_addition';
+  static const String pctHSubtraction = 'pct_h_subtraction';
+
+  // --- FRACTIONS PATTERNS ---
+  static const String fracESmallDenom = 'frac_e_small_denom';
+  static const String fracEMidDenom = 'frac_e_mid_denom';
+  static const String fracMBandSmall = 'frac_m_band_small';
+  static const String fracMBandMid = 'frac_m_band_mid';
+  static const String fracMBandLarge = 'frac_m_band_large';
+  static const String fracHAddition = 'frac_h_addition';
+  static const String fracHSubtraction = 'frac_h_subtraction';
+
+  // --- SIMPLIFICATION PATTERNS ---
+  static const String simpEAddMul = 'simp_e_add_mul';
+  static const String simpEMulSub = 'simp_e_mul_sub';
+  static const String simpEDiv = 'simp_e_div';
+  static const String simpMBrackets = 'simp_m_brackets';
+  static const String simpMTwoOps = 'simp_m_two_ops';
+  static const String simpHSquareDivMul = 'simp_h_square_div_mul';
+  static const String simpHSquareAddSub = 'simp_h_square_add_sub';
+
+  // --- AVERAGES PATTERNS ---
+  static const String avgECloseSpread = 'avg_e_close_spread';
+  static const String avgEWideSpread = 'avg_e_wide_spread';
+  static const String avgMTwoDigit = 'avg_m_two_digit';
+  static const String avgMMixedDigits = 'avg_m_mixed_digits';
+  static const String avgHFindMissing = 'avg_h_find_missing';
+
+  // --- MISSING NUMBER PATTERNS ---
+  static const String misEAddition = 'mis_e_addition';
+  static const String misESubtraction = 'mis_e_subtraction';
+  static const String misEMultiplication = 'mis_e_multiplication';
+  static const String misMMultiplication = 'mis_m_multiplication';
+  static const String misMDivision = 'mis_m_division';
+  static const String misMSubtraction = 'mis_m_subtraction';
+  static const String misHLinear = 'mis_h_linear';
+  static const String misHBrackets = 'mis_h_brackets';
+
   /// Returns all available patterns for a specific [topic] and [difficulty].
   static List<String> patternsFor(Topic topic, Difficulty difficulty) {
     switch (topic) {
@@ -215,10 +259,71 @@ class PatternConstants {
           case Difficulty.mixed:
             return [];
         }
+      case Topic.percentages:
+        switch (difficulty) {
+          case Difficulty.easy:
+            return [pctETenFifty, pctETwentyTwentyfive];
+          case Difficulty.medium:
+            return [pctMQuarterMult, pctMTenthMult, pctMFifthMult];
+          case Difficulty.hard:
+            return [pctHAddition, pctHSubtraction];
+          case Difficulty.mixed:
+            return [];
+        }
+      case Topic.fractions:
+        switch (difficulty) {
+          case Difficulty.easy:
+            return [fracESmallDenom, fracEMidDenom];
+          case Difficulty.medium:
+            return [fracMBandSmall, fracMBandMid, fracMBandLarge];
+          case Difficulty.hard:
+            return [fracHAddition, fracHSubtraction];
+          case Difficulty.mixed:
+            return [];
+        }
+      case Topic.simplification:
+        switch (difficulty) {
+          case Difficulty.easy:
+            return [simpEAddMul, simpEMulSub, simpEDiv];
+          case Difficulty.medium:
+            return [simpMBrackets, simpMTwoOps];
+          case Difficulty.hard:
+            return [simpHSquareDivMul, simpHSquareAddSub];
+          case Difficulty.mixed:
+            return [];
+        }
+      case Topic.averages:
+        switch (difficulty) {
+          case Difficulty.easy:
+            return [avgECloseSpread, avgEWideSpread];
+          case Difficulty.medium:
+            return [avgMTwoDigit, avgMMixedDigits];
+          case Difficulty.hard:
+            return [avgHFindMissing];
+          case Difficulty.mixed:
+            return [];
+        }
+      case Topic.missingNumber:
+        switch (difficulty) {
+          case Difficulty.easy:
+            return [misEAddition, misESubtraction, misEMultiplication];
+          case Difficulty.medium:
+            return [misMMultiplication, misMDivision, misMSubtraction];
+          case Difficulty.hard:
+            return [misHLinear, misHBrackets];
+          case Difficulty.mixed:
+            return [];
+        }
       case Topic.mixed:
         return [];
     }
   }
+
+  /// All registered patterns.
+  static List<String> get allPatterns => _labels.keys.toList();
+
+  /// Map of all pattern codes to human-readable labels.
+  static Map<String, String> get allLabels => Map.unmodifiable(_labels);
 
   /// Human-readable label for a given [pattern].
   static String labelFor(String pattern) {
@@ -317,6 +422,50 @@ class PatternConstants {
     expMHighPower: 'Exponents with power 4 or 5',
     expHSmallBase: 'Exponents with bases 2 to 5',
     expHLargeBase: 'Exponents with bases 6 to 15',
+
+    // Percentages
+    pctETenFifty: '10% or 50% of numbers up to 400',
+    pctETwentyTwentyfive: '20% or 25% of numbers up to 400',
+    pctMQuarterMult: 'Multiples of 25% (25%, 75%) of numbers up to 1000',
+    pctMTenthMult: 'Multiples of 10% of numbers up to 1000',
+    pctMFifthMult: 'Percentages ending in 5% (15%, 35%, 45%, etc.)',
+    pctHAddition: 'Combined percentages (x% of A + y% of B)',
+    pctHSubtraction: 'Difference of percentages (x% of A − y% of B)',
+
+    // Fractions
+    fracESmallDenom: 'Fractions with small denominator (2 to 4)',
+    fracEMidDenom: 'Fractions with denominator (5, 6, 8, 10)',
+    fracMBandSmall: 'Fractions with denominator 2 to 5',
+    fracMBandMid: 'Fractions with denominator 6 to 8',
+    fracMBandLarge: 'Fractions with denominator 9 to 12',
+    fracHAddition: 'Adding two fraction values (a/b of N + c/d of M)',
+    fracHSubtraction: 'Subtracting fraction values (a/b of N − c/d of M)',
+
+    // Simplification
+    simpEAddMul: 'a + b × c expressions',
+    simpEMulSub: 'a × b − c expressions',
+    simpEDiv: 'a + b ÷ c expressions',
+    simpMBrackets: 'Expressions with brackets (e.g. (a + b) × c − d)',
+    simpMTwoOps: 'Two-operation expressions (e.g. a × b ± c × d)',
+    simpHSquareDivMul: 'Expressions with square, division, and multiplication',
+    simpHSquareAddSub: 'Expressions with square, addition, and division',
+
+    // Averages
+    avgECloseSpread: 'Average of 3 numbers with close spread',
+    avgEWideSpread: 'Average of 3 numbers with wider spread',
+    avgMTwoDigit: 'Average of 5 two-digit numbers',
+    avgMMixedDigits: 'Average of 5 two- and three-digit numbers',
+    avgHFindMissing: 'Find the missing 5th number from the average',
+
+    // Missing Number
+    misEAddition: 'Missing addend (? + a = b)',
+    misESubtraction: 'Missing minuend (? − a = b)',
+    misEMultiplication: 'Missing factor (a × ? = b)',
+    misMMultiplication: 'Missing factor with 2-digit numbers (? × a = b)',
+    misMDivision: 'Missing dividend (? ÷ a = b)',
+    misMSubtraction: 'Missing subtrahend (a − ? = b)',
+    misHLinear: 'Linear equation (? × a ± b = c)',
+    misHBrackets: 'Equation with brackets ((? ± a) × b = c)',
   };
 
   /// Pure function that recomputes the pattern from topic, difficulty, and operands.
@@ -485,6 +634,88 @@ class PatternConstants {
             return base <= 5 ? expHSmallBase : expHLargeBase;
           case Difficulty.mixed:
             return expESquared;
+        }
+
+      case Topic.percentages:
+        final x = operands.isNotEmpty ? operands[0] : 10;
+        switch (difficulty) {
+          case Difficulty.easy:
+            return (x == 10 || x == 50) ? pctETenFifty : pctETwentyTwentyfive;
+          case Difficulty.medium:
+            if (x == 25 || x == 75) return pctMQuarterMult;
+            if (x % 10 == 0) return pctMTenthMult;
+            return pctMFifthMult;
+          case Difficulty.hard:
+            final isMinus = operands.length > 4 && operands[4] == 1;
+            return isMinus ? pctHSubtraction : pctHAddition;
+          case Difficulty.mixed:
+            return pctETenFifty;
+        }
+
+      case Topic.fractions:
+        final b = operands.length > 1 ? operands[1] : 2;
+        switch (difficulty) {
+          case Difficulty.easy:
+            return b <= 4 ? fracESmallDenom : fracEMidDenom;
+          case Difficulty.medium:
+            if (b <= 5) return fracMBandSmall;
+            if (b <= 8) return fracMBandMid;
+            return fracMBandLarge;
+          case Difficulty.hard:
+            final isMinus = operands.length > 6 && operands[6] == 1;
+            return isMinus ? fracHSubtraction : fracHAddition;
+          case Difficulty.mixed:
+            return fracESmallDenom;
+        }
+
+      case Topic.simplification:
+        final form = operands.isNotEmpty ? operands.last : 0;
+        switch (difficulty) {
+          case Difficulty.easy:
+            if (form == 1) return simpEAddMul;
+            if (form == 2) return simpEMulSub;
+            return simpEDiv;
+          case Difficulty.medium:
+            return (form == 1 || form == 2) ? simpMBrackets : simpMTwoOps;
+          case Difficulty.hard:
+            return form == 1 ? simpHSquareDivMul : simpHSquareAddSub;
+          case Difficulty.mixed:
+            return simpEAddMul;
+        }
+
+      case Topic.averages:
+        switch (difficulty) {
+          case Difficulty.easy:
+            if (operands.length >= 3) {
+              final spread = (operands[0] - operands[1]).abs() +
+                  (operands[1] - operands[2]).abs();
+              return spread <= 40 ? avgECloseSpread : avgEWideSpread;
+            }
+            return avgECloseSpread;
+          case Difficulty.medium:
+            final has3Digit = operands.any((n) => n >= 100);
+            return has3Digit ? avgMMixedDigits : avgMTwoDigit;
+          case Difficulty.hard:
+            return avgHFindMissing;
+          case Difficulty.mixed:
+            return avgECloseSpread;
+        }
+
+      case Topic.missingNumber:
+        final op = operands.isNotEmpty ? operands.last : 0;
+        switch (difficulty) {
+          case Difficulty.easy:
+            if (op == 1) return misEAddition;
+            if (op == 2) return misESubtraction;
+            return misEMultiplication;
+          case Difficulty.medium:
+            if (op == 1) return misMMultiplication;
+            if (op == 2) return misMDivision;
+            return misMSubtraction;
+          case Difficulty.hard:
+            return op == 1 ? misHLinear : misHBrackets;
+          case Difficulty.mixed:
+            return misEAddition;
         }
 
       case Topic.mixed:

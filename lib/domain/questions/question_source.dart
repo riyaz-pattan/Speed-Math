@@ -2,7 +2,10 @@ import 'dart:math';
 import '../../core/enums/enums.dart';
 import '../../features/practice_session/models/practice_models.dart';
 import '../adaptive/mistake_entry.dart';
+import '../adaptive/pattern_picker.dart';
+import '../adaptive/pattern_skill.dart';
 import '../adaptive/smart_question_picker.dart';
+import 'pattern_constants.dart';
 import 'question.dart';
 import 'question_generator.dart';
 import 'question_generator_registry.dart';
@@ -33,22 +36,30 @@ class GeneratorQuestionSource implements QuestionSource {
   final QuestionGenerator generator;
   final Difficulty difficulty;
   final Random random;
+  final bool focusWeakAreas;
+  final Map<String, PatternSkill> patternSkills;
 
   GeneratorQuestionSource({
     required this.generator,
     required this.difficulty,
     required this.random,
+    this.focusWeakAreas = true,
+    this.patternSkills = const {},
   });
 
   factory GeneratorQuestionSource.forTopic({
     required Topic topic,
     required Difficulty difficulty,
     required Random random,
+    bool focusWeakAreas = true,
+    Map<String, PatternSkill> patternSkills = const {},
   }) {
     return GeneratorQuestionSource(
       generator: QuestionGeneratorRegistry.getGenerator(topic),
       difficulty: difficulty,
       random: random,
+      focusWeakAreas: focusWeakAreas,
+      patternSkills: patternSkills,
     );
   }
 
@@ -57,10 +68,25 @@ class GeneratorQuestionSource implements QuestionSource {
     Question? previousQuestion,
     List<SessionAttempt>? recentAttempts,
   }) {
+    final recentPatterns = recentAttempts
+        ?.map((a) => a.question.pattern)
+        .whereType<String>()
+        .toList();
+
+    final targetPattern = PatternPicker.pickPattern(
+      topic: generator.topic,
+      difficulty: difficulty,
+      focusWeakAreas: focusWeakAreas,
+      patternSkills: patternSkills,
+      random: random,
+      recentPatterns: recentPatterns,
+    );
+
     final q = generator.generateUnique(
       difficulty: difficulty,
       random: random,
       previousQuestion: previousQuestion,
+      pattern: targetPattern,
     );
     return QuestionNext(question: q, isReplayedMistake: false);
   }
@@ -115,6 +141,53 @@ class MistakeQuestionSource implements QuestionSource {
       question: entry.toQuestion(),
       isReplayedMistake: true,
       mistakeId: entry.id,
+    );
+  }
+}
+
+/// Question source for practicing concept-equivalent fresh questions of missed mistakes.
+class SimilarMistakeQuestionSource implements QuestionSource {
+  final List<MistakeEntry> mistakes;
+  final Random random;
+  int _index = 0;
+
+  SimilarMistakeQuestionSource({
+    required this.mistakes,
+    required this.random,
+  });
+
+  @override
+  QuestionNext next({
+    Question? previousQuestion,
+    List<SessionAttempt>? recentAttempts,
+  }) {
+    if (mistakes.isEmpty) {
+      final gen = QuestionGeneratorRegistry.getGenerator(Topic.addition);
+      final q = gen.generate(difficulty: Difficulty.easy, random: random);
+      return QuestionNext(question: q, isReplayedMistake: false);
+    }
+
+    final entry = mistakes[_index % mistakes.length];
+    _index++;
+
+    final gen = QuestionGeneratorRegistry.getGenerator(entry.topic);
+    final pattern = PatternConstants.patternOf(
+      entry.topic,
+      entry.difficulty,
+      entry.operands,
+    );
+
+    final q = gen.generateUnique(
+      difficulty: entry.difficulty,
+      random: random,
+      previousQuestion: previousQuestion,
+      pattern: pattern,
+    );
+
+    return QuestionNext(
+      question: q,
+      isReplayedMistake: false,
+      mistakeId: null,
     );
   }
 }

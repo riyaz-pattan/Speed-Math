@@ -1,4 +1,5 @@
 import 'adaptive_constants.dart';
+import 'pattern_skill.dart';
 import 'skill_rating.dart';
 
 /// Classification of a user's skill bucket.
@@ -76,6 +77,43 @@ class SkillEngine {
     final newAccuracyEma = current.accuracyEma + alpha * (accuracyInput - current.accuracyEma);
 
     // Avg time EMA: only update for correct answers
+    double newAvgTimeMsEma = current.avgTimeMsEma;
+    if (timeMsIfCorrect != null) {
+      if (current.avgTimeMsEma == 0.0) {
+        newAvgTimeMsEma = timeMsIfCorrect.toDouble();
+      } else {
+        newAvgTimeMsEma = current.avgTimeMsEma +
+            alpha * (timeMsIfCorrect.toDouble() - current.avgTimeMsEma);
+      }
+    }
+
+    return current.copyWith(
+      mastery: newMastery.clamp(0.0, 1.0),
+      attemptsCount: current.attemptsCount + 1,
+      accuracyEma: newAccuracyEma.clamp(0.0, 1.0),
+      avgTimeMsEma: newAvgTimeMsEma,
+      lastPracticedAt: now ?? DateTime.now(),
+    );
+  }
+
+  /// Updates a [PatternSkill] with a new outcome using identical moving-average rules.
+  PatternSkill updatePatternSkill(
+    PatternSkill current,
+    double outcomeScore, {
+    int? timeMsIfCorrect,
+    DateTime? now,
+  }) {
+    final alpha = current.attemptsCount < AdaptiveConstants.earlyAttemptThreshold
+        ? AdaptiveConstants.alphaEarly
+        : AdaptiveConstants.alphaLate;
+
+    final newMastery =
+        current.mastery + alpha * (outcomeScore - current.mastery);
+
+    final accuracyInput = outcomeScore > 0 ? 1.0 : 0.0;
+    final newAccuracyEma =
+        current.accuracyEma + alpha * (accuracyInput - current.accuracyEma);
+
     double newAvgTimeMsEma = current.avgTimeMsEma;
     if (timeMsIfCorrect != null) {
       if (current.avgTimeMsEma == 0.0) {

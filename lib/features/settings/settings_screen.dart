@@ -188,6 +188,23 @@ class SettingsScreen extends ConsumerWidget {
                   ref.invalidate(settingsRepositoryProvider);
                 },
               ),
+              AnimatedCrossFade(
+                duration: const Duration(milliseconds: 200),
+                crossFadeState: settings.correctSoundEnabled
+                    ? CrossFadeState.showFirst
+                    : CrossFadeState.showSecond,
+                firstChild: _InlineSoundVolumeSlider(
+                  label: AppStrings.correctSoundVolume,
+                  volume: settings.correctSoundVolume,
+                  onChangedEnd: (val) async {
+                    await settings.setCorrectSoundVolume(val);
+                    await ref.read(soundServiceProvider).setCorrectVolume(val);
+                    ref.read(soundServiceProvider).playCorrect();
+                    ref.invalidate(settingsRepositoryProvider);
+                  },
+                ),
+                secondChild: const SizedBox.shrink(),
+              ),
               const Divider(height: 1),
               SwitchListTile(
                 title: const Text(
@@ -207,16 +224,22 @@ class SettingsScreen extends ConsumerWidget {
                   ref.invalidate(settingsRepositoryProvider);
                 },
               ),
-              const Divider(height: 1),
-              _SoundVolumeSlider(
-                volume: settings.soundVolume,
-                enabled: settings.correctSoundEnabled || settings.wrongSoundEnabled,
-                onChangedEnd: (val) async {
-                  await settings.setSoundVolume(val);
-                  await ref.read(soundServiceProvider).setVolume(val);
-                  ref.read(soundServiceProvider).playCorrect();
-                  ref.invalidate(settingsRepositoryProvider);
-                },
+              AnimatedCrossFade(
+                duration: const Duration(milliseconds: 200),
+                crossFadeState: settings.wrongSoundEnabled
+                    ? CrossFadeState.showFirst
+                    : CrossFadeState.showSecond,
+                firstChild: _InlineSoundVolumeSlider(
+                  label: AppStrings.wrongSoundVolume,
+                  volume: settings.wrongSoundVolume,
+                  onChangedEnd: (val) async {
+                    await settings.setWrongSoundVolume(val);
+                    await ref.read(soundServiceProvider).setWrongVolume(val);
+                    ref.read(soundServiceProvider).playWrong();
+                    ref.invalidate(settingsRepositoryProvider);
+                  },
+                ),
+                secondChild: const SizedBox.shrink(),
               ),
             ], colorScheme),
             const SizedBox(height: 24),
@@ -403,22 +426,23 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
-class _SoundVolumeSlider extends StatefulWidget {
+class _InlineSoundVolumeSlider extends StatefulWidget {
+  final String label;
   final double volume;
-  final bool enabled;
   final ValueChanged<double> onChangedEnd;
 
-  const _SoundVolumeSlider({
+  const _InlineSoundVolumeSlider({
+    required this.label,
     required this.volume,
-    required this.enabled,
     required this.onChangedEnd,
   });
 
   @override
-  State<_SoundVolumeSlider> createState() => _SoundVolumeSliderState();
+  State<_InlineSoundVolumeSlider> createState() =>
+      _InlineSoundVolumeSliderState();
 }
 
-class _SoundVolumeSliderState extends State<_SoundVolumeSlider> {
+class _InlineSoundVolumeSliderState extends State<_InlineSoundVolumeSlider> {
   late double _current;
 
   @override
@@ -428,7 +452,7 @@ class _SoundVolumeSliderState extends State<_SoundVolumeSlider> {
   }
 
   @override
-  void didUpdateWidget(covariant _SoundVolumeSlider oldWidget) {
+  void didUpdateWidget(covariant _InlineSoundVolumeSlider oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.volume != widget.volume) {
       _current = widget.volume;
@@ -439,10 +463,9 @@ class _SoundVolumeSliderState extends State<_SoundVolumeSlider> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final percent = (_current * 100).round();
-    final disabledColor = theme.colorScheme.onSurface.withValues(alpha: 0.38);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      padding: const EdgeInsets.fromLTRB(16.0, 4.0, 16.0, 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -450,39 +473,41 @@ class _SoundVolumeSliderState extends State<_SoundVolumeSlider> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                AppStrings.soundVolume,
+                widget.label,
                 style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: widget.enabled ? null : disabledColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
               Text(
                 '$percent%',
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: widget.enabled
-                      ? theme.colorScheme.primary
-                      : disabledColor,
+                  color: theme.colorScheme.primary,
                 ),
               ),
             ],
           ),
-          Slider(
-            value: _current,
-            min: 0.0,
-            max: 1.0,
-            divisions: 20,
-            onChanged: widget.enabled
-                ? (val) {
-                    setState(() => _current = val);
-                  }
-                : null,
-            onChangeEnd: widget.enabled
-                ? (val) {
-                    widget.onChangedEnd(val);
-                  }
-                : null,
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 3.0,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7.0),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
+            ),
+            child: Slider(
+              value: _current.clamp(0.0, 1.0),
+              min: 0.0,
+              max: 1.0,
+              divisions: 20,
+              onChanged: (val) {
+                setState(() => _current = val);
+              },
+              onChangeEnd: (val) {
+                widget.onChangedEnd(val);
+              },
+            ),
           ),
         ],
       ),

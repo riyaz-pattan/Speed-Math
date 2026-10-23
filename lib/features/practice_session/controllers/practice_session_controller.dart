@@ -13,6 +13,7 @@ import '../../../data/repositories/session_repository.dart';
 import '../../../data/repositories/skill_repository.dart';
 import '../../../data/repositories/stats_repository.dart';
 import '../../../domain/adaptive/mistake_entry.dart';
+import '../../../domain/adaptive/pattern_skill.dart';
 import '../../../domain/adaptive/skill_engine.dart';
 import '../../../domain/adaptive/skill_rating.dart';
 import '../../../domain/adaptive/smart_question_picker.dart';
@@ -81,6 +82,9 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
   // In-memory running skill ratings map: "${topic.name}:${difficulty.name}" -> SkillRating
   final Map<String, SkillRating> _runningSkillRatings = {};
 
+  // In-memory running pattern skills map: pattern -> PatternSkill
+  final Map<String, PatternSkill> _runningPatternSkills = {};
+
   PracticeSessionController({
     required PracticeConfig config,
     required SessionRepository sessionRepository,
@@ -113,6 +117,8 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
     _startNextQuestion(isInitial: true);
     _initSkillRatings();
     _soundService?.setVolume(config.soundVolume);
+    _soundService?.setCorrectVolume(config.effectiveCorrectSoundVolume);
+    _soundService?.setWrongVolume(config.effectiveWrongSoundVolume);
   }
 
   QuestionSource _createDefaultQuestionSource() {
@@ -121,7 +127,14 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
       final mistakes =
           (state.config.initialMistakes?.cast<MistakeEntry>()) ??
               const <MistakeEntry>[];
-      return MistakeQuestionSource(mistakes: mistakes);
+      if (state.config.similarMistakes) {
+        return SimilarMistakeQuestionSource(
+          mistakes: mistakes,
+          random: _random,
+        );
+      } else {
+        return MistakeQuestionSource(mistakes: mistakes);
+      }
     } else if (state.config.kind == SessionKind.drill &&
         state.config.topic != Topic.mixed &&
         state.config.difficulty != Difficulty.mixed &&
@@ -130,6 +143,8 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
         topic: state.config.topic,
         difficulty: state.config.difficulty,
         random: _random,
+        focusWeakAreas: state.config.focusOnWeakAreas,
+        patternSkills: _runningPatternSkills,
       );
     } else {
       final fixedDiff = state.config.difficulty == Difficulty.mixed
@@ -138,6 +153,7 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
       final picker = SmartQuestionPicker(
         selectedTopics: state.config.selectedTopics,
         ratings: const {},
+        patternSkills: const {},
         dueMistakes: const [],
         random: _random,
         totalSessionQuestions: state.config.modeValue,
@@ -153,15 +169,22 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
       try {
         final allRatings = await _skillRepository.getAllRatingsMap();
         _runningSkillRatings.addAll(allRatings);
+        final allPatternSkills =
+            await _skillRepository.getAllPatternSkillsMap();
+        _runningPatternSkills.addAll(allPatternSkills);
       } catch (_) {}
     }
 
+    final isMistakes = state.config.kind == SessionKind.mistakes ||
+        state.config.mode == PracticeMode.mistakes;
+
     // In Mixed / Smart Practice, update picker with loaded ratings and due mistakes
-    final isMixed = state.config.kind == SessionKind.mixed ||
-        state.config.mode == PracticeMode.smart ||
-        state.config.topic == Topic.mixed ||
-        state.config.difficulty == Difficulty.mixed ||
-        state.config.selectedTopics.length > 1;
+    final isMixed = !isMistakes &&
+        (state.config.kind == SessionKind.mixed ||
+            state.config.mode == PracticeMode.smart ||
+            state.config.topic == Topic.mixed ||
+            state.config.difficulty == Difficulty.mixed ||
+            state.config.selectedTopics.length > 1);
 
     if (isMixed) {
       List<MistakeEntry> dueMistakes = [];
@@ -181,6 +204,7 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
       final picker = SmartQuestionPicker(
         selectedTopics: state.config.selectedTopics,
         ratings: Map.from(_runningSkillRatings),
+        patternSkills: Map.from(_runningPatternSkills),
         dueMistakes: dueMistakes,
         random: _random,
         totalSessionQuestions: state.config.modeValue,
@@ -199,6 +223,30 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
           currentQuestionIsReplay: firstSmart.isReplayedMistake,
           currentMistakeId: firstSmart.mistakeId,
           clearMistakeId: firstSmart.mistakeId == null,
+        );
+      }
+    } else if (state.config.kind == SessionKind.drill &&
+        state.config.topic != Topic.mixed &&
+        state.config.difficulty != Difficulty.mixed &&
+        state.config.selectedTopics.length <= 1) {
+      _questionSource = GeneratorQuestionSource.forTopic(
+        topic: state.config.topic,
+        difficulty: state.config.difficulty,
+        random: _random,
+        focusWeakAreas: state.config.focusOnWeakAreas,
+        patternSkills: Map.from(_runningPatternSkills),
+      );
+
+      // If user hasn't typed yet, refresh first question with pattern question
+      if (state.attempts.isEmpty &&
+          state.currentInput.isEmpty &&
+          !state.currentQuestionHasWrongTry) {
+        final firstQ = _questionSource.next();
+        state = state.copyWith(
+          currentQuestion: firstQ.question,
+          currentQuestionIsReplay: firstQ.isReplayedMistake,
+          currentMistakeId: firstQ.mistakeId,
+          clearMistakeId: firstQ.mistakeId == null,
         );
       }
     }
@@ -389,8 +437,10 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
       mistakeId: state.currentMistakeId,
     );
 
-    // Update skill rating with outcome 0.0 (only for non-replays and non-mistake sessions)
-    final shouldUpdateSkill = state.config.mode != PracticeMode.mistakes &&
+    // Update skill rating with outcome 0.0 (only for non-replays and non-mistake sessions, unless similarMistakes)
+    final isMistakesSession = state.config.mode == PracticeMode.mistakes ||
+        state.config.kind == SessionKind.mistakes;
+    final shouldUpdateSkill = (!isMistakesSession || state.config.similarMistakes) &&
         !state.currentQuestionIsReplay &&
         state.currentQuestion.topic != Topic.mixed;
 
@@ -407,6 +457,21 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
         0.0,
         timeMsIfCorrect: null,
       );
+
+      final patternKey = state.currentQuestion.pattern;
+      if (patternKey != null) {
+        final currentPattern = _runningPatternSkills[patternKey] ??
+            PatternSkill(
+              pattern: patternKey,
+              topic: state.currentQuestion.topic,
+              difficulty: state.currentQuestion.difficulty,
+            );
+        _runningPatternSkills[patternKey] = _skillEngine.updatePatternSkill(
+          currentPattern,
+          0.0,
+          timeMsIfCorrect: null,
+        );
+      }
     }
 
     final updatedAttempts = [...state.attempts, attempt];
@@ -481,7 +546,9 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
     );
 
     // Update skill rating if eligible
-    final shouldUpdateSkill = state.config.mode != PracticeMode.mistakes &&
+    final isMistakesSession = state.config.mode == PracticeMode.mistakes ||
+        state.config.kind == SessionKind.mistakes;
+    final shouldUpdateSkill = (!isMistakesSession || state.config.similarMistakes) &&
         !state.currentQuestionIsReplay &&
         state.currentQuestion.topic != Topic.mixed;
 
@@ -510,6 +577,21 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
         outcome,
         timeMsIfCorrect: isCorrect ? timeMs : null,
       );
+
+      final patternKey = state.currentQuestion.pattern;
+      if (patternKey != null) {
+        final currentPattern = _runningPatternSkills[patternKey] ??
+            PatternSkill(
+              pattern: patternKey,
+              topic: state.currentQuestion.topic,
+              difficulty: state.currentQuestion.difficulty,
+            );
+        _runningPatternSkills[patternKey] = _skillEngine.updatePatternSkill(
+          currentPattern,
+          outcome,
+          timeMsIfCorrect: isCorrect ? timeMs : null,
+        );
+      }
     }
 
     if (state.config.correctSoundEnabled) {
@@ -664,7 +746,9 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
         mistakeId: state.currentMistakeId,
       );
 
-      final shouldUpdateSkill = state.config.mode != PracticeMode.mistakes &&
+      final isMistakesSession = state.config.mode == PracticeMode.mistakes ||
+          state.config.kind == SessionKind.mistakes;
+      final shouldUpdateSkill = (!isMistakesSession || state.config.similarMistakes) &&
           !state.currentQuestionIsReplay &&
           state.currentQuestion.topic != Topic.mixed;
 
@@ -681,6 +765,21 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
           0.0,
           timeMsIfCorrect: null,
         );
+
+        final patternKey = state.currentQuestion.pattern;
+        if (patternKey != null) {
+          final currentPattern = _runningPatternSkills[patternKey] ??
+              PatternSkill(
+                pattern: patternKey,
+                topic: state.currentQuestion.topic,
+                difficulty: state.currentQuestion.difficulty,
+              );
+          _runningPatternSkills[patternKey] = _skillEngine.updatePatternSkill(
+            currentPattern,
+            0.0,
+            timeMsIfCorrect: null,
+          );
+        }
       }
 
       state = state.copyWith(
@@ -756,21 +855,25 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
         isSkipped: a.isSkipped,
         timeMs: a.timeMs,
         createdAt: DateTime.now(),
+        pattern: a.question.pattern,
       );
     }).toList();
 
     await _attemptRepository.insertAttempts(attemptsToSave);
 
-    // Save updated skill ratings to database (for non-mistake sessions)
-    if (_skillRepository != null &&
-        state.config.mode != PracticeMode.mistakes &&
-        state.config.kind != SessionKind.mistakes &&
-        _runningSkillRatings.isNotEmpty) {
-      for (final rating in _runningSkillRatings.values) {
-        try {
-          await _skillRepository.saveRating(rating);
-        } catch (_) {}
-      }
+    // Save updated skill ratings and pattern skills to database (for non-mistake sessions, or similar mistakes)
+    final isMistakesSession = state.config.mode == PracticeMode.mistakes ||
+        state.config.kind == SessionKind.mistakes;
+    final shouldSaveSkills = (!isMistakesSession || state.config.similarMistakes) &&
+        (_runningSkillRatings.isNotEmpty || _runningPatternSkills.isNotEmpty);
+
+    if (_skillRepository != null && shouldSaveSkills) {
+      try {
+        await _skillRepository.saveRatingsAndPatternSkills(
+          _runningSkillRatings.values.toList(),
+          _runningPatternSkills.values.toList(),
+        );
+      } catch (_) {}
     }
 
     // Process Mistake Bank additions and resurfacing replays
@@ -881,6 +984,7 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
       recentAccuracy: recentAccuracy,
       clearedMistakesCount: clearedMistakesCount,
       stillToPracticeCount: stillToPractice,
+      isSimilarMistakes: state.config.similarMistakes,
     );
 
     String? coachInsight;

@@ -281,11 +281,15 @@ class CoachComposer {
     final accuracyStr = _formatPercent(perf?.accuracy ?? top.mastery);
     final timeStr = _formatTime(perf?.avgTimeMs ?? 4000);
 
-    final text = _getVariant('weak_areas_found', {
+    var text = _getVariant('weak_areas_found', {
       'top_weak': '${top.topic.displayName} (${top.difficulty.displayName})',
       'accuracy': accuracyStr,
       'time': timeStr,
     });
+
+    if (top.weakestPatternExplanation != null) {
+      text += '\n\n${top.weakestPatternExplanation}';
+    }
 
     final drillConfig = PracticeConfig(
       topic: top.topic,
@@ -350,11 +354,15 @@ class CoachComposer {
     if (context.primaryWeakArea != null) {
       final weak = context.primaryWeakArea!;
       final perf = context.getPerformanceForTopic(weak.topic);
-      final text = _getVariant('focus_weak', {
+      var text = _getVariant('focus_weak', {
         'bucket': '${weak.topic.displayName} (${weak.difficulty.displayName})',
         'accuracy': _formatPercent(perf?.accuracy ?? weak.mastery),
         'time': _formatTime(perf?.avgTimeMs ?? 4000),
       });
+
+      if (weak.weakestPatternExplanation != null) {
+        text += '\n\n${weak.weakestPatternExplanation}';
+      }
 
       final drillConfig = PracticeConfig(
         topic: weak.topic,
@@ -593,7 +601,7 @@ class CoachComposer {
       );
     }
 
-    final text = _getVariant('topic_status_with_data', {
+    var text = _getVariant('topic_status_with_data', {
       'topic': topic.displayName,
       'level': perf.level.displayName,
       'accuracy': _formatPercent(perf.accuracy),
@@ -601,6 +609,15 @@ class CoachComposer {
       'attempts': perf.totalAttempts.toString(),
       'trend': perf.trend.displayName,
     });
+
+    final patternLine = perf.perDifficulty.values
+        .map((b) => b.weakestPatternExplanation)
+        .whereType<String>()
+        .firstOrNull;
+
+    if (patternLine != null) {
+      text += '\n\n$patternLine';
+    }
 
     final drillConfig = PracticeConfig(
       topic: topic,
@@ -750,7 +767,38 @@ class CoachComposer {
       );
     }
 
-    return _composeUnknown(slots);
+    // Grounded recommendation for topics without pre-authored tip entries
+    final perf = context.getPerformanceForTopic(targetTopic);
+    final String text;
+    if (perf != null && perf.totalAttempts > 0) {
+      text =
+          'For ${targetTopic.displayName}, you have practiced ${perf.totalAttempts} questions with ${_formatPercent(perf.accuracy)} accuracy and an average of ${_formatTime(perf.avgTimeMs)} per question. Consistent daily drills help sharpen both recognition and speed.';
+    } else {
+      text =
+          'Developing confidence and speed in ${targetTopic.displayName} comes from regular practice. Try a quick set to build your rhythm.';
+    }
+
+    final drillConfig = PracticeConfig(
+      topic: targetTopic,
+      difficulty: perf?.bestDifficulty ?? Difficulty.easy,
+      mode: PracticeMode.questions,
+      kind: SessionKind.drill,
+      modeValue: 10,
+      sessionSeed: SessionRandom.newSessionSeed(),
+    );
+
+    return CoachReply(
+      text: text,
+      actions: [
+        CoachAction(
+          label: 'Try ${targetTopic.displayName}',
+          type: CoachActionType.startPractice,
+          payload: drillConfig,
+        ),
+      ],
+      intent: CoachIntent.tips,
+      slots: slots,
+    );
   }
 
   CoachReply _composeMotivation(CoachSlots slots, CoachContext context) {

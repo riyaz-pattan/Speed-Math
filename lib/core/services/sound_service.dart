@@ -24,8 +24,14 @@ abstract class SoundService {
   Future<void> playCorrect();
   Future<void> playWrong();
   Future<void> setVolume(double volume);
+  Future<void> setCorrectVolume(double volume);
+  Future<void> setWrongVolume(double volume);
   double get volume;
+  double get correctVolume;
+  double get wrongVolume;
   double get effectiveVolume;
+  double get effectiveCorrectVolume;
+  double get effectiveWrongVolume;
   void dispose();
 }
 
@@ -50,13 +56,28 @@ class AppSoundService implements SoundService {
   AudioPlayer? _wrongPlayer;
   bool _initialized = false;
   bool _initFailed = false;
-  double _sliderVolume = 1.0;
+  double _correctSliderVolume = 1.0;
+  double _wrongSliderVolume = 1.0;
 
   @override
-  double get volume => _sliderVolume;
+  double get volume => _correctSliderVolume;
 
   @override
-  double get effectiveVolume => SoundConstants.toEffectiveVolume(_sliderVolume);
+  double get correctVolume => _correctSliderVolume;
+
+  @override
+  double get wrongVolume => _wrongSliderVolume;
+
+  @override
+  double get effectiveVolume => SoundConstants.toEffectiveVolume(_correctSliderVolume);
+
+  @override
+  double get effectiveCorrectVolume =>
+      SoundConstants.toEffectiveVolume(_correctSliderVolume);
+
+  @override
+  double get effectiveWrongVolume =>
+      SoundConstants.toEffectiveVolume(_wrongSliderVolume);
 
   AppSoundService() {
     _init();
@@ -92,9 +113,8 @@ class AppSoundService implements SoundService {
       await _correctPlayer!.setPlayerMode(PlayerMode.lowLatency);
       await _wrongPlayer!.setPlayerMode(PlayerMode.lowLatency);
 
-      final eff = effectiveVolume;
-      await _correctPlayer!.setVolume(eff);
-      await _wrongPlayer!.setVolume(eff);
+      await _correctPlayer!.setVolume(effectiveCorrectVolume);
+      await _wrongPlayer!.setVolume(effectiveWrongVolume);
 
       // Preload assets for instant response
       await _correctPlayer!.setSource(AssetSource('sounds/correct.mp3'));
@@ -109,10 +129,24 @@ class AppSoundService implements SoundService {
 
   @override
   Future<void> setVolume(double volume) async {
-    _sliderVolume = volume.clamp(0.0, 1.0);
-    final eff = effectiveVolume;
+    await setCorrectVolume(volume);
+    await setWrongVolume(volume);
+  }
+
+  @override
+  Future<void> setCorrectVolume(double volume) async {
+    _correctSliderVolume = volume.clamp(0.0, 1.0);
+    final eff = effectiveCorrectVolume;
     try {
       await _correctPlayer?.setVolume(eff);
+    } catch (_) {}
+  }
+
+  @override
+  Future<void> setWrongVolume(double volume) async {
+    _wrongSliderVolume = volume.clamp(0.0, 1.0);
+    final eff = effectiveWrongVolume;
+    try {
       await _wrongPlayer?.setVolume(eff);
     } catch (_) {}
   }
@@ -124,7 +158,7 @@ class AppSoundService implements SoundService {
       if (!_initialized) await _init();
       final player = _correctPlayer;
       if (player != null) {
-        final eff = effectiveVolume;
+        final eff = effectiveCorrectVolume;
         // Fire-and-forget: do not await completion so UI never lags
         unawaited(player.stop().then((_) {
           player.setVolume(eff);
@@ -146,7 +180,7 @@ class AppSoundService implements SoundService {
       if (!_initialized) await _init();
       final player = _wrongPlayer;
       if (player != null) {
-        final eff = effectiveVolume;
+        final eff = effectiveWrongVolume;
         // Fire-and-forget
         unawaited(player.stop().then((_) {
           player.setVolume(eff);

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
 import '../../core/enums/enums.dart';
 import '../../core/strings/app_strings.dart';
+import '../../core/widgets/app_segmented_control.dart';
 import '../../core/widgets/question_text_widget.dart';
 import '../../data/repositories/mistake_repository.dart';
 import '../../data/repositories/settings_repository.dart';
@@ -32,6 +33,7 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
   List<MistakeEntry>? _mistakes;
   Topic? _selectedTopicFilter; // null means 'All'
   int _selectedCountChoice = 10; // 10, 20, or 50 (for All)
+  bool _similarMistakes = false; // Option A (false): Same questions; Option B (true): Similar questions
   bool _loading = true;
   bool _isLaunching = false;
 
@@ -85,25 +87,36 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
 
     try {
       final settings = ref.read(settingsRepositoryProvider);
-      final count = _selectedCountChoice == 50
-          ? min(candidateList.length, 50)
-          : min(candidateList.length, _selectedCountChoice);
+      final int count;
+      if (candidateList.length <= 10) {
+        count = candidateList.length;
+      } else if (_selectedCountChoice == 50) {
+        count = min(candidateList.length, 50);
+      } else {
+        count = min(candidateList.length, _selectedCountChoice);
+      }
       final practiceList = candidateList.take(count).toList();
 
       final config = PracticeConfig(
         topic: _selectedTopicFilter ?? Topic.mixed,
+        selectedTopics: _selectedTopicFilter != null
+            ? [_selectedTopicFilter!]
+            : Topic.standardTopics,
         difficulty: Difficulty.mixed,
         mode: PracticeMode.mistakes,
         kind: SessionKind.mistakes,
-        modeValue: count,
+        modeValue: practiceList.length,
         sessionSeed: SessionRandom.newSessionSeed(),
         autoSubmit: settings.autoSubmit,
         hapticsEnabled: settings.hapticsEnabled,
         correctSoundEnabled: settings.correctSoundEnabled,
         wrongSoundEnabled: settings.wrongSoundEnabled,
         soundVolume: settings.soundVolume,
+        correctSoundVolume: settings.correctSoundVolume,
+        wrongSoundVolume: settings.wrongSoundVolume,
         keypadStyle: settings.keypadStyle,
         initialMistakes: practiceList,
+        similarMistakes: _similarMistakes,
       );
 
       if (mounted) {
@@ -513,6 +526,15 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
     final available = filtered.length;
     final allLimit = min(available, 50);
 
+    final int effectiveCount;
+    if (available <= 10) {
+      effectiveCount = available;
+    } else if (_selectedCountChoice == 50) {
+      effectiveCount = allLimit;
+    } else {
+      effectiveCount = min(available, _selectedCountChoice);
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -534,7 +556,26 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Question count selector: 10, 20, or All (up to 50)
+            // "Same questions" vs "Similar questions" switch
+            AppSegmentedControl<bool>(
+              selectedValue: _similarMistakes,
+              onValueChanged: (val) => setState(() => _similarMistakes = val),
+              items: const [
+                AppSegmentedItem<bool>(
+                  value: false,
+                  label: 'Same questions',
+                  icon: Icons.replay_rounded,
+                ),
+                AppSegmentedItem<bool>(
+                  value: true,
+                  label: 'Similar questions',
+                  icon: Icons.shuffle_rounded,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Question count selector
             Row(
               children: [
                 Text(
@@ -546,11 +587,17 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                _buildCountChip(10, '10', available >= 10),
-                const SizedBox(width: 8),
-                _buildCountChip(20, '20', available >= 20),
-                const SizedBox(width: 8),
-                _buildCountChip(50, 'All ($allLimit)', true),
+                if (available <= 10) ...[
+                  _buildCountChip(available, '$available questions', true, isSelected: true),
+                ] else ...[
+                  _buildCountChip(10, '10', true),
+                  if (available >= 20) ...[
+                    const SizedBox(width: 8),
+                    _buildCountChip(20, '20', true),
+                  ],
+                  const SizedBox(width: 8),
+                  _buildCountChip(50, 'All ($allLimit)', true),
+                ],
               ],
             ),
             const SizedBox(height: 12),
@@ -563,7 +610,7 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
                 onPressed: () => _startMistakePractice(filtered),
                 icon: const Icon(Icons.play_arrow_rounded),
                 label: Text(
-                  '${AppStrings.practiceThese} (${_selectedCountChoice == 50 ? allLimit : min(available, _selectedCountChoice)})',
+                  'Practice $effectiveCount question${effectiveCount == 1 ? '' : 's'}',
                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                 ),
                 style: FilledButton.styleFrom(
@@ -579,8 +626,13 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
     );
   }
 
-  Widget _buildCountChip(int value, String label, bool enabled) {
-    final isSelected = _selectedCountChoice == value;
+  Widget _buildCountChip(
+    int value,
+    String label,
+    bool enabled, {
+    bool? isSelected,
+  }) {
+    final selected = isSelected ?? (_selectedCountChoice == value);
     final colorScheme = Theme.of(context).colorScheme;
 
     return InkWell(
@@ -594,7 +646,7 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected
+          color: selected
               ? colorScheme.primary
               : (enabled
                   ? colorScheme.surfaceContainerHighest
@@ -606,7 +658,7 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
-            color: isSelected
+            color: selected
                 ? colorScheme.onPrimary
                 : (enabled ? colorScheme.onSurface : colorScheme.onSurfaceVariant),
           ),

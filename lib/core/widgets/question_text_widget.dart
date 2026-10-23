@@ -3,12 +3,15 @@ import 'package:flutter/material.dart';
 /// Renders math question text with proper visual formatting across all topics.
 ///
 /// Features:
+/// - Stacked fractions (e.g. "3/8 of 640") are drawn with a horizontal fraction bar,
+///   never relying on missing font glyphs or awkward slash text.
 /// - Exponents, squares, and cubes are drawn with a raised power ([WidgetSpan]),
-///   never relying on unicode superscripts that may be absent from bundled fonts.
+///   both as standalone expressions ("17²", "2^5") and inside expressions ("23² − 144 ÷ 12 + 7 × 9").
 /// - Square roots and cube roots are drawn with a [CustomPainter] radical symbol
-///   (check mark hook and overbar, with a small index 3 for cube roots),
-///   never relying on font glyphs (such as '∛' or '√') that draw empty boxes on Android.
-/// - Standard operations (+, −, ×, ÷) use verified Poppins font glyphs.
+///   (check mark hook and overbar, with a small index 3 for cube roots).
+/// - Long questions wrap onto multiple lines and remain fully readable at 360px width
+///   and 1.3x text scale in both light and dark themes.
+/// - Standard operations (+, −, ×, ÷), brackets, %, and ? use verified Poppins font glyphs.
 class QuestionTextWidget extends StatelessWidget {
   final String text;
   final TextStyle? style;
@@ -49,100 +52,171 @@ class QuestionTextWidget extends StatelessWidget {
       );
     }
 
-    // 3. Exponents written as 'base^power'
-    if (trimmed.contains('^')) {
-      final parts = trimmed.split('^');
-      if (parts.length == 2) {
-        return _PowerTextWidget(
-          base: parts[0].trim(),
-          power: parts[1].trim(),
-          style: effectiveStyle,
-          textAlign: textAlign,
-        );
-      }
-    }
+    // 3. Expressions containing fractions, powers, or standard text
+    final spans = _buildExpressionSpans(trimmed, effectiveStyle);
 
-    // 4. Squaring written with superscript '²'
-    if (trimmed.endsWith('²')) {
-      final base = trimmed.substring(0, trimmed.length - 1).trim();
-      return _PowerTextWidget(
-        base: base,
-        power: '2',
+    return Text.rich(
+      TextSpan(
         style: effectiveStyle,
-        textAlign: textAlign,
-      );
-    }
-
-    // 5. Cubing written with superscript '³'
-    if (trimmed.endsWith('³')) {
-      final base = trimmed.substring(0, trimmed.length - 1).trim();
-      return _PowerTextWidget(
-        base: base,
-        power: '3',
-        style: effectiveStyle,
-        textAlign: textAlign,
-      );
-    }
-
-    // 6. Standard expressions (addition, subtraction, multiplication, division)
-    return Text(
-      trimmed,
-      style: effectiveStyle,
+        children: spans,
+      ),
       textAlign: textAlign,
+      softWrap: true,
     );
+  }
+
+  static List<InlineSpan> _buildExpressionSpans(String text, TextStyle style) {
+    // Matches:
+    // 1. Fractions: e.g. "3/8" (digits touching slash)
+    // 2. Caret exponents: e.g. "23^2" or "2^5"
+    // 3. Superscript exponents: e.g. "23²" or "14³"
+    final regex = RegExp(r'(\d+/\d+)|(\d+\^\d+)|(\d+[²³])');
+    final matches = regex.allMatches(text).toList();
+
+    if (matches.isEmpty) {
+      return [TextSpan(text: text, style: style)];
+    }
+
+    final spans = <InlineSpan>[];
+    int lastEnd = 0;
+
+    for (final match in matches) {
+      if (match.start > lastEnd) {
+        spans.add(TextSpan(
+          text: text.substring(lastEnd, match.start),
+          style: style,
+        ));
+      }
+
+      final matchStr = match.group(0)!;
+
+      if (match.group(1) != null) {
+        // Stacked fraction
+        final parts = matchStr.split('/');
+        spans.add(
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: _StackedFractionWidget(
+              numerator: parts[0],
+              denominator: parts[1],
+              style: style,
+            ),
+          ),
+        );
+      } else if (match.group(2) != null) {
+        // Caret exponent (base^power)
+        final parts = matchStr.split('^');
+        spans.addAll(_createPowerSpan(parts[0], parts[1], style));
+      } else if (match.group(3) != null) {
+        // Superscript exponent (base² or base³)
+        final base = matchStr.substring(0, matchStr.length - 1);
+        final power = matchStr.endsWith('²') ? '2' : '3';
+        spans.addAll(_createPowerSpan(base, power, style));
+      }
+
+      lastEnd = match.end;
+    }
+
+    if (lastEnd < text.length) {
+      spans.add(TextSpan(
+        text: text.substring(lastEnd),
+        style: style,
+      ));
+    }
+
+    return spans;
+  }
+
+  static List<InlineSpan> _createPowerSpan(
+    String base,
+    String power,
+    TextStyle style,
+  ) {
+    final baseFontSize = style.fontSize ?? 24.0;
+    final expFontSize = (baseFontSize * 0.58).clamp(9.0, 36.0);
+    final liftOffset = -baseFontSize * 0.38;
+
+    return [
+      TextSpan(text: base, style: style),
+      WidgetSpan(
+        alignment: PlaceholderAlignment.middle,
+        child: Transform.translate(
+          offset: Offset(0, liftOffset),
+          child: Text(
+            power,
+            style: style.copyWith(
+              fontSize: expFontSize,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    ];
   }
 }
 
 /// Convenience alias for [QuestionTextWidget].
 typedef QuestionDisplayWidget = QuestionTextWidget;
 
-/// Draws base with raised power text without unicode superscripts.
-class _PowerTextWidget extends StatelessWidget {
-  final String base;
-  final String power;
+/// Draws a stacked mathematical fraction (numerator over denominator with a bar).
+class _StackedFractionWidget extends StatelessWidget {
+  final String numerator;
+  final String denominator;
   final TextStyle style;
-  final TextAlign textAlign;
 
-  const _PowerTextWidget({
-    required this.base,
-    required this.power,
+  const _StackedFractionWidget({
+    required this.numerator,
+    required this.denominator,
     required this.style,
-    this.textAlign = TextAlign.center,
   });
 
   @override
   Widget build(BuildContext context) {
     final themeColor = Theme.of(context).colorScheme.onSurface;
     final resolvedColor = style.color ?? themeColor;
-    final resolvedStyle = style.copyWith(color: resolvedColor);
-    final baseFontSize = resolvedStyle.fontSize ?? 24.0;
-    final expFontSize = (baseFontSize * 0.58).clamp(9.0, 48.0);
-    final liftOffset = -baseFontSize * 0.38;
+    final baseFontSize = style.fontSize ?? 24.0;
+    final fracFontSize = (baseFontSize * 0.52).clamp(9.0, 32.0);
+    final barThickness = (baseFontSize * 0.07).clamp(1.2, 2.5);
 
-    return Text.rich(
-      TextSpan(
-        style: resolvedStyle,
-        children: [
-          TextSpan(
-            text: base,
-            style: resolvedStyle,
-          ),
-          WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
-            child: Transform.translate(
-              offset: Offset(0, liftOffset),
+    final fracStyle = style.copyWith(
+      fontSize: fracFontSize,
+      fontWeight: FontWeight.bold,
+      color: resolvedColor,
+      height: 1.05,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2.5),
+      child: IntrinsicWidth(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
               child: Text(
-                power,
-                style: resolvedStyle.copyWith(
-                  fontSize: expFontSize,
-                  fontWeight: FontWeight.bold,
-                ),
+                numerator,
+                style: fracStyle,
+                textAlign: TextAlign.center,
               ),
             ),
-          ),
-        ],
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 2.0),
+              height: barThickness,
+              decoration: BoxDecoration(
+                color: resolvedColor,
+                borderRadius: BorderRadius.circular(barThickness / 2),
+              ),
+            ),
+            Center(
+              child: Text(
+                denominator,
+                style: fracStyle,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
       ),
-      textAlign: textAlign,
     );
   }
 }

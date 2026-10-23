@@ -1,6 +1,6 @@
 # PROJECT_STATE.md — Speed Math with AI
 
-## Current Phase: Phase 7A.3 — UI & Behavior Fixes Complete ✅ (Version 1.4.1)
+## Current Phase: Phase 7C Complete ✅ (Version 1.7.0)
 
 ## What Is Finished
 
@@ -365,6 +365,151 @@ All 9 question generators read exclusively from `DifficultyRanges` (`lib/domain/
 
 ---
 
+### Phase 7B.1 — Fixes, Dynamic Insights, Patterns, Weak Areas, Sound Sliders ✅ (Version 1.6.0)
+
+- [x] **Part A: Critical Bug Fix ("0 of 10 Questions Answered") & Data Check Screen**:
+  - **Root Cause Analysis**:
+    1. *Stale Providers & Missing Signal Bumps*: Derived providers (`reportDataProvider`, `coachStateNotifierProvider`, `todaysPlanProvider`) were cached and only refreshed on initial load. The global `dataRevisionProvider` was previously not bumped on every SQLite write path (specifically `endSessionEarly`, `discardSession`, and certain mistake updates).
+    2. *SQL Query Null Exclusions*: Attempt counts in certain queries checked `is_skipped = 0`, which in SQL silently excludes rows where `is_skipped IS NULL`.
+    3. *Session Kind Filtering Discrepancies*: Several reporting surfaces filtered by `kind = 'drill'` or `completed = 1`, resulting in disagreement with the Coach which counted all attempts.
+  - **Fixes Applied**:
+    - Centralized query: `statsRepository.getTotalAnsweredQuestionsCount()` uses `COALESCE(is_skipped, 0) = 0` and `status != 'discarded'`, counting all valid answered questions across all session kinds and completed/early-ended states.
+    - Automatic `dataRevisionProvider` invalidation directly inside repository mutating methods on every save path.
+    - Added hidden **Data Check Screen** (`/settings/data-check`): accessible by navigating to **Settings > About** and **long-pressing the version number** (`v1.6.0`). Displays raw database numbers (sessions by kind/completed, attempts total/answered/skipped, mistakes, skill rows, pattern rows, schema & data revisions) alongside cache timestamps and a "Recompute now" button.
+
+- [x] **Part B: Coach Chat UI Polish**:
+  - **Claude / ChatGPT Style Sticky Composer**: Bottom container with rounded background, multiline expandable `TextField` (up to 4 lines), trailing circular Send button that activates when text is non-empty.
+  - **Floating Horizontal Suggestion Chips**: Positioned above the composer with smooth slide/fade animations; hides automatically when the text field is focused or keyboard opens.
+  - **Welcome Cards**: Empty chat state presents attractive prompt cards with one-tap suggestions ("Where am I weak?", "How is my division?", "Where should I focus?").
+  - **New `activity` Intent**: Added support for queries like "what did I do today", "my recent practice", "summary of today" in `assets/coach/intents.json`, `CoachIntent.activity`, and `CoachComposer._composeActivity`.
+
+- [x] **Part C: Dynamic Session Insights**:
+  - Replaced hardcoded static insights with `SessionInsightGenerator` (`lib/domain/scoring/session_insight_generator.dart`).
+  - Loaded from `assets/coach/insight_phrases.json` with rotational variety (never repeating the same variant twice).
+  - 14 distinct situation keys: `perfect_score`, `high_accuracy`, `speed_improvement`, `personal_best`, `streak_milestone`, `weak_area_improvement`, `similar_mistakes_practice`, `mistakes_cleared`, `tough_patterns_mastered`, `balanced_practice`, `fast_pace`, `steady_progress`, `comeback`, `solid_practice`.
+  - Insights quote real numbers (delta percentage, time saved in seconds, questions mastered) and fall back gracefully if data is sparse.
+
+- [x] **Part D: Granular Pattern Tracking & Weak Area Practice**:
+  - **74 Question Patterns** defined in `PatternConstants` (`lib/domain/questions/pattern_constants.dart`) covering all 9 topics and 3 difficulties.
+  - **Database Migration to Schema Version 7**:
+    * New `pattern_skills` table (`pattern`, `topic`, `difficulty`, `rating`, `rd`, `volatility`, `attempts_count`, `last_practiced_at`, `best_time_ms`).
+    * Added `pattern` column to `attempts` table.
+    * Migration backfills `pattern` for all historical attempts using `PatternConstants.patternOf(topic, difficulty, operands)` and populates initial `pattern_skills` rows.
+    * `resetAllData()` and `clearAllSampleData()` updated to purge `pattern_skills`.
+  - **Pattern Selection (`PatternPicker`)**:
+    * 60% probability of selecting the weakest pattern; 40% uniform exploration among remaining patterns for that topic/difficulty.
+    * 10-attempt diversity rule: if the same pattern has been chosen 10 consecutive times, a different pattern is forced.
+    * Pure Dart fallback ensures difficulty ranges are never violated.
+  - **Practice Setup Screen**:
+    * "Focus on my weak areas" switch is visible in EVERY configuration (default ON, never hidden).
+    * Subtitle clearly explains: *"More questions from the types you find hardest. Never goes beyond the difficulty you chose."*
+  - **Diagnosis in Report & Coach**:
+    * When $\ge 8$ attempts are recorded for a pattern, `PatternWeaknessHelper` diagnoses the weakest sub-skill (e.g. *"Needs work on 2-digit additions with 2 carries"*).
+    * Displayed on Report weak bucket cards and included in Coach replies for weak areas and topic status.
+
+- [x] **Part E: Mistakes Practice Fixes**:
+  - **Root Cause of Topic Loss & Overwriting Question 1**: In `PracticeSessionController._initSkillRatings()`, a check `isMixed = state.config.difficulty == Difficulty.mixed` was erroneously triggered because mistake sessions set `difficulty: Difficulty.mixed`. This wiped `_questionSource` with `SmartQuestionPicker`, replacing Question 1 and all subsequent questions with mixed questions.
+  - **Fix**: Added explicit guard `final isMistakes = state.config.kind == SessionKind.mistakes || state.config.mode == PracticeMode.mistakes;` to prevent `_initSkillRatings()` from touching the question source.
+  - **Exact Question Count Clamping**: When the user's chosen count exceeds available mistakes, session count snaps to available mistakes without synthetic padding. Question count chip and action button show the exact count (`Practice $count question(s)`).
+  - **Similar Mistakes Practice (`SimilarMistakeQuestionSource`)**: Added segmented control ("Same questions" vs "Similar questions"). When "Similar questions" is selected, generates new questions with the exact same topic, difficulty, and pattern, updates skill ratings/patterns, and preserves the original mistake in the bank for later review.
+
+- [x] **Part F: Settings Sound Sliders**:
+  - Replaced single global slider with two independent sliders:
+    * "Correct answer volume" (under Correct sound switch)
+    * "Wrong & skip volume" (under Wrong sound switch)
+  - Expandable animated container (200ms `AnimatedCrossFade`) under each toggle.
+  - Range 0% to 100% in 5% steps (divisions: 20).
+  - Preview plays ONLY on release (`onChangeEnd`).
+  - Cubic volume curve (`effectiveVolume = volume^3`) implemented in `SoundService` for genuinely quiet low volume on mobile speakers.
+
+- [x] **Part G: Polish & Version**:
+  - App version bumped to **1.6.0** (`1.6.0+11`) in `pubspec.yaml` and `AppConstants.appVersion`.
+  - Settings About section verified to display `v1.6.0`.
+  - `flutter analyze`: **0 issues found**.
+
+---
+
+### Complete Question Patterns Reference Table (74 Patterns)
+
+| Topic | Difficulty | Pattern Code | Human-Readable Label |
+| :--- | :--- | :--- | :--- |
+| **Addition** | Easy | `add_e_no_carry` | 2-digit additions without carries |
+| **Addition** | Easy | `add_e_one_carry` | 2-digit additions with 1 carry |
+| **Addition** | Easy | `add_e_two_carries` | 2-digit additions with 2 carries |
+| **Addition** | Medium | `add_m_no_carry` | 3-digit additions without carries |
+| **Addition** | Medium | `add_m_one_carry` | 3-digit additions with 1 carry |
+| **Addition** | Medium | `add_m_two_carries` | 3-digit additions with 2 carries |
+| **Addition** | Medium | `add_m_three_carries` | 3-digit additions with 3 carries |
+| **Addition** | Hard | `add_h_few_carries` | 3-number additions with 0 to 2 carries |
+| **Addition** | Hard | `add_h_many_carries` | 3-number additions with 3 or more carries |
+| **Subtraction** | Easy | `sub_e_no_borrow` | 2-digit subtractions without borrows |
+| **Subtraction** | Easy | `sub_e_one_borrow` | 2-digit subtractions with 1 borrow |
+| **Subtraction** | Medium | `sub_m_no_borrow` | 3-digit subtractions without borrows |
+| **Subtraction** | Medium | `sub_m_one_borrow` | 3-digit subtractions with 1 borrow |
+| **Subtraction** | Medium | `sub_m_two_borrows` | 3-digit subtractions with 2 borrows |
+| **Subtraction** | Hard | `sub_h_few_borrows` | 4-digit subtractions with 0 to 1 borrow |
+| **Subtraction** | Hard | `sub_h_two_borrows` | 4-digit subtractions with 2 borrows |
+| **Subtraction** | Hard | `sub_h_three_borrows` | 4-digit subtractions with 3 borrows |
+| **Multiplication** | Easy | `mul_e_small_digit` | 2-digit × 1-digit (multiplier 2 to 4) |
+| **Multiplication** | Easy | `mul_e_mid_digit` | 2-digit × 1-digit (multiplier 5 to 6) |
+| **Multiplication** | Easy | `mul_e_high_digit` | 2-digit × 1-digit (multiplier 7 to 9) |
+| **Multiplication** | Medium | `mul_m_small_ones` | 2-digit × 2-digit (smaller factor ending in 0 to 3) |
+| **Multiplication** | Medium | `mul_m_mid_ones` | 2-digit × 2-digit (smaller factor ending in 4 to 6) |
+| **Multiplication** | Medium | `mul_m_high_ones` | 2-digit × 2-digit (smaller factor ending in 7 to 9) |
+| **Multiplication** | Hard | `mul_h_small_ones` | 3-digit × 2-digit (multiplier ending in 0 to 3) |
+| **Multiplication** | Hard | `mul_h_mid_ones` | 3-digit × 2-digit (multiplier ending in 4 to 6) |
+| **Multiplication** | Hard | `mul_h_high_ones` | 3-digit × 2-digit (multiplier ending in 7 to 9) |
+| **Division** | Easy | `div_e_small_divisor` | 2-digit ÷ 1-digit (divisor 2 to 4) |
+| **Division** | Easy | `div_e_mid_divisor` | 2-digit ÷ 1-digit (divisor 5 to 6) |
+| **Division** | Easy | `div_e_large_divisor` | 2-digit ÷ 1-digit (divisor 7 to 9) |
+| **Division** | Medium | `div_m_single_digit` | 3-digit ÷ 1-digit |
+| **Division** | Medium | `div_m_two_digit` | 2-digit ÷ 2-digit |
+| **Division** | Hard | `div_h_small_divisor` | 4-digit ÷ 2-digit (divisor 11 to 30) |
+| **Division** | Hard | `div_h_mid_divisor` | 4-digit ÷ 2-digit (divisor 31 to 60) |
+| **Division** | Hard | `div_h_large_divisor` | 4-digit ÷ 2-digit (divisor 61 to 99) |
+| **Squares** | Easy | `sq_e_ends_in_5` | Squares ending in 5 (up to 20) |
+| **Squares** | Easy | `sq_e_lower_half` | Squares from 2 to 10 |
+| **Squares** | Easy | `sq_e_upper_half` | Squares from 11 to 20 |
+| **Squares** | Medium | `sq_m_ends_in_5` | Squares ending in 5 (21 to 50) |
+| **Squares** | Medium | `sq_m_lower_half` | Squares from 21 to 35 |
+| **Squares** | Medium | `sq_m_upper_half` | Squares from 36 to 50 |
+| **Squares** | Hard | `sq_h_ends_in_5` | Squares ending in 5 (51 to 99) |
+| **Squares** | Hard | `sq_h_lower_half` | Squares from 51 to 75 |
+| **Squares** | Hard | `sq_h_upper_half` | Squares from 76 to 99 |
+| **Cubes** | Easy | `cube_e_lower` | Cubes from 2 to 5 |
+| **Cubes** | Easy | `cube_e_upper` | Cubes from 6 to 10 |
+| **Cubes** | Medium | `cube_m_ends_in_5` | Cube of 15 |
+| **Cubes** | Medium | `cube_m_lower` | Cubes from 11 to 14 |
+| **Cubes** | Medium | `cube_m_upper` | Cubes from 16 to 20 |
+| **Cubes** | Hard | `cube_h_ends_in_5` | Cubes ending in 5 (25, 35) |
+| **Cubes** | Hard | `cube_h_lower` | Cubes from 21 to 28 |
+| **Cubes** | Hard | `cube_h_upper` | Cubes from 29 to 35 |
+| **Square Roots** | Easy | `sqrt_e_ends_in_5` | Square roots ending in 5 (up to 20) |
+| **Square Roots** | Easy | `sqrt_e_lower` | Square roots from 2 to 10 |
+| **Square Roots** | Easy | `sqrt_e_upper` | Square roots from 11 to 20 |
+| **Square Roots** | Medium | `sqrt_m_ends_in_5` | Square roots ending in 5 (21 to 50) |
+| **Square Roots** | Medium | `sqrt_m_lower` | Square roots from 21 to 35 |
+| **Square Roots** | Medium | `sqrt_m_upper` | Square roots from 36 to 50 |
+| **Square Roots** | Hard | `sqrt_h_ends_in_5` | Square roots ending in 5 (51 to 99) |
+| **Square Roots** | Hard | `sqrt_h_lower` | Square roots from 51 to 75 |
+| **Square Roots** | Hard | `sqrt_h_upper` | Square roots from 76 to 99 |
+| **Cube Roots** | Easy | `cbrt_e_lower` | Cube roots from 2 to 5 |
+| **Cube Roots** | Easy | `cbrt_e_upper` | Cube roots from 6 to 10 |
+| **Cube Roots** | Medium | `cbrt_m_ends_in_5` | Cube root of 3375 (root 15) |
+| **Cube Roots** | Medium | `cbrt_m_lower` | Cube roots from 11 to 14 |
+| **Cube Roots** | Medium | `cbrt_m_upper` | Cube roots from 16 to 20 |
+| **Cube Roots** | Hard | `cbrt_h_ends_in_5` | Cube roots ending in 5 (25, 35) |
+| **Cube Roots** | Hard | `cbrt_h_lower` | Cube roots from 21 to 28 |
+| **Cube Roots** | Hard | `cbrt_h_upper` | Cube roots from 29 to 35 |
+| **Exponents** | Easy | `exp_e_squared` | Powers with exponent 2 (squares) |
+| **Exponents** | Easy | `exp_e_cubed` | Powers with exponent 3 (cubes) |
+| **Exponents** | Medium | `exp_m_low_power` | Exponents with power 2 or 3 |
+| **Exponents** | Medium | `exp_m_high_power` | Exponents with power 4 or 5 |
+| **Exponents** | Hard | `exp_h_small_base` | Exponents with bases 2 to 5 |
+| **Exponents** | Hard | `exp_h_large_base` | Exponents with bases 6 to 15 |
+
+---
+
 ### How to Add a New Intent
 
 Adding a new intent to the Coach is designed to be modular and require changes in only 4 places:
@@ -415,10 +560,111 @@ Adding a new intent to the Coach is designed to be modular and require changes i
      return _composeMyNewIntent(slots, context);
    ```
 
+### Phase 7C — Five New Practice Topics ✅ (Version 1.7.0)
+- [x] **Five Pure Dart Question Generators** (`lib/domain/questions/generators/`):
+  - **Percentages**:
+    * Easy: $x\%$ of $N$ ($x \in \{10, 20, 25, 50\}$, $N \in [20, 400]$ multiples of 20).
+    * Medium: $x\%$ of $N$ ($x \in [5, 95]$ step 5, $N \in [100, 1000]$ multiples of 20, integer answer).
+    * Hard: $x\%$ of $A \pm y\%$ of $B$ ($x, y$ step 5, $A, B \in [200, 1500]$ multiples of 20, whole positive result).
+  - **Fractions**:
+    * Easy: $\frac{a}{b}$ of $N$ ($b \in \{2, 3, 4, 5, 6, 8, 10\}$, $a < b$, $N \in [2, 200]$ multiples of $b$).
+    * Medium: $\frac{a}{b}$ of $N$ ($b \in [2, 12]$, $N \in [100, 1000]$ multiples of $b$).
+    * Hard: $\frac{a}{b}$ of $N \pm \frac{c}{d}$ of $M$ (irreducible fractions, positive whole result).
+  - **Simplification (BODMAS)**:
+    * Easy: Two-operation expressions ($a + b \times c$, $a \times b - c$, strictly non-negative).
+    * Medium: Brackets and multi-ops ($(a + b) \times c - d$, $a \times b + c \times d$).
+    * Hard: Expression with square and exact division ($A^2 - B / C + D \times E$).
+  - **Averages**:
+    * Easy: Average of 3 two-digit numbers (sum divisible by 3).
+    * Medium: Average of 5 numbers of 2 to 3 digits (sum divisible by 5).
+    * Hard: "Average of 5 numbers is A. Four of them are w, x, y, z. Find the fifth."
+  - **Missing Number**:
+    * Easy: $? + a = b$, $a \times ? = b$, $b - ? = a$.
+    * Medium: $? \times a = b$, $? / a = b$, $a - ? = b$.
+    * Hard: $? \times a - b = c$, $(? + a) \times b = c$.
+  - All answers across all 5 topics are guaranteed to be **WHOLE POSITIVE NUMBERS** (no decimals, keypad has no decimal key).
+  - Registered in `QuestionGeneratorRegistry` with deterministic seed mixing and no back-to-back repeats.
+- [x] **Question Display & Stacked Fractions** (`QuestionTextWidget`):
+  - Stacked fractions rendered via custom Flutter drawing (`_StackedFractionWidget`) with a clean horizontal divider bar (no unicode glyphs or font fallback issues).
+  - Powers and exponents cleanly parsed and rendered inline (`_createPowerSpan`).
+  - Adaptive font scaling (`26px` for long multi-step expressions, `52px` for standard) with `ConstrainedBox` + `FittedBox` to prevent any text wrap or overflow on 360px width screens at 1.3x text scale.
+- [x] **Theme Colors & Icons**:
+  - Percentages: Lime (`0xFF65A30D`)
+  - Fractions: Rose (`0xFFF43F5E`)
+  - Simplification: Indigo (`0xFF4F46E5`)
+  - Averages: Deep Orange (`0xFFEA580C`)
+  - Missing Number: Slate (`0xFF64748B`)
+  - Mixed: Violet (`0xFF8B5CF6`)
+- [x] **UI Structure & 14 Topics Support**:
+  - Home screen organized into two clean, labelled groups: **"Basics"** (original 9 topics) and **"More topics"** (the 5 new topics).
+  - Practice Setup, History, Stats, Mistakes screen, and Report automatically adapt to 14 topics via `Topic.standardTopics`.
+- [x] **AI Coach Integration**:
+  - `TextNormalizer` & `SlotExtractor` recognize topics and synonyms (`percentages`, `pct`, `%`, `fractions`, `frac`, `simplification`, `bodmas`, `averages`, `mean`, `missing number`, `find x`).
+  - `CoachComposer._composeTips` falls back to grounded practice guidance using real user stats (`getPerformanceForTopic`) instead of canned text or "I don't know".
+  - `intents.json` expanded with realistic query samples for the 5 new topics.
+- [x] **Debug Data & Version Bump**:
+  - `debug_sample_data.dart` includes sample mistakes and ratings for all 5 new topics.
+  - App version bumped to `1.7.0` across `pubspec.yaml` and `AppConstants.appVersion`.
+
+---
+
+## Canonical Difficulty Ranges (All 14 Topics)
+
+| Topic | Easy | Medium | Hard | Notes |
+|---|---|---|---|---|
+| Addition | $2\text{D} + 2\text{D}$ ($10\text{--}99$) | $3\text{D} + 3\text{D}$ ($100\text{--}999$) | $3\text{ or } 4$ numbers ($100\text{--}9999$) | Whole sum |
+| Subtraction | $2\text{D} - 2\text{D}$ ($10\text{--}99$) | $3\text{D} - 3\text{D}$ ($100\text{--}999$) | $4\text{D} - 4\text{D}$ ($1000\text{--}9999$) | Non-negative result |
+| Multiplication | $2\text{D} \times 1\text{D}$ ($11\text{--}99 \times 2\text{--}9$) | $2\text{D} \times 2\text{D}$ ($11\text{--}99 \times 11\text{--}99$) | $3\text{D} \times 2\text{D}$ ($101\text{--}999 \times 11\text{--}99$) | Excludes pure powers of 10 |
+| Division | $2\text{D} \div 1\text{D}$ | $3\text{D} \div 1\text{D}$ | $3\text{--}4\text{D} \div 2\text{D}$ | Exact division, no remainder |
+| Squares | $11^2\text{--}30^2$ | $31^2\text{--}50^2$ | $51^2\text{--}99^2$ | Excludes multiples of 10 in hard |
+| Cubes | $2^3\text{--}12^3$ | $13^3\text{--}20^3$ | $21^3\text{--}30^3$ | Excludes multiples of 10 in hard |
+| Square Roots | $\sqrt{121}\text{--}\sqrt{900}$ ($11\text{--}30$) | $\sqrt{961}\text{--}\sqrt{2500}$ ($31\text{--}50$) | $\sqrt{2601}\text{--}\sqrt{9801}$ ($51\text{--}99$) | Perfect squares |
+| Cube Roots | $\sqrt[3]{8}\text{--}\sqrt[3]{1728}$ ($2\text{--}12$) | $\sqrt[3]{2197}\text{--}\sqrt[3]{8000}$ ($13\text{--}20$) | $\sqrt[3]{9261}\text{--}\sqrt[3]{27000}$ ($21\text{--}30$) | Perfect cubes |
+| Exponents | $2^3\text{--}2^6, 3^2\text{--}3^4, 4^2\text{--}4^3, 5^2\text{--}5^3$ | $2^7\text{--}2^{10}, 3^5, 4^4, 5^4, 6^3\text{--}7^3$ | $2^{11}\text{--}2^{12}, 6^4, 7^4, 8^3\text{--}9^3$ | Integer result $\le 10000$ |
+| Percentages | $x\% \text{ of } N$, $x \in \{10, 20, 25, 50\}$, $N \in [20, 400]$ mult. 20 | $x \in [5, 95]$ step 5, $N \in [100, 1000]$ mult. 20 | $x\% \text{ of } A \pm y\% \text{ of } B$, $A, B \in [200, 1500]$ mult. 20 | Positive whole answer |
+| Fractions | $\frac{a}{b} \text{ of } N$, $b \in \{2..10\}$, $N \le 200$ mult. $b$ | $b \in [2, 12]$, $N \in [100, 1000]$ mult. $b$ | $\frac{a}{b} \text{ of } N \pm \frac{c}{d} \text{ of } M$ | Positive whole answer |
+| Simplification | $a + b \times c$, $a \times b - c$ | $(a + b) \times c - d$, $a \times b + c \times d$ | $A^2 - B / C + D \times E$ | Positive whole answer |
+| Averages | Average of 3 $2\text{D}$ numbers | Average of 5 numbers ($2\text{--}3\text{D}$) | Avg of 5 numbers is $A$, 4 given, find 5th | Divisible, whole positive result |
+| Missing Number | $? + a = b$, $a \times ? = b$, $b - ? = a$ | $? \times a = b$, $? / a = b$, $a - ? = b$ | $? \times a - b = c$, $(? + a) \times b = c$ | Whole positive result |
+
+---
+
+## New Question Patterns (Phase 7C — 26 Patterns)
+
+| Topic | Difficulty | Pattern Code | Human Label |
+|---|---|---|---|
+| Percentages | Easy | `pct_easy_benchmark` | Benchmark percentages (10%, 20%, 25%, 50%) |
+| Percentages | Medium | `pct_med_multiple_of_5` | Two-digit percentage of hundreds |
+| Percentages | Medium | `pct_med_clean_division` | Percentage with exact division |
+| Percentages | Hard | `pct_hard_compound_add` | Sum of two percentages |
+| Percentages | Hard | `pct_hard_compound_sub` | Difference of two percentages |
+| Fractions | Easy | `frac_easy_unit` | Unit fraction of a number |
+| Fractions | Easy | `frac_easy_proper` | Simple proper fraction of a number |
+| Fractions | Medium | `frac_med_proper` | Proper fraction with 2-digit denominator |
+| Fractions | Medium | `frac_med_large_n` | Fraction of a large round number |
+| Fractions | Hard | `frac_hard_compound_add` | Sum of two fractional parts |
+| Fractions | Hard | `frac_hard_compound_sub` | Difference of two fractional parts |
+| Simplification | Easy | `simp_easy_add_mul` | Multiplication before addition |
+| Simplification | Easy | `simp_easy_mul_sub` | Multiplication before subtraction |
+| Simplification | Medium | `simp_med_brackets` | Parentheses with multiplication |
+| Simplification | Medium | `simp_med_two_products` | Sum of two multiplications |
+| Simplification | Hard | `simp_hard_square_div_add` | Square, exact division, and product combo |
+| Simplification | Hard | `simp_hard_square_div_sub` | Square, exact division, and subtraction combo |
+| Averages | Easy | `avg_easy_three_2d` | Average of 3 two-digit numbers |
+| Averages | Medium | `avg_med_five_mixed` | Average of 5 numbers (2 to 3 digits) |
+| Averages | Hard | `avg_hard_find_fifth_add` | Missing fifth number when total is high |
+| Averages | Hard | `avg_hard_find_fifth_sub` | Missing fifth number when total is low |
+| Missing Number | Easy | `miss_easy_add` | Unknown addend (? + a = b) |
+| Missing Number | Easy | `miss_easy_mul` | Unknown factor (a × ? = b) |
+| Missing Number | Medium | `miss_med_mul_2d` | Unknown 2-digit factor (? × a = b) |
+| Missing Number | Medium | `miss_med_div` | Unknown dividend (? ÷ a = b) |
+| Missing Number | Hard | `miss_hard_linear` | Unknown in linear form (? × a − b = c) |
+| Missing Number | Hard | `miss_hard_bracket` | Unknown inside parentheses ((? + a) × b = c) |
+
 ---
 
 ## What Is NOT Finished
-- Phase 7C: Exam Packs, Tricks, Streaks & Reminders.
+- Future phases (streaks, sound additions, etc.).
 
 ---
 
@@ -431,38 +677,36 @@ flutter analyze      # 0 issues
 
 ---
 
-## What to Check by Hand (Phase 7B Checklist)
+## What to Check by Hand (Phase 7C Checklist)
 
-1. **Accessing the Coach**:
-   - Tap "Ask Coach" button on Home report card $\to$ opens `/coach` chat screen.
-   - Tap Coach icon in Report screen AppBar $\to$ opens `/coach` chat screen.
-   - Verify initial welcome message from the Coach is displayed.
-2. **Ready-Made Question Chips**:
-   - Verify horizontal chip row at the top (without checkmarks): "Generate my report", "Where am I weak?", "Where should I focus?", "How is my division?", "Make me a plan for today", "Am I improving?", "My mistakes", "Give me a tip".
-   - Tap "Where am I weak?" $\to$ message sends immediately, Coach responds with weakest buckets and "Practice this" button.
-   - Tap "Start practice" on any action button $\to$ navigates into the unified Practice flow with correct topic, difficulty, and question count pre-filled.
-3. **Typo & Shorthand Tolerance**:
-   - Type `"wher am i wek"` $\to$ Coach answers with weak areas.
-   - Type `"hw is my divison"` $\to$ Coach answers with Division accuracy, average time, and level.
-   - Type `"sq root status"` $\to$ Coach answers with Square Roots status.
-   - Type `"cbrt tip"` $\to$ Coach gives a verified math shortcut for Cube Roots.
-4. **Follow-Up Context**:
-   - Type `"How is my addition?"` $\to$ Coach answers with Addition status.
-   - Follow up with `"what about cubes?"` $\to$ Coach answers with Cubes status.
-5. **Start Practice Queries**:
-   - Type `"practice squares hard 20 questions"` $\to$ Coach confirms: topic: Squares, level: Hard, 20 questions, and displays "Start Practice" button. Tapping the button launches the session.
-   - Type `"5 minutes of addition easy"` $\to$ Coach confirms Addition, Easy, 5 minutes with "Start Practice" button.
-6. **Out of Scope Handling**:
-   - Type `"who won the cricket match yesterday"` or `"what is the weather in London"` $\to$ Coach politely explains it only helps with mental math practice on this phone and offers suggestions.
-7. **Report an Answer**:
-   - Tap "Report this answer" on any Coach reply $\to$ dialog appears with radio options (Wrong numbers, Not helpful, Offensive, Other).
-   - Select an option and submit $\to$ shows confirmation SnackBar "Thanks, saved on your phone."
-8. **Chat Persistence & Clear**:
-   - Send several messages, exit the Coach screen, and re-enter $\to$ chat history is preserved.
-   - Tap the overflow menu $\to$ "Clear chat" $\to$ conversation is cleared and fresh welcome message appears.
-9. **Early State (< 10 questions)**:
-   - On a fresh install or reset, open Coach $\to$ Coach clearly states how many questions remain before full stats unlock (X of 10), while still answering tips, greetings, and practice setups.
-10. **Terminology Audit**:
-    - Verify the words "IQ" and "bank" never appear in any Coach message or UI text.
+1. **Home Screen Layout (Two Groups)**:
+   - Verify header says "14 Topics".
+   - First group is labelled "Basics" with the original 9 topics (Addition, Subtraction, Multiplication, Division, Squares, Cubes, Square Roots, Cube Roots, Exponents).
+   - Second group is labelled "More topics" with the 5 new topics: Percentages, Fractions, Simplification, Averages, Missing Number.
+   - Verify each topic card has its distinctive signature color and icon.
+
+2. **Question Rendering & Fractions Display**:
+   - Start a Fractions practice session $\to$ verify fraction (e.g. $\frac{3}{8}$ of $640$) displays as a cleanly stacked fraction with a horizontal divider bar drawn via Flutter custom painting.
+   - Start a Simplification session $\to$ verify powers (e.g. $23^2$), brackets, division signs ($\div$), and multiplication signs ($\times$) render cleanly on one or two lines without overflowing.
+   - Verify font scales dynamically down to 26px for complex expressions with zero horizontal overflow at 360px device width and 1.3x text scale.
+
+3. **Whole Positive Answers Guarantee**:
+   - Practice all 5 new topics across Easy, Medium, and Hard.
+   - Confirm that every single answer is a whole positive integer ($> 0$), suitable for the number keypad (which has no decimal key).
+   - Confirm that Missing Number displays the target unknown as `?`.
+
+4. **Practice Setup & Filter Chips Everywhere**:
+   - Open Practice Setup $\to$ verify all 14 topics are selectable in the topic selector.
+   - Verify chips have solid color fill when selected with white text/icon, and outline when unselected (no tick marks).
+   - Verify My Mistakes screen and History screen filters display all 14 topics without checkmarks.
+
+5. **AI Coach Recognition**:
+   - Ask Coach: "How are my percentages?", "Status of fractions", "Practice averages 10 questions", "Tips for simplification", "Drill missing number easy".
+   - Verify Coach correctly identifies the topics and provides grounded responses quoting real data or offering a practice action.
+
+6. **Static Analysis & Version**:
+   - Verify Settings > About displays `v1.7.0`.
+   - `flutter analyze` runs cleanly with 0 issues.
+
 
 

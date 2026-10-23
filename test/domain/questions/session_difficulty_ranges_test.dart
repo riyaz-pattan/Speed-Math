@@ -203,6 +203,14 @@ void main() {
           }
           break;
 
+        case Topic.percentages:
+        case Topic.fractions:
+        case Topic.simplification:
+        case Topic.averages:
+        case Topic.missingNumber:
+          expect(q.correctAnswer > 0, isTrue);
+          break;
+
         case Topic.mixed:
           break;
       }

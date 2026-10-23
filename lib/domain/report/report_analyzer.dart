@@ -2,6 +2,8 @@ import 'package:sqflite/sqflite.dart';
 import '../../core/enums/enums.dart';
 import '../../data/db/database_helper.dart';
 import '../../data/repositories/skill_repository.dart';
+import '../adaptive/pattern_skill.dart';
+import '../adaptive/pattern_weakness_helper.dart';
 import '../adaptive/skill_engine.dart';
 import '../adaptive/skill_rating.dart';
 import 'report_constants.dart';
@@ -59,10 +61,16 @@ class ReportAnalyzer {
       previousEndIso: previousEndIso,
     );
 
+    // Fetch all pattern skills
+    final patternRows = await db.query(DatabaseHelper.tablePatternSkills);
+    final allPatternSkills =
+        patternRows.map((m) => PatternSkill.fromMap(m)).toList();
+
     // 5. Per-topic Performance and Trend Analysis
     final topicPerformances = await _analyzeTopicPerformances(
       db,
       allRatings: allRatings,
+      allPatternSkills: allPatternSkills,
       today: todayStart,
       currentStartIso: currentStartIso,
       currentEndIso: currentEndIso,
@@ -72,7 +80,7 @@ class ReportAnalyzer {
 
     // 6. Strong and Weak Areas
     final strongAreas = _extractStrongAreas(allRatings);
-    final weakAreas = _extractWeakAreas(allRatings);
+    final weakAreas = _extractWeakAreas(allRatings, allPatternSkills);
 
     // 7. Neglected and Never Practiced Topics
     final neglectedTopics = <Topic>[];
@@ -190,7 +198,10 @@ class ReportAnalyzer {
   }
 
   /// Extracts up to 3 Weak areas (attempts >= 5, mastery < 0.65), ordered by mastery ASC.
-  List<SkillBucketSummary> _extractWeakAreas(List<SkillRating> ratings) {
+  List<SkillBucketSummary> _extractWeakAreas(
+    List<SkillRating> ratings, [
+    List<PatternSkill> patternSkills = const [],
+  ]) {
     final candidates = ratings
         .where((r) =>
             r.attemptsCount >= ReportConstants.weakAreaMinAttempts &&
@@ -203,12 +214,18 @@ class ReportAnalyzer {
       });
 
     return candidates.take(ReportConstants.maxWeakAreas).map((r) {
+      final explanation = PatternWeaknessHelper.findWeakestPatternInsight(
+        topic: r.topic,
+        difficulty: r.difficulty,
+        patternSkills: patternSkills,
+      );
       return SkillBucketSummary(
         topic: r.topic,
         difficulty: r.difficulty,
         mastery: r.mastery,
         attempts: r.attemptsCount,
         level: _skillEngine.classifyBucket(r),
+        weakestPatternExplanation: explanation,
       );
     }).toList();
   }
@@ -324,6 +341,7 @@ class ReportAnalyzer {
   Future<List<TopicPerformance>> _analyzeTopicPerformances(
     Database db, {
     required List<SkillRating> allRatings,
+    List<PatternSkill> allPatternSkills = const [],
     required DateTime today,
     required String currentStartIso,
     required String currentEndIso,
@@ -366,12 +384,18 @@ class ReportAnalyzer {
 
       for (final diff in [Difficulty.easy, Difficulty.medium, Difficulty.hard]) {
         final r = topicRatings[diff] ?? SkillRating(topic: topic, difficulty: diff);
+        final explanation = PatternWeaknessHelper.findWeakestPatternInsight(
+          topic: topic,
+          difficulty: diff,
+          patternSkills: allPatternSkills,
+        );
         perDiffMap[diff] = SkillBucketSummary(
           topic: topic,
           difficulty: diff,
           mastery: r.mastery,
           attempts: r.attemptsCount,
           level: _skillEngine.classifyBucket(r),
+          weakestPatternExplanation: explanation,
         );
         if (r.lastPracticedAt != null) {
           if (latestPracticedAt == null ||

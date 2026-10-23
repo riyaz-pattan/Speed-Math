@@ -1,10 +1,15 @@
 import '../../core/enums/enums.dart';
 import 'generators/addition_generator.dart';
+import 'generators/averages_generator.dart';
 import 'generators/cube_roots_generator.dart';
 import 'generators/cubes_generator.dart';
 import 'generators/division_generator.dart';
 import 'generators/exponents_generator.dart';
+import 'generators/fractions_generator.dart';
+import 'generators/missing_number_generator.dart';
 import 'generators/multiplication_generator.dart';
+import 'generators/percentages_generator.dart';
+import 'generators/simplification_generator.dart';
 import 'generators/square_roots_generator.dart';
 import 'generators/squares_generator.dart';
 import 'generators/subtraction_generator.dart';
@@ -26,6 +31,11 @@ class QuestionGeneratorRegistry {
     Topic.squareRoots: SquareRootsGenerator(),
     Topic.cubeRoots: CubeRootsGenerator(),
     Topic.exponents: ExponentsGenerator(),
+    Topic.percentages: PercentagesGenerator(),
+    Topic.fractions: FractionsGenerator(),
+    Topic.simplification: SimplificationGenerator(),
+    Topic.averages: AveragesGenerator(),
+    Topic.missingNumber: MissingNumberGenerator(),
   };
 
   /// Returns the generator for the given [topic].

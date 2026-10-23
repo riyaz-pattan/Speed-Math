@@ -121,7 +121,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
                   Text(
-                    '9 Topics',
+                    '${Topic.standardTopics.length} Topics',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -385,7 +385,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildTopicGrid(ColorScheme colorScheme) {
-    const topics = [
+    const basicTopics = [
       (Topic.addition, '2 & 3-digit speed addition'),
       (Topic.subtraction, 'Mental subtraction drills'),
       (Topic.multiplication, 'Fast multiplication tables'),
@@ -397,91 +397,127 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       (Topic.exponents, 'Powers & exponent calculations'),
     ];
 
-    return Column(
-      children: topics.map((item) {
-        final topic = item.$1;
-        final description = item.$2;
-        final topicColor = AppTheme.getTopicColor(topic);
+    const moreTopics = [
+      (Topic.percentages, 'Fast percentage of numbers'),
+      (Topic.fractions, 'Fractions of numbers & parts'),
+      (Topic.simplification, 'Order of operations (BODMAS)'),
+      (Topic.averages, 'Fast mean & missing averages'),
+      (Topic.missingNumber, 'Solve for the missing ?'),
+    ];
 
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Material(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(18),
-            child: InkWell(
-              onTap: () => _onTopicTapped(topic),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildTopicGroupHeader('Basics', colorScheme),
+        const SizedBox(height: 10),
+        ...basicTopics.map((item) => _buildTopicCard(item.$1, item.$2, colorScheme)),
+        const SizedBox(height: 16),
+        _buildTopicGroupHeader('More topics', colorScheme),
+        const SizedBox(height: 10),
+        ...moreTopics.map((item) => _buildTopicCard(item.$1, item.$2, colorScheme)),
+      ],
+    );
+  }
+
+  Widget _buildTopicGroupHeader(String title, ColorScheme colorScheme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          color: colorScheme.onSurfaceVariant,
+          letterSpacing: 0.2,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopicCard(
+    Topic topic,
+    String description,
+    ColorScheme colorScheme,
+  ) {
+    final topicColor = AppTheme.getTopicColor(topic);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          onTap: () => _onTopicTapped(topic),
+          borderRadius: BorderRadius.circular(18),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: topicColor.withValues(alpha: 0.25),
-                    width: 1.2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: topicColor.withValues(alpha: 0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+              border: Border.all(
+                color: topicColor.withValues(alpha: 0.25),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: topicColor.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: topicColor.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(14),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: topicColor.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Center(
+                    child: Text(
+                      topic.symbol,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: topicColor,
                       ),
-                      child: Center(
-                        child: Text(
-                          topic.symbol,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: topicColor,
-                          ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        topic.displayName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            topic.displayName,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            description,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
+                      const SizedBox(height: 2),
+                      Text(
+                        description,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 15,
-                      color: topicColor,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 15,
+                  color: topicColor,
+                ),
+              ],
             ),
           ),
-        );
-      }).toList(),
+        ),
+      ),
     );
   }
 }

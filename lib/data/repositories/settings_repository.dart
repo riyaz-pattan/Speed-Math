@@ -56,6 +56,8 @@ class SettingsRepository {
   static const _keyCorrectSound = 'settings_correct_sound';
   static const _keyWrongSound = 'settings_wrong_sound';
   static const _keySoundVolume = 'settings_sound_volume';
+  static const _keyCorrectSoundVolume = 'settings_correct_sound_volume';
+  static const _keyWrongSoundVolume = 'settings_wrong_sound_volume';
   static const _keyLastTopic = 'practice_last_topic';
   static const _keyLastDifficulty = 'practice_last_difficulty';
   static const _keyLastMode = 'practice_last_mode';
@@ -139,6 +141,16 @@ class SettingsRepository {
   double get soundVolume => _prefs.getDouble(_keySoundVolume) ?? 1.0;
   Future<bool> setSoundVolume(double value) =>
       _prefs.setDouble(_keySoundVolume, value.clamp(0.0, 1.0));
+
+  double get correctSoundVolume =>
+      _prefs.getDouble(_keyCorrectSoundVolume) ?? soundVolume;
+  Future<bool> setCorrectSoundVolume(double value) =>
+      _prefs.setDouble(_keyCorrectSoundVolume, value.clamp(0.0, 1.0));
+
+  double get wrongSoundVolume =>
+      _prefs.getDouble(_keyWrongSoundVolume) ?? soundVolume;
+  Future<bool> setWrongSoundVolume(double value) =>
+      _prefs.setDouble(_keyWrongSoundVolume, value.clamp(0.0, 1.0));
 
   bool get soundEnabled => correctSoundEnabled || wrongSoundEnabled;
   Future<bool> setSoundEnabled(bool value) async {
@@ -325,6 +337,7 @@ class SettingsRepository {
     await db.delete(DatabaseHelper.tableAttempts);
     await db.delete(DatabaseHelper.tableSessions);
     await db.delete(SkillRepository.tableSkillRatings);
+    await db.delete(DatabaseHelper.tablePatternSkills);
     await db.delete(DatabaseHelper.tableMistakeBank);
     await db.delete(DatabaseHelper.tableCoachMessages);
     await db.delete(DatabaseHelper.tableCoachReports);

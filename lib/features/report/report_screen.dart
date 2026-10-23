@@ -781,42 +781,57 @@ class ReportScreen extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: data.weakAreas.map((area) {
             final topicColor = AppTheme.getTopicColor(area.topic);
             return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: Colors.amber.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    area.topic.symbol,
-                    style: TextStyle(fontWeight: FontWeight.bold, color: topicColor),
+                  Row(
+                    children: [
+                      Text(
+                        area.topic.symbol,
+                        style: TextStyle(fontWeight: FontWeight.bold, color: topicColor),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${area.topic.displayName} (${area.difficulty.displayName})',
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF59E0B),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${(area.mastery * 100).round()}%',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${area.topic.displayName} (${area.difficulty.displayName})',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF59E0B),
-                      borderRadius: BorderRadius.circular(8),
+                  if (area.weakestPatternExplanation != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      area.weakestPatternExplanation!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: theme.colorScheme.onSurfaceVariant,
+                        height: 1.3,
+                      ),
                     ),
-                    child: Text(
-                      '${(area.mastery * 100).round()}%',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
-                  ),
+                  ],
                 ],
               ),
             );
@@ -917,7 +932,7 @@ class ReportScreen extends ConsumerWidget {
               style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             Text(
-              'All 9 Topics',
+              'All ${data.topicPerformances.length} Topics',
               style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
             ),
           ],

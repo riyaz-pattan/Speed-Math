@@ -40,6 +40,33 @@ abstract final class TextNormalizer {
     'index': 'exponents',
     'indices': 'exponents',
 
+    // Percentages
+    'pct': 'percentages',
+    'percent': 'percentages',
+    'percentage': 'percentages',
+    'percentages': 'percentages',
+
+    // Fractions
+    'frac': 'fractions',
+    'fraction': 'fractions',
+    'fractions': 'fractions',
+
+    // Simplification (BODMAS)
+    'bodmas': 'simplification',
+    'simplify': 'simplification',
+    'simplifying': 'simplification',
+    'simplification': 'simplification',
+    'simplifications': 'simplification',
+
+    // Averages
+    'average': 'averages',
+    'averages': 'averages',
+    'mean': 'averages',
+
+    // Missing Number
+    'missing': 'missing',
+    'unknown': 'missing',
+
     // Common query typos & abbreviations
     'wher': 'where',
     'whr': 'where',
@@ -96,11 +123,16 @@ abstract final class TextNormalizer {
 
     text = text.toLowerCase();
 
-    // Replace multi-word math phrases before splitting
+    // Replace multi-word math phrases and symbols before splitting
+    text = text.replaceAll('%', ' percentages ');
     text = text.replaceAll('square root', 'square roots');
     text = text.replaceAll('sq root', 'square roots');
     text = text.replaceAll('cube root', 'cube roots');
     text = text.replaceAll('cb root', 'cube roots');
+    text = text.replaceAll('missing number', 'missing number');
+    text = text.replaceAll('missing numbers', 'missing number');
+    text = text.replaceAll('missing num', 'missing number');
+    text = text.replaceAll('find x', 'missing number');
 
     // Remove punctuation keeping only letters, digits, and spaces
     final buffer = StringBuffer();

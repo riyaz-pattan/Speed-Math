@@ -59,6 +59,11 @@ abstract final class AppStrings {
   static const String squareRoots = 'Square Roots';
   static const String cubeRoots = 'Cube Roots';
   static const String exponents = 'Exponents';
+  static const String percentages = 'Percentages';
+  static const String fractions = 'Fractions';
+  static const String simplification = 'Simplification';
+  static const String averages = 'Averages';
+  static const String missingNumber = 'Missing Number';
   static const String topic = 'Topic';
 
   // Practice Modes & Setup
@@ -78,7 +83,7 @@ abstract final class AppStrings {
       'The app picks questions from your level and weak areas.';
   static const String focusWeakAreas = 'Focus on my weak areas';
   static const String focusWeakAreasExplanation =
-      'It makes weaker topics and levels appear more often.';
+      'More questions from the types you find hardest. Never goes beyond the difficulty you chose.';
   static const String yourWeakSpots = 'Your weak spots';
   static const String seeAll = 'See all';
   static const String practiceThese = 'Practice these';
@@ -105,6 +110,8 @@ abstract final class AppStrings {
   static const String wrongSound = 'Wrong answer & skip sound';
   static const String wrongSoundDescription = 'Play a tone on wrong tries and skips';
   static const String soundVolume = 'Sound volume';
+  static const String correctSoundVolume = 'Correct answer volume';
+  static const String wrongSoundVolume = 'Wrong & skip volume';
   static const String haptics = 'Haptics';
   static const String hapticsDescription =
       'Vibrate on key presses, answers and results';

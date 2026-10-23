@@ -77,7 +77,29 @@ class _RecordingSoundService implements SoundService {
   double get effectiveVolume => SoundConstants.toEffectiveVolume(_volume);
 
   @override
+  double get correctVolume => _volume;
+
+  @override
+  double get wrongVolume => _volume;
+
+  @override
+  double get effectiveCorrectVolume => SoundConstants.toEffectiveVolume(_volume);
+
+  @override
+  double get effectiveWrongVolume => SoundConstants.toEffectiveVolume(_volume);
+
+  @override
   Future<void> setVolume(double volume) async {
+    _volume = volume.clamp(0.0, 1.0);
+  }
+
+  @override
+  Future<void> setCorrectVolume(double volume) async {
+    _volume = volume.clamp(0.0, 1.0);
+  }
+
+  @override
+  Future<void> setWrongVolume(double volume) async {
     _volume = volume.clamp(0.0, 1.0);
   }
 

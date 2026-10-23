@@ -64,8 +64,12 @@ class DivisionGenerator extends QuestionGenerator {
       final quotient = _randRange(random, minQ, maxQ);
       final dividend = quotient * divisor;
       if (dividend < DifficultyRanges.divisionEasyDividendMin ||
-          dividend > DifficultyRanges.divisionEasyDividendMax) continue;
-      if (_isTrivialDivision(dividend, divisor)) continue;
+          dividend > DifficultyRanges.divisionEasyDividendMax) {
+        continue;
+      }
+      if (_isTrivialDivision(dividend, divisor)) {
+        continue;
+      }
 
       return Question(
         topic: Topic.division,
@@ -155,9 +159,15 @@ class DivisionGenerator extends QuestionGenerator {
       final quotient = _randRange(random, minQ, maxQ);
       final dividend = quotient * divisor;
       if (dividend < DifficultyRanges.divisionHardDividendMin ||
-          dividend > DifficultyRanges.divisionHardDividendMax) continue;
-      if (_isTrivialDivision(dividend, divisor)) continue;
-      if (_allEndInZero([dividend, divisor])) continue;
+          dividend > DifficultyRanges.divisionHardDividendMax) {
+        continue;
+      }
+      if (_isTrivialDivision(dividend, divisor)) {
+        continue;
+      }
+      if (_allEndInZero([dividend, divisor])) {
+        continue;
+      }
 
       return Question(
         topic: Topic.division,

@@ -46,6 +46,7 @@ class SkillBucketSummary {
   final double mastery;
   final int attempts;
   final SkillBucketLevel level;
+  final String? weakestPatternExplanation;
 
   const SkillBucketSummary({
     required this.topic,
@@ -53,6 +54,7 @@ class SkillBucketSummary {
     required this.mastery,
     required this.attempts,
     required this.level,
+    this.weakestPatternExplanation,
   });
 
   @override

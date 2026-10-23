@@ -13,6 +13,7 @@ abstract class QuestionGenerator {
 
   /// Generates a single question at the given [difficulty].
   ///
+  /// [pattern] optionally requests a specific question pattern.
   /// [random] is the random number generator (seeded for tests).
   /// [previousQuestion] is the last question generated in this session,
   /// used to prevent back-to-back duplicate questions.
@@ -20,7 +21,11 @@ abstract class QuestionGenerator {
     required Difficulty difficulty,
     required Random random,
     Question? previousQuestion,
+    String? pattern,
   });
+
+  /// Pure function that recomputes the pattern from operands.
+  String patternOf(Difficulty difficulty, List<int> operands);
 
   /// Generates a question, retrying if it matches [previousQuestion].
   /// Gives up after [maxRetries] to avoid infinite loops.
@@ -28,6 +33,7 @@ abstract class QuestionGenerator {
     required Difficulty difficulty,
     required Random random,
     Question? previousQuestion,
+    String? pattern,
     int maxRetries = 20,
   }) {
     for (var i = 0; i < maxRetries; i++) {
@@ -35,6 +41,7 @@ abstract class QuestionGenerator {
         difficulty: difficulty,
         random: random,
         previousQuestion: previousQuestion,
+        pattern: pattern,
       );
       if (previousQuestion == null || q != previousQuestion) {
         return q;
@@ -45,6 +52,7 @@ abstract class QuestionGenerator {
       difficulty: difficulty,
       random: random,
       previousQuestion: null,
+      pattern: pattern,
     );
   }
 }

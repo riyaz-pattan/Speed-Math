@@ -3,19 +3,21 @@ import 'package:sqflite/sqflite.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/enums/enums.dart';
 import '../../domain/adaptive/adaptive_constants.dart';
+import '../../domain/questions/pattern_constants.dart';
 import '../repositories/skill_repository.dart';
 
 /// Singleton helper class to manage SQLite database creation, migrations,
 /// and connection lifecycle for Speed Math with AI.
 class DatabaseHelper {
   static const String databaseName = 'speed_math.db';
-  static const int databaseVersion = 6;
+  static const int databaseVersion = 7;
 
   static const String tableSessions = 'sessions';
   static const String tableAttempts = 'attempts';
   static const String tableMistakeBank = 'mistake_bank';
   static const String tableCoachMessages = 'coach_messages';
   static const String tableCoachReports = 'coach_reports';
+  static const String tablePatternSkills = 'pattern_skills';
 
   // Singleton instance
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -93,6 +95,7 @@ class DatabaseHelper {
         is_skipped INTEGER NOT NULL DEFAULT 0,
         time_ms INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL,
+        pattern TEXT,
         FOREIGN KEY (session_id) REFERENCES $tableSessions(id) ON DELETE CASCADE
       )
     ''');
@@ -115,6 +118,9 @@ class DatabaseHelper {
 
     // Create coach tables
     await _createCoachTables(db);
+
+    // Create pattern_skills table
+    await _createPatternSkillsTable(db);
   }
 
   /// Creates coach_messages and coach_reports tables.
@@ -189,6 +195,27 @@ class DatabaseHelper {
     );
   }
 
+  /// Creates the pattern_skills table.
+  static Future<void> _createPatternSkillsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS $tablePatternSkills (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        topic TEXT NOT NULL,
+        difficulty TEXT NOT NULL,
+        pattern TEXT NOT NULL,
+        mastery REAL NOT NULL DEFAULT 0.5,
+        attempts_count INTEGER NOT NULL DEFAULT 0,
+        accuracy_ema REAL NOT NULL DEFAULT 0.0,
+        avg_time_ms_ema REAL NOT NULL DEFAULT 0.0,
+        last_practiced_at TEXT,
+        UNIQUE(topic, difficulty, pattern)
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_pattern_skills_lookup ON $tablePatternSkills(topic, difficulty, pattern);',
+    );
+  }
+
   /// Handles schema migrations across versions.
   Future<void> onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2 && newVersion >= 2) {
@@ -216,6 +243,11 @@ class DatabaseHelper {
     }
     if (oldVersion < 6 && newVersion >= 6) {
       await _createCoachTables(db);
+    }
+    if (oldVersion < 7 && newVersion >= 7) {
+      await db.execute('ALTER TABLE $tableAttempts ADD COLUMN pattern TEXT;');
+      await _createPatternSkillsTable(db);
+      await _backfillPatternsAndSkills(db);
     }
   }
 
@@ -339,6 +371,167 @@ class DatabaseHelper {
     }
   }
 
+  /// Backfills attempts.pattern for existing attempts and rebuilds pattern_skills.
+  static Future<void> _backfillPatternsAndSkills(Database db) async {
+    final Map<String, _BackfillState> patternStates = {};
+    const batchSize = 500;
+    int offset = 0;
+    bool hasMore = true;
+
+    while (hasMore) {
+      final rows = await db.rawQuery(
+        '''
+        SELECT id, topic, difficulty, question_text, operand_a, operand_b, is_correct, is_skipped, time_ms, created_at
+        FROM $tableAttempts
+        ORDER BY created_at ASC
+        LIMIT ? OFFSET ?
+        ''',
+        [batchSize, offset],
+      );
+
+      if (rows.isEmpty) {
+        hasMore = false;
+        break;
+      }
+
+      await db.transaction((txn) async {
+        for (final row in rows) {
+          final id = (row['id'] as num).toInt();
+          final topicStr = row['topic'] as String;
+          final diffStr = row['difficulty'] as String;
+          final questionText = row['question_text'] as String;
+          final opA = (row['operand_a'] ?? '').toString();
+          final opB = (row['operand_b'] ?? '').toString();
+
+          final topic = Topic.values.firstWhere(
+            (e) => e.name.toLowerCase() == topicStr.toLowerCase(),
+            orElse: () => Topic.addition,
+          );
+          final difficulty = Difficulty.values.firstWhere(
+            (e) => e.name.toLowerCase() == diffStr.toLowerCase(),
+            orElse: () => Difficulty.easy,
+          );
+
+          final operands = _parseOperands(topic, questionText, opA, opB);
+          final pattern =
+              PatternConstants.patternOf(topic, difficulty, operands);
+
+          // Update attempt with pattern
+          await txn.rawUpdate(
+            'UPDATE $tableAttempts SET pattern = ? WHERE id = ?',
+            [pattern, id],
+          );
+
+          // Update running pattern skill state
+          final key = '${topic.name}:${difficulty.name}:$pattern';
+          final state = patternStates.putIfAbsent(
+            key,
+            () => _BackfillState(topicStr, diffStr, pattern: pattern),
+          );
+
+          final isCorrect = ((row['is_correct'] as num?)?.toInt() ?? 0) == 1;
+          final isSkipped = ((row['is_skipped'] as num?)?.toInt() ?? 0) == 1;
+          final timeMs = (row['time_ms'] as num?)?.toInt() ?? 0;
+          final createdAt = row['created_at'] as String?;
+
+          final targetTimeMs = AppConstants.getTargetTimeMs(topic, difficulty);
+          double outcomeScore = 0.0;
+          if (isCorrect && !isSkipped && targetTimeMs > 0) {
+            final t = timeMs / targetTimeMs;
+            if (t <= AdaptiveConstants.fastThreshold) {
+              outcomeScore = AdaptiveConstants.maxOutcomeScore;
+            } else if (t >= AdaptiveConstants.slowThreshold) {
+              outcomeScore = AdaptiveConstants.minOutcomeScore;
+            } else {
+              final range =
+                  AdaptiveConstants.slowThreshold - AdaptiveConstants.fastThreshold;
+              final ratio = (t - AdaptiveConstants.fastThreshold) / range;
+              outcomeScore = AdaptiveConstants.maxOutcomeScore -
+                  ratio *
+                      (AdaptiveConstants.maxOutcomeScore -
+                          AdaptiveConstants.minOutcomeScore);
+            }
+          }
+
+          final alpha = state.attemptsCount <
+                  AdaptiveConstants.earlyAttemptThreshold
+              ? AdaptiveConstants.alphaEarly
+              : AdaptiveConstants.alphaLate;
+
+          state.mastery =
+              (state.mastery + alpha * (outcomeScore - state.mastery))
+                  .clamp(0.0, 1.0);
+          final accuracyInput = outcomeScore > 0 ? 1.0 : 0.0;
+          state.accuracyEma =
+              (state.accuracyEma + alpha * (accuracyInput - state.accuracyEma))
+                  .clamp(0.0, 1.0);
+
+          if (isCorrect && !isSkipped) {
+            if (state.avgTimeMsEma == 0.0) {
+              state.avgTimeMsEma = timeMs.toDouble();
+            } else {
+              state.avgTimeMsEma = state.avgTimeMsEma +
+                  alpha * (timeMs.toDouble() - state.avgTimeMsEma);
+            }
+          }
+
+          state.attemptsCount++;
+          if (createdAt != null) state.lastPracticedAt = createdAt;
+        }
+      });
+
+      offset += batchSize;
+      if (rows.length < batchSize) hasMore = false;
+    }
+
+    if (patternStates.isNotEmpty) {
+      await db.transaction((txn) async {
+        for (final state in patternStates.values) {
+          await txn.insert(
+            tablePatternSkills,
+            {
+              'topic': state.topic,
+              'difficulty': state.difficulty,
+              'pattern': state.pattern,
+              'mastery': state.mastery,
+              'attempts_count': state.attemptsCount,
+              'accuracy_ema': state.accuracyEma,
+              'avg_time_ms_ema': state.avgTimeMsEma,
+              'last_practiced_at': state.lastPracticedAt,
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+      });
+    }
+  }
+
+  static List<int> _parseOperands(
+    Topic topic,
+    String questionText,
+    String opA,
+    String opB,
+  ) {
+    if (topic == Topic.addition && questionText.contains('+')) {
+      final parts = questionText
+          .split('+')
+          .map((s) => int.tryParse(s.trim()))
+          .whereType<int>()
+          .toList();
+      if (parts.length >= 2) return parts;
+    }
+    final a = int.tryParse(opA);
+    final b = int.tryParse(opB);
+    if (a != null && b != null) return [a, b];
+    if (a != null) return [a];
+    final nums = RegExp(r'\d+')
+        .allMatches(questionText)
+        .map((m) => int.tryParse(m.group(0)!))
+        .whereType<int>()
+        .toList();
+    return nums.isNotEmpty ? nums : [1];
+  }
+
   /// Closes database connection.
   Future<void> close() async {
     final db = _database;
@@ -353,11 +546,12 @@ class DatabaseHelper {
 class _BackfillState {
   final String topic;
   final String difficulty;
+  final String pattern;
   double mastery = AdaptiveConstants.initialMastery;
   int attemptsCount = 0;
   double accuracyEma = 0.0;
   double avgTimeMsEma = 0.0;
   String? lastPracticedAt;
 
-  _BackfillState(this.topic, this.difficulty);
+  _BackfillState(this.topic, this.difficulty, {this.pattern = ''});
 }

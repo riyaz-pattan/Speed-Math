@@ -79,6 +79,31 @@ abstract final class AppConstants {
       Difficulty.medium: 10000, // base 2–9, power 2–5
       Difficulty.hard: 16000,   // base 2–15, power 3–6
     },
+    Topic.percentages: {
+      Difficulty.easy: 5000,    // friendly 10, 20, 25, 50%
+      Difficulty.medium: 9000,  // multiples of 5% up to 1000
+      Difficulty.hard: 15000,   // dual percentage combination
+    },
+    Topic.fractions: {
+      Difficulty.easy: 5000,    // single fraction small denom
+      Difficulty.medium: 9000,  // fraction up to 1000
+      Difficulty.hard: 15000,   // dual fraction combination
+    },
+    Topic.simplification: {
+      Difficulty.easy: 6000,    // a + b × c
+      Difficulty.medium: 12000, // brackets and two operations
+      Difficulty.hard: 18000,   // square + exact division + mul
+    },
+    Topic.averages: {
+      Difficulty.easy: 7000,    // average of 3 numbers
+      Difficulty.medium: 12000, // average of 5 numbers
+      Difficulty.hard: 16000,   // find fifth missing number
+    },
+    Topic.missingNumber: {
+      Difficulty.easy: 5000,    // ? + a = b, 6 × ? = 48
+      Difficulty.medium: 9000,  // ? × 23 = 391, ? / 14 = 12
+      Difficulty.hard: 14000,   // (? + 18) × 7 = 245
+    },
   };
 
   /// Returns the target time in milliseconds for the given topic and difficulty.
@@ -104,5 +129,5 @@ abstract final class AppConstants {
   static const double minAccuracyForBestTimes = 0.8;
 
   /// Current app version matching pubspec.yaml.
-  static const String appVersion = '1.5.0';
+  static const String appVersion = '1.7.0';
 }

@@ -5,6 +5,8 @@ import '../questions/question.dart';
 import '../questions/question_generator_registry.dart';
 import 'adaptive_constants.dart';
 import 'mistake_entry.dart';
+import 'pattern_picker.dart';
+import 'pattern_skill.dart';
 import 'skill_engine.dart';
 import 'skill_rating.dart';
 
@@ -55,6 +57,7 @@ class SmartQuestionPicker {
   final SkillEngine skillEngine;
   final Difficulty? fixedDifficulty;
   final bool focusOnWeakAreas;
+  final Map<String, PatternSkill> patternSkills;
 
   int _dueMistakesServedCount = 0;
   bool _lastWasDueMistake = false;
@@ -69,6 +72,7 @@ class SmartQuestionPicker {
     this.skillEngine = const SkillEngine(),
     this.fixedDifficulty,
     this.focusOnWeakAreas = true,
+    this.patternSkills = const {},
   })  : selectedTopics = selectedTopics.isEmpty
             ? Topic.standardTopics
             : selectedTopics.where((t) => t != Topic.mixed).toList(),
@@ -265,24 +269,30 @@ class SmartQuestionPicker {
       recentAttempts: recentAttempts,
     );
 
-    // 4. Generate question, avoiding previous question repeat
-    final generator =
-        QuestionGeneratorRegistry.getGenerator(chosenBucket.topic);
-    Question newQuestion = generator.generate(
+    // 4. Pick pattern using 60/40 rule and diversity constraint
+    final recentPatterns = recentAttempts
+        ?.map((a) => a.question.pattern)
+        .whereType<String>()
+        .toList();
+
+    final targetPattern = PatternPicker.pickPattern(
+      topic: chosenBucket.topic,
       difficulty: finalDifficulty,
+      focusWeakAreas: focusOnWeakAreas,
+      patternSkills: patternSkills,
       random: random,
+      recentPatterns: recentPatterns,
     );
 
-    int attempts = 0;
-    while (attempts < 20 &&
-        previousQuestion != null &&
-        newQuestion.displayText == previousQuestion.displayText) {
-      newQuestion = generator.generate(
-        difficulty: finalDifficulty,
-        random: random,
-      );
-      attempts++;
-    }
+    // 5. Generate question, avoiding previous question repeat
+    final generator =
+        QuestionGeneratorRegistry.getGenerator(chosenBucket.topic);
+    final newQuestion = generator.generateUnique(
+      difficulty: finalDifficulty,
+      random: random,
+      previousQuestion: previousQuestion,
+      pattern: targetPattern,
+    );
 
     return PickResult(
       question: newQuestion,

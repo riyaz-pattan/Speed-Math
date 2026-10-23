@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/enums/enums.dart';
+import '../../domain/adaptive/pattern_skill.dart';
 import '../../domain/adaptive/skill_rating.dart';
 import '../db/database_helper.dart';
 import 'settings_repository.dart';
@@ -15,6 +16,7 @@ class SkillRepository {
   final Ref? _ref;
 
   static const String tableSkillRatings = 'skill_ratings';
+  static const String tablePatternSkills = 'pattern_skills';
 
   SkillRepository({DatabaseHelper? dbHelper, Ref? ref})
       : _dbHelper = dbHelper ?? DatabaseHelper.instance,
@@ -126,9 +128,88 @@ class SkillRepository {
     return results.map((m) => SkillRating.fromMap(m)).toList();
   }
 
-  /// Deletes all skill ratings (used by Reset All Data).
+  /// Returns all pattern skills.
+  Future<List<PatternSkill>> getAllPatternSkills() async {
+    final db = await _dbHelper.database;
+    final results = await db.query(tablePatternSkills);
+    return results.map((m) => PatternSkill.fromMap(m)).toList();
+  }
+
+  /// Returns a map of "${topic.name}:${difficulty.name}:${pattern}" -> PatternSkill.
+  Future<Map<String, PatternSkill>> getAllPatternSkillsMap() async {
+    final list = await getAllPatternSkills();
+    return {
+      for (final p in list) '${p.topic.name}:${p.difficulty.name}:${p.pattern}': p,
+    };
+  }
+
+  /// Returns pattern skills for a specific topic and difficulty.
+  Future<List<PatternSkill>> getPatternSkills(
+    Topic topic,
+    Difficulty difficulty,
+  ) async {
+    final db = await _dbHelper.database;
+    final results = await db.query(
+      tablePatternSkills,
+      where: 'topic = ? AND difficulty = ?',
+      whereArgs: [topic.name, difficulty.name],
+    );
+    return results.map((m) => PatternSkill.fromMap(m)).toList();
+  }
+
+  /// Atomically saves both skill ratings and pattern skills in ONE transaction.
+  Future<void> saveRatingsAndPatternSkills(
+    List<SkillRating> ratings,
+    List<PatternSkill> patternSkills,
+  ) async {
+    if (ratings.isEmpty && patternSkills.isEmpty) return;
+    final db = await _dbHelper.database;
+    await db.transaction((txn) async {
+      for (final rating in ratings) {
+        final existing = await txn.query(
+          tableSkillRatings,
+          where: 'topic = ? AND difficulty = ?',
+          whereArgs: [rating.topic.name, rating.difficulty.name],
+          limit: 1,
+        );
+        if (existing.isNotEmpty) {
+          await txn.update(
+            tableSkillRatings,
+            rating.toMap(),
+            where: 'topic = ? AND difficulty = ?',
+            whereArgs: [rating.topic.name, rating.difficulty.name],
+          );
+        } else {
+          await txn.insert(tableSkillRatings, rating.toMap());
+        }
+      }
+
+      for (final skill in patternSkills) {
+        final existing = await txn.query(
+          tablePatternSkills,
+          where: 'topic = ? AND difficulty = ? AND pattern = ?',
+          whereArgs: [skill.topic.name, skill.difficulty.name, skill.pattern],
+          limit: 1,
+        );
+        if (existing.isNotEmpty) {
+          await txn.update(
+            tablePatternSkills,
+            skill.toMap(),
+            where: 'topic = ? AND difficulty = ? AND pattern = ?',
+            whereArgs: [skill.topic.name, skill.difficulty.name, skill.pattern],
+          );
+        } else {
+          await txn.insert(tablePatternSkills, skill.toMap());
+        }
+      }
+    });
+    _ref?.read(dataRevisionProvider.notifier).state++;
+  }
+
+  /// Deletes all skill ratings and pattern skills (used by Reset All Data).
   Future<void> deleteAll() async {
     final db = await _dbHelper.database;
     await db.delete(tableSkillRatings);
+    await db.delete(tablePatternSkills);
   }
 }

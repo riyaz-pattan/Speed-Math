@@ -109,7 +109,7 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
     setState(() {
       _selectedTopics = [rating.topic];
       _selectedDifficulty = rating.difficulty;
-      _focusOnWeakAreas = false;
+      _focusOnWeakAreas = true;
     });
   }
 
@@ -165,6 +165,8 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
         correctSoundEnabled: settings.correctSoundEnabled,
         wrongSoundEnabled: settings.wrongSoundEnabled,
         soundVolume: settings.soundVolume,
+        correctSoundVolume: settings.correctSoundVolume,
+        wrongSoundVolume: settings.wrongSoundVolume,
         keypadStyle: settings.keypadStyle,
       );
 
@@ -204,6 +206,8 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
         correctSoundEnabled: settings.correctSoundEnabled,
         wrongSoundEnabled: settings.wrongSoundEnabled,
         soundVolume: settings.soundVolume,
+        correctSoundVolume: settings.correctSoundVolume,
+        wrongSoundVolume: settings.wrongSoundVolume,
         keypadStyle: settings.keypadStyle,
         initialMistakes: mistakes,
       );
@@ -262,8 +266,6 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
 
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final showWeakAreasToggle =
-        _selectedDifficulty == null || _selectedTopics.length > 1;
 
     return Scaffold(
       appBar: AppBar(
@@ -300,11 +302,9 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
                   _buildDifficultySegmented(colorScheme),
                   const SizedBox(height: 20),
 
-                  // 4. "Focus on my weak areas" Switch (shown when Auto or >1 topic)
-                  if (showWeakAreasToggle) ...[
-                    _buildWeakAreasSwitch(colorScheme),
-                    const SizedBox(height: 20),
-                  ],
+                  // 4. "Focus on my weak areas" Switch (shown in every case)
+                  _buildWeakAreasSwitch(colorScheme),
+                  const SizedBox(height: 20),
 
                   // 5. Practice Mode & Target
                   _buildSectionHeader('Practice Mode'),

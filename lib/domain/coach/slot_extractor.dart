@@ -36,6 +36,9 @@ abstract final class SlotExtractor {
     if (text.contains('cube roots') || text.contains('cube root')) {
       return Topic.cubeRoots;
     }
+    if (text.contains('missing number') || text.contains('missing numbers')) {
+      return Topic.missingNumber;
+    }
 
     final words = text.split(' ');
     for (final word in words) {
@@ -54,6 +57,30 @@ abstract final class SlotExtractor {
           return Topic.cubes;
         case 'exponents':
           return Topic.exponents;
+        case 'percentages':
+        case 'percentage':
+        case 'percent':
+          return Topic.percentages;
+        case 'fractions':
+        case 'fraction':
+          return Topic.fractions;
+        case 'simplification':
+        case 'simplifications':
+        case 'simplify':
+        case 'bodmas':
+          return Topic.simplification;
+        case 'averages':
+        case 'average':
+          if (text.contains('average speed') ||
+              text.contains('average time') ||
+              text.contains('avg speed') ||
+              text.contains('avg time')) {
+            break;
+          }
+          return Topic.averages;
+        case 'missing':
+        case 'unknown':
+          return Topic.missingNumber;
       }
     }
     return null;

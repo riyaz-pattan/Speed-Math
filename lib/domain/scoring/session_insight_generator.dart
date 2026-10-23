@@ -15,6 +15,7 @@ class SessionInsightContext {
   final double? recentAccuracy;
   final int clearedMistakesCount;
   final int stillToPracticeCount;
+  final bool isSimilarMistakes;
 
   const SessionInsightContext({
     this.totalSessionsBefore = 0,
@@ -24,6 +25,7 @@ class SessionInsightContext {
     this.recentAccuracy,
     this.clearedMistakesCount = 0,
     this.stillToPracticeCount = 0,
+    this.isSimilarMistakes = false,
   });
 }
 
@@ -74,7 +76,10 @@ class SessionInsightGenerator {
 
     // 2. Mistakes practice session
     if (kind == SessionKind.mistakes || mode == PracticeMode.mistakes) {
-      if (context.stillToPracticeCount == 0 && context.clearedMistakesCount > 0) {
+      if (context.isSimilarMistakes) {
+        final text = _pickPhrase('similar_mistakes_practice', {});
+        if (text != null) return text;
+      } else if (context.stillToPracticeCount == 0 && context.clearedMistakesCount > 0) {
         final text = _pickPhrase('mistakes_practice_all_mastered', {
           'mastered': context.clearedMistakesCount.toString(),
         });
@@ -277,6 +282,14 @@ class SessionInsightGenerator {
       'I looked at your review session: you mastered all {mastered} questions! Outstanding turnaround on your tricky spots.',
       'I noticed you finished off the entire review list. All {mastered} questions are mastered—keep up that momentum.',
       'This tells me your persistence paid off. Every one of the {mastered} questions you reviewed today is now mastered!'
+    ],
+    'similar_mistakes_practice': [
+      'I looked at your practice: you tackled new questions targeting your recent slip-ups. Your skills and pattern mastery are updated!',
+      'I noticed you practiced similar questions on your problem patterns. Reinforcing the underlying concepts builds real confidence.',
+      'This tells me you are strengthening your weak spots. Practicing fresh variations of tricky questions trains your brain to spot the pattern.',
+      'I looked at how you worked through these concept variations. Your skills and pattern ratings have been updated with this progress.',
+      'I noticed good work on these similar questions. Tackling fresh numbers with the same tricky patterns prevents memorizing answers.',
+      'This tells me your concept practice is on track. Working on similar questions solidifies the technique for your next regular drill.'
     ],
     'slowest_type': [
       'I looked at your answers across topics. {topic} took you the longest today at {avg_time} per answer on average.',

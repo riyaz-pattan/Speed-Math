@@ -2,6 +2,7 @@ import 'dart:math';
 
 import '../../../core/enums/enums.dart';
 import '../difficulty_ranges.dart';
+import '../pattern_constants.dart';
 import '../question.dart';
 import '../question_generator.dart';
 
@@ -31,11 +32,36 @@ class ExponentsGenerator extends QuestionGenerator {
   Topic get topic => Topic.exponents;
 
   @override
+  String patternOf(Difficulty difficulty, List<int> operands) =>
+      PatternConstants.patternOf(topic, difficulty, operands);
+
+  @override
   Question generate({
     required Difficulty difficulty,
     required Random random,
     Question? previousQuestion,
+    String? pattern,
   }) {
+    Question q;
+    int tries = 0;
+    do {
+      final raw = _generateRaw(difficulty, random);
+      final pat = patternOf(difficulty, raw.operands);
+      q = Question(
+        topic: raw.topic,
+        difficulty: raw.difficulty,
+        displayText: raw.displayText,
+        operands: raw.operands,
+        correctAnswer: raw.correctAnswer,
+        pattern: pat,
+      );
+      tries++;
+    } while (pattern != null && q.pattern != pattern && tries < 50);
+
+    return q;
+  }
+
+  Question _generateRaw(Difficulty difficulty, Random random) {
     if (difficulty == Difficulty.hard) {
       final pair = _hardValidPairs[random.nextInt(_hardValidPairs.length)];
       return Question(
@@ -61,7 +87,8 @@ class ExponentsGenerator extends QuestionGenerator {
           DifficultyRanges.exponentsMediumPowMax,
         ),
       Difficulty.hard => throw StateError('Handled above'),
-      Difficulty.mixed => throw ArgumentError('Cannot generate Difficulty.mixed directly'),
+      Difficulty.mixed =>
+        throw ArgumentError('Cannot generate Difficulty.mixed directly'),
     };
 
     int base;
@@ -74,7 +101,9 @@ class ExponentsGenerator extends QuestionGenerator {
       for (var i = 0; i < power; i++) {
         result *= base;
       }
-    } while (base == 1 || base == 10 || result > DifficultyRanges.exponentsHardMaxResult);
+    } while (base == 1 ||
+        base == 10 ||
+        result > DifficultyRanges.exponentsHardMaxResult);
 
     return Question(
       topic: Topic.exponents,

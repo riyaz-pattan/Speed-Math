@@ -576,18 +576,35 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                   ),
                   const SizedBox(height: 18),
 
-                  // Large clear question text
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: QuestionTextWidget(
-                      text: state.currentQuestion.displayText,
-                      style: const TextStyle(
-                        fontSize: 52,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.5,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+                  // Clear question text (responsive for single and multi-line expressions)
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isLong = state.currentQuestion.displayText.length > 25;
+                      final baseFontSize = isLong ? 26.0 : 52.0;
+                      return ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: constraints.maxWidth,
+                          minHeight: 64,
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: constraints.maxWidth,
+                            ),
+                            child: QuestionTextWidget(
+                              text: state.currentQuestion.displayText,
+                              style: TextStyle(
+                                fontSize: baseFontSize,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: isLong ? 0.0 : -0.5,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 20),
 
