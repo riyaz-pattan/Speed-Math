@@ -1,16 +1,31 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/enums/enums.dart';
 import '../../core/services/haptic_service.dart';
 import '../../core/services/wakelock_service.dart';
 import '../../core/strings/app_strings.dart';
+import '../../core/widgets/app_toast.dart';
 import '../../core/widgets/question_text_widget.dart';
 import '../../data/repositories/settings_repository.dart';
 import 'controllers/practice_session_controller.dart';
 import 'models/practice_models.dart';
 import 'widgets/keypad.dart';
+
+class _SpeedTagInfo {
+  final String label;
+  final IconData icon;
+  final Color color;
+
+  const _SpeedTagInfo({
+    required this.label,
+    required this.icon,
+    required this.color,
+  });
+}
 
 /// Fullscreen practice session screen featuring question display,
 /// custom keypad, auto-submit, progress tracking, and pause/quit controls.
@@ -31,6 +46,22 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     with WidgetsBindingObserver {
   int _lastFeedbackTick = 0;
   bool _hasNavigated = false;
+  int _lastAttemptCount = 0;
+  _SpeedTagInfo? _speedTag;
+  Timer? _speedTagTimer;
+
+  int _computeStreak(List<SessionAttempt> attempts, bool currentHasWrongTry) {
+    if (currentHasWrongTry) return 0;
+    int streak = 0;
+    for (int i = attempts.length - 1; i >= 0; i--) {
+      if (attempts[i].isCorrect) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    return streak;
+  }
 
   @override
   void initState() {
@@ -47,8 +78,10 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
 
   @override
   void dispose() {
+    _speedTagTimer?.cancel();
     WakelockService.disable();
     WidgetsBinding.instance.removeObserver(this);
+    ref.invalidate(practiceSessionControllerProvider(widget.config));
     super.dispose();
   }
 
@@ -210,6 +243,61 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
           );
         }
 
+        if (next.attempts.length > _lastAttemptCount) {
+          _lastAttemptCount = next.attempts.length;
+          final lastAttempt = next.attempts.last;
+          if (lastAttempt.isCorrect) {
+            final streak = _computeStreak(next.attempts, false);
+            // Milestone toast
+            if (settings.gameEffectsEnabled &&
+                (streak == 5 || streak == 10 || streak == 20 || streak == 30)) {
+              AppToast.show(
+                context,
+                message: '$streak in a row! 🔥',
+                type: AppToastType.info,
+                duration: const Duration(milliseconds: 1500),
+              );
+              if (settings.hapticsEnabled) {
+                ref.read(hapticServiceProvider).keyPress(strength: VibrationStrength.light);
+              }
+            }
+
+            // Speed tag
+            if (settings.gameEffectsEnabled) {
+              final targetMs = AppConstants.getTargetTimeMs(
+                lastAttempt.question.topic,
+                lastAttempt.question.difficulty,
+              );
+              final _SpeedTagInfo tag;
+              if (lastAttempt.timeMs <= targetMs * 0.5) {
+                tag = const _SpeedTagInfo(
+                  label: 'Lightning',
+                  icon: Icons.bolt_rounded,
+                  color: Colors.amber,
+                );
+              } else if (lastAttempt.timeMs <= targetMs) {
+                tag = const _SpeedTagInfo(
+                  label: 'On pace',
+                  icon: Icons.speed_rounded,
+                  color: Color(0xFF10B981),
+                );
+              } else {
+                tag = const _SpeedTagInfo(
+                  label: 'Steady',
+                  icon: Icons.check_circle_outline_rounded,
+                  color: Color(0xFF6B7280),
+                );
+              }
+
+              _speedTagTimer?.cancel();
+              setState(() => _speedTag = tag);
+              _speedTagTimer = Timer(const Duration(milliseconds: 600), () {
+                if (mounted) setState(() => _speedTag = null);
+              });
+            }
+          }
+        }
+
         if (prev?.status != PracticeSessionStatus.completed &&
             next.status == PracticeSessionStatus.completed) {
           controller.finishSession().then((resultData) {
@@ -225,19 +313,8 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     final isPaused = state.status == PracticeSessionStatus.paused;
     final topicColor = AppTheme.getTopicColor(state.config.topic);
 
-    // Progress calculation for top progress bar
-    final double progress;
-    if (state.config.mode == PracticeMode.timer) {
-      final totalMs = state.config.modeValue * 1000;
-      progress = totalMs > 0
-          ? (state.timeRemainingMs / totalMs).clamp(0.0, 1.0)
-          : 0.0;
-    } else {
-      final totalQ = state.config.modeValue;
-      progress = totalQ > 0
-          ? (state.attempts.length / totalQ).clamp(0.0, 1.0)
-          : 0.0;
-    }
+    final streak = _computeStreak(state.attempts, state.currentQuestionHasWrongTry);
+    final liveScore = state.attempts.fold<double>(0.0, (sum, a) => sum + a.points).round();
 
     return PopScope(
       canPop: false,
@@ -251,19 +328,29 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
               // Main practice interface
               Column(
                 children: [
-                  // Thin smooth progress bar at the top
-                  LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 4,
-                    backgroundColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                    valueColor: AlwaysStoppedAnimation<Color>(topicColor),
+                  // Progress bar at the top (with milestone dots in Question mode)
+                  _buildTopProgressBar(
+                    state: state,
+                    colorScheme: colorScheme,
+                    topicColor: topicColor,
                   ),
 
-                  // Session topic & difficulty chip so user always sees what they selected
-                  _buildSessionChip(widget.config, topicColor),
+                  // Session topic & difficulty chip, and streak chip
+                  _buildSessionChip(
+                    widget.config,
+                    topicColor,
+                    streak: streak,
+                    gameEffectsEnabled: settings.gameEffectsEnabled,
+                  ),
 
-                  // Header with close, progress/timer, live correct counter, and pause
-                  _buildHeader(state, controller, colorScheme, topicColor),
+                  // Header with close, progress/timer, live points & correct counter, and pause
+                  _buildHeader(
+                    state,
+                    controller,
+                    colorScheme,
+                    topicColor,
+                    liveScore: liveScore,
+                  ),
 
                   // Center question card and answer input area
                   Expanded(
@@ -296,7 +383,90 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     );
   }
 
-  Widget _buildSessionChip(PracticeConfig config, Color topicColor) {
+  Widget _buildTopProgressBar({
+    required PracticeSessionState state,
+    required ColorScheme colorScheme,
+    required Color topicColor,
+  }) {
+    if (state.config.mode == PracticeMode.timer) {
+      final totalMs = state.config.modeValue * 1000;
+      final progress = totalMs > 0
+          ? (state.timeRemainingMs / totalMs).clamp(0.0, 1.0)
+          : 0.0;
+      return LinearProgressIndicator(
+        value: progress,
+        minHeight: 4,
+        backgroundColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        valueColor: AlwaysStoppedAnimation<Color>(topicColor),
+      );
+    }
+
+    final totalQ = state.config.modeValue;
+    final progress = totalQ > 0
+        ? (state.attempts.length / totalQ).clamp(0.0, 1.0)
+        : 0.0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final w = constraints.maxWidth;
+        return SizedBox(
+          height: 6,
+          width: w,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                height: 4,
+                width: w,
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                height: 4,
+                width: w * progress,
+                decoration: BoxDecoration(
+                  color: topicColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Milestone dots at 25%, 50%, 75%
+              for (final frac in const [0.25, 0.50, 0.75])
+                Positioned(
+                  left: (w * frac) - 3,
+                  top: -1,
+                  child: Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: progress >= frac
+                          ? (progress > frac ? topicColor : Colors.white)
+                          : colorScheme.surfaceContainerHighest,
+                      border: Border.all(
+                        color: progress >= frac
+                            ? topicColor
+                            : colorScheme.outline.withValues(alpha: 0.4),
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSessionChip(
+    PracticeConfig config,
+    Color topicColor, {
+    required int streak,
+    required bool gameEffectsEnabled,
+  }) {
     final String label;
     if (config.mode == PracticeMode.mistakes) {
       label = 'Mistakes Practice';
@@ -308,27 +478,67 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
 
     return Padding(
       padding: const EdgeInsets.only(top: 4, bottom: 2),
-      child: Center(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-          decoration: BoxDecoration(
-            color: topicColor.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: topicColor.withValues(alpha: 0.28),
-              width: 1,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            decoration: BoxDecoration(
+              color: topicColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: topicColor.withValues(alpha: 0.28),
+                width: 1,
+              ),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: topicColor,
+                letterSpacing: 0.3,
+              ),
             ),
           ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: topicColor,
-              letterSpacing: 0.3,
+          if (gameEffectsEnabled && streak > 1) ...[
+            const SizedBox(width: 8),
+            AnimatedScale(
+              scale: 1.0,
+              duration: const Duration(milliseconds: 200),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.deepOrange.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.deepOrange.withValues(alpha: 0.4),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.local_fire_department_rounded,
+                      size: 14,
+                      color: Colors.deepOrangeAccent,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$streak in a row',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.deepOrangeAccent,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
-        ),
+          ],
+        ],
       ),
     );
   }
@@ -337,8 +547,9 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     PracticeSessionState state,
     PracticeSessionController controller,
     ColorScheme colorScheme,
-    Color topicColor,
-  ) {
+    Color topicColor, {
+    required int liveScore,
+  }) {
     final isTimerMode = state.config.mode == PracticeMode.timer;
     final correctCount = state.attempts.where((a) => a.isCorrect).length;
 
@@ -366,9 +577,44 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Live score points badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Colors.amber.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.star_rounded,
+                      size: 14,
+                      color: Colors.amber,
+                    ),
+                    const SizedBox(width: 4),
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0, end: liveScore.toDouble()),
+                      duration: const Duration(milliseconds: 250),
+                      builder: (context, val, _) => Text(
+                        '${val.round()}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.amber,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
               // Live correct answers counter badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                 decoration: BoxDecoration(
                   color: AppTheme.additionColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(14),
@@ -381,14 +627,14 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                   children: [
                     const Icon(
                       Icons.check_circle_rounded,
-                      size: 15,
+                      size: 14,
                       color: AppTheme.additionColor,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       '$correctCount',
                       style: const TextStyle(
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.additionColor,
                       ),
@@ -396,7 +642,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                   ],
                 ),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 2),
               IconButton(
                 icon: Icon(
                   state.status == PracticeSessionStatus.paused
@@ -495,17 +741,19 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
         ? AppTheme.getTopicColor(currentTopic)
         : topicColor;
 
+    final isApproximation = currentTopic == Topic.approximation;
+
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Large rounded question card with subtle topic accent
+            // Large rounded question card with subtle topic accent (reduced margin & padding for maximum width)
             Container(
               width: double.infinity,
               constraints: const BoxConstraints(maxWidth: 420),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(24),
@@ -574,67 +822,107 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                       ],
                     ],
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 14),
 
-                  // Clear question text (responsive for single and multi-line expressions)
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isLong = state.currentQuestion.displayText.length > 25;
-                      final baseFontSize = isLong ? 26.0 : 52.0;
-                      return ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: constraints.maxWidth,
-                          minHeight: 64,
-                        ),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxWidth: constraints.maxWidth,
-                            ),
-                            child: QuestionTextWidget(
-                              text: state.currentQuestion.displayText,
-                              style: TextStyle(
-                                fontSize: baseFontSize,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: isLong ? 0.0 : -0.5,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
+                  // Measured, responsive question text
+                  QuestionTextWidget(
+                    text: state.currentQuestion.displayText,
+                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
 
                   // Answer display box
                   Container(
-                    width: 180,
-                    height: 56,
+                    constraints: const BoxConstraints(
+                      minWidth: 200,
+                      maxWidth: 280,
+                      minHeight: 58,
+                      maxHeight: 58,
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                      color: const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: state.currentInput.isNotEmpty
                             ? topicColor
-                            : colorScheme.outline.withValues(alpha: 0.25),
-                        width: state.currentInput.isNotEmpty ? 2 : 1,
+                            : const Color(0xFFCBD5E1),
+                        width: state.currentInput.isNotEmpty ? 2 : 1.5,
                       ),
                     ),
                     child: Center(
-                      child: Text(
-                        state.currentInput.isEmpty ? '—' : state.currentInput,
-                        style: TextStyle(
-                          fontSize: 34,
-                          fontWeight: FontWeight.bold,
-                          color: state.currentInput.isEmpty
-                              ? colorScheme.outline.withValues(alpha: 0.35)
-                              : colorScheme.onSurface,
-                        ),
+                      child: state.currentInput.isEmpty
+                          ? const Text(
+                              'Type your answer',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF94A3B8),
+                                letterSpacing: 0.2,
+                              ),
+                            )
+                          : FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                state.currentInput,
+                                style: const TextStyle(
+                                  fontSize: 34,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF0F172A),
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
+
+                  // Speed tag (Lightning / On pace / Steady) for 600ms
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: SizedBox(
+                      height: 20,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 180),
+                        child: _speedTag != null
+                            ? Row(
+                                key: ValueKey(_speedTag!.label),
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    _speedTag!.icon,
+                                    size: 15,
+                                    color: _speedTag!.color,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _speedTag!.label,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: _speedTag!.color,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : const SizedBox.shrink(),
                       ),
                     ),
                   ),
+
+                  // Special hint line for Approximation questions
+                  if (isApproximation) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      'Round each number first, then calculate.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ],
               ),
             ),

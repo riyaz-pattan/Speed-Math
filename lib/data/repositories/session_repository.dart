@@ -10,6 +10,13 @@ final sessionRepositoryProvider = Provider<SessionRepository>((ref) {
   return SessionRepository(ref: ref);
 });
 
+/// Riverpod provider for Total XP across all sessions of all kinds.
+final totalXpProvider = FutureProvider<int>((ref) async {
+  ref.watch(dataRevisionProvider);
+  final repo = ref.watch(sessionRepositoryProvider);
+  return repo.getTotalXp();
+});
+
 /// Repository for handling persistence and retrieval of [Session] entities.
 class SessionRepository {
   final DatabaseHelper _dbHelper;
@@ -149,5 +156,18 @@ class SessionRepository {
       offset: offset,
     );
     return results.map((map) => Session.fromMap(map)).toList();
+  }
+
+  /// Returns total XP earned across all sessions of all kinds with a single SQL SUM.
+  Future<int> getTotalXp() async {
+    final db = await _dbHelper.database;
+    final results = await db.rawQuery(
+      'SELECT COALESCE(SUM(score), 0) AS total FROM ${DatabaseHelper.tableSessions}',
+    );
+    final total = results.first['total'];
+    if (total is num) {
+      return total.round();
+    }
+    return 0;
   }
 }

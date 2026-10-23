@@ -1,6 +1,6 @@
 # PROJECT_STATE.md — Speed Math with AI
 
-## Current Phase: Phase 7C Complete ✅ (Version 1.7.0)
+## Current Phase: Phase 7E Complete ✅ (Version 1.9.0)
 
 ## What Is Finished
 
@@ -631,82 +631,266 @@ Adding a new intent to the Coach is designed to be modular and require changes i
 
 ## New Question Patterns (Phase 7C — 26 Patterns)
 
-| Topic | Difficulty | Pattern Code | Human Label |
-|---|---|---|---|
-| Percentages | Easy | `pct_easy_benchmark` | Benchmark percentages (10%, 20%, 25%, 50%) |
-| Percentages | Medium | `pct_med_multiple_of_5` | Two-digit percentage of hundreds |
-| Percentages | Medium | `pct_med_clean_division` | Percentage with exact division |
-| Percentages | Hard | `pct_hard_compound_add` | Sum of two percentages |
-| Percentages | Hard | `pct_hard_compound_sub` | Difference of two percentages |
-| Fractions | Easy | `frac_easy_unit` | Unit fraction of a number |
-| Fractions | Easy | `frac_easy_proper` | Simple proper fraction of a number |
-| Fractions | Medium | `frac_med_proper` | Proper fraction with 2-digit denominator |
-| Fractions | Medium | `frac_med_large_n` | Fraction of a large round number |
-| Fractions | Hard | `frac_hard_compound_add` | Sum of two fractional parts |
-| Fractions | Hard | `frac_hard_compound_sub` | Difference of two fractional parts |
-| Simplification | Easy | `simp_easy_add_mul` | Multiplication before addition |
-| Simplification | Easy | `simp_easy_mul_sub` | Multiplication before subtraction |
-| Simplification | Medium | `simp_med_brackets` | Parentheses with multiplication |
-| Simplification | Medium | `simp_med_two_products` | Sum of two multiplications |
-| Simplification | Hard | `simp_hard_square_div_add` | Square, exact division, and product combo |
-| Simplification | Hard | `simp_hard_square_div_sub` | Square, exact division, and subtraction combo |
-| Averages | Easy | `avg_easy_three_2d` | Average of 3 two-digit numbers |
-| Averages | Medium | `avg_med_five_mixed` | Average of 5 numbers (2 to 3 digits) |
-| Averages | Hard | `avg_hard_find_fifth_add` | Missing fifth number when total is high |
-| Averages | Hard | `avg_hard_find_fifth_sub` | Missing fifth number when total is low |
-| Missing Number | Easy | `miss_easy_add` | Unknown addend (? + a = b) |
-| Missing Number | Easy | `miss_easy_mul` | Unknown factor (a × ? = b) |
-| Missing Number | Medium | `miss_med_mul_2d` | Unknown 2-digit factor (? × a = b) |
-| Missing Number | Medium | `miss_med_div` | Unknown dividend (? ÷ a = b) |
-| Missing Number | Hard | `miss_hard_linear` | Unknown in linear form (? × a − b = c) |
-| Missing Number | Hard | `miss_hard_bracket` | Unknown inside parentheses ((? + a) × b = c) |
+### Phase 7D — Bug Fixes, Display Improvements, Custom Toast, Gamified Practice & Exam Content ✅ (Version 1.8.0)
+
+#### Part A: Bug Fixes
+- [x] **A1: Practice Launch Lock on Navigation (Root Cause & Fix)**:
+  - **Root Cause**: In `PracticeSetupScreen._startPractice()`, the flag `_isLaunching` was set to `true` while awaiting `context.push('/practice/session')`. When the user chose *"End and see results"* > *"Change Setup"*, `ResultsScreen` navigated via `context.go('/practice')`, which dismantled the current navigation route stack without completing the pending `context.push` Future. Consequently, the `finally { _isLaunching = false; }` block was never executed, leaving `_isLaunching = true` indefinitely and silently deadlocking the "Start Practice" button until the app was switched to another tab.
+  - **Fix**:
+    1. Added `activate()` lifecycle hook to `PracticeSetupScreen` and `MistakesScreen` to immediately reset `_isLaunching = false` whenever the screen becomes active/visible again.
+    2. Added a 1.5-second safety auto-release fallback timer in both launch flows.
+    3. Invalidated `practiceSessionControllerProvider` in `PracticeSessionScreen.dispose()` ensuring a fresh controller for every new session.
+- [x] **A2: Coach Direct Sub-Route Blank Screen (Root Cause & Fix)**:
+  - **Root Cause**: `/coach` was placed on `_rootNavigatorKey`, while `/report` and `/stats` were sub-routes nested within `ShellRoute` under `_shellNavigatorKey`. Pushing `/report` or `/stats` from the Coach screen via `context.push` created a navigator stack mismatch resulting in an unrendered blank white container.
+  - **Fix**: In `CoachScreen._handleAction`, navigation to `/report` and `/stats` now pushes `ReportScreen` and `StatsScreen` directly onto the root navigator with standard AppBar back navigation leading directly back to Coach.
+
+#### Part B: Measured Question Text Fitting & Word Problems
+- [x] **QuestionFontConstants**:
+  - Defined canonical font sizes:
+    * Expressions: preferred 54sp, min single-line 30sp, two-line max 40sp, two-line min 28sp.
+    * Sentences / Word problems: max 34sp, min 22sp, max 4 lines.
+- [x] **QuestionTextWidget (`lib/core/widgets/question_text_widget.dart`)**:
+  - Uses `LayoutBuilder` + `TextPainter` to dynamically measure expression bounds before rendering.
+  - Tries single-line fit from 54sp down to 30sp. If bounds exceed width, automatically performs a balanced two-line split at the top-level operator/comma closest to the center (starting line 2 with the operator), scaling between 40sp and 28sp.
+  - Word problem sentences scale between 34sp and 22sp across up to 4 lines.
+  - Support for mixed fractions (`3 1/4` or `3_1/4`): whole number followed by stacked vertical fraction with horizontal bar.
+- [x] **Padding & Margins**: Question card horizontal margin reduced to 12dp and inner padding to 10dp for maximum typing width.
+
+#### Part C: AppToast Custom Overlay
+- [x] **AppToast (`lib/core/widgets/app_toast.dart`)**:
+  - Custom overlay-based notification anchored below the status bar (top-of-screen).
+  - Dark 85% opacity card with rounded corners, subtle icon, and clear typography.
+  - Auto-dismisses in 2.5 seconds (or 4.0 seconds when action button is present). Tap or swipe up immediately dismisses. Non-blocking touch passthrough to rest of screen.
+  - Replaced all 7 legacy `SnackBar` and `ScaffoldMessenger` usages across the entire codebase (`SettingsScreen`, `DataCheckScreen`, `MistakesScreen`, `CoachScreen`, `StatsScreen`).
+
+#### Part D: 16 Topics Organized Under 3 Groups
+- [x] **Topic Enum & Groups (`lib/core/enums/enums.dart`)**:
+  - Added `Topic.numberSeries` (symbol: `...`) and `Topic.approximation` (symbol: `≈`).
+  - Added `TopicGroup` enum:
+    1. **Arithmetic**: Addition, Subtraction, Multiplication, Division.
+    2. **Powers & Roots**: Squares, Cubes, Square Roots, Cube Roots, Exponents.
+    3. **Applied Maths**: Percentages, Fractions, Simplification, Averages, Missing Number, Number Series, Approximation.
+- [x] **Theme & Styling**:
+  - Added `AppTheme.numberSeriesColor` (Teal-Blue `0xFF0284C7`) and `AppTheme.approximationColor` (Amber-Brown `0xFFB45309`).
+  - Home screen displays cards cleanly grouped under the 3 group section headings (removed "14 Topics" / "More topics").
+  - Practice Setup screen features "All topics" at the top followed by the 3 group subheadings with checkmark-free topic chips.
+
+#### Part E: New & Upgraded Question Generators
+- [x] **Number Series (`NumberSeriesGenerator`)**:
+  - Generates 5–6 term progressions with one unknown term marked as `?`.
+  - 14 distinct patterns across Easy, Medium, and Hard:
+    * *Easy*: Constant difference, $\times 2 / \times 3$, consecutive squares, consecutive cubes, odd/even. Missing term at pos 2, 3, or 4.
+    * *Medium*: Growing difference, Fibonacci-style, $\times n \pm k$, $n^2 \pm k$, prime numbers. Missing term at pos 3, 4, or 5.
+    * *Hard*: Interleaved series (two alternating patterns), growing multipliers, square/cube differences, alternating $\pm$ operations. Missing term anywhere.
+  - All positive numbers $< 100,000$.
+- [x] **Approximation (`ApproximationGenerator`)**:
+  - Generates realistic expressions containing decimal operands ending with `≈ ?`.
+  - Calculated using friendly rounded integers, guaranteeing clean positive whole answers.
+  - 7 patterns across Easy, Medium, and Hard:
+    * *Easy*: Near product ($a \times b$), near two-operation ($a + b \times c$).
+    * *Medium*: Near percentage ($x\% \text{ of } N$), near square roots ($\sqrt{N}$ near perfect square), near 3-operation combos.
+    * *Hard*: Compound near percentage ($x\% \text{ of } A \pm y\% \text{ of } B$), mixed powers & divisions.
+  - Includes practice screen hint: *"Round each number first, then calculate."*
+- [x] **Upgraded Averages (`AveragesGenerator`)**:
+  - Exam-style word problem scenarios: group sums, consecutive integers/multiples, member joining/leaving group, removed/replaced member with average change, weighted average.
+- [x] **Upgraded Fractions (`FractionsGenerator`)**:
+  - Mixed fraction expressions (`3 1/4 + 2 1/4`), same-denominator operations, fraction of fraction of $N$, multi-term mixed fraction simplification with brackets.
+- [x] **Coach & Debug Integration**:
+  - `TextNormalizer` & `SlotExtractor` map synonyms for approximation (`approx`, `estimate`, `estimation`) and series (`sequence`, `progression`, `number pattern`).
+  - Added sample mistakes and skill ratings for `numberSeries` and `approximation` in `debug_sample_data.dart`.
+
+#### Part F: Gamified Practice (Calm, Fast, Optional)
+- [x] **During Practice**:
+  - **Streak Chip**: Flame icon + "$N$ in a row", grows smoothly with `AnimatedScale(200ms)`, resets quietly on wrong or skip (no red, no shake). Hidden at 0 and 1.
+  - **Live Points Counter**: Running session score counting up smoothly (`TweenAnimationBuilder`, 250ms).
+  - **Speed Tag**: Brief 600ms tag near answer box on correct answers: *"Lightning"* ($\le 50\%$ target time), *"On pace"* ($\le 100\%$ target time), *"Steady"* ($> 100\%$).
+  - **Question Mode Progress Bar**: Custom progress bar featuring milestone dots at 25%, 50%, and 75%.
+  - **Milestone Toasts**: At streaks of 5, 10, 20, and 30, triggers an `AppToast` banner (*"10 in a row! 🔥"*) for 1.5s with light tactile haptic without blocking input.
+- [x] **Results Screen**:
+  - **1 to 3 Stars**: 1 star for finishing, 2 stars for $\ge 70\%$ accuracy, 3 stars for $\ge 90\%$ accuracy + average time $\le$ target time (`XpCalculator`).
+  - **Score Count-up**: Final score counts up smoothly.
+  - **Confetti Burst**: 30-particle lightweight `CustomPainter` burst under 1.2s, triggered only on new best scores or perfect rounds.
+  - **XP & Levels Card**: Shows `+N XP`, player level & title, progress bar to next level, and celebration message on level-up.
+- [x] **XP & Level Formula**:
+  - Total XP = sum of scores across all sessions of all kinds (`SELECT COALESCE(SUM(score), 0) FROM sessions`).
+  - Level $L$ threshold = $50 \times (L - 1)^2$ XP.
+  - Level titles: Beginner, Quick Thinker, Rapid Solver, Number Ninja, Speedster, Calculator Pro, Mind Racer, Math Wizard, Lightning Mind, Grandmaster.
+  - Home screen header features a compact level chip ("Level 4 • Number Ninja" + mini progress bar).
+- [x] **Settings**:
+  - Added "Game effects" toggle (default ON): *"Streaks, milestones, speed tags and celebrations"*. When OFF: streaks, speed tags, milestone toasts, and confetti are disabled while retaining underlying points and progress tracking.
 
 ---
 
-## What Is NOT Finished
-- Future phases (streaks, sound additions, etc.).
+## Canonical Difficulty Ranges (All 16 Topics)
+
+| Topic | Easy | Medium | Hard | Notes |
+|---|---|---|---|---|
+| Addition | $2\text{D} + 2\text{D}$ ($10\text{--}99$) | $3\text{D} + 3\text{D}$ ($100\text{--}999$) | $3\text{ or } 4$ numbers ($100\text{--}9999$) | Whole sum |
+| Subtraction | $2\text{D} - 2\text{D}$ ($10\text{--}99$) | $3\text{D} - 3\text{D}$ ($100\text{--}999$) | $4\text{D} - 4\text{D}$ ($1000\text{--}9999$) | Non-negative result |
+| Multiplication | $2\text{D} \times 1\text{D}$ ($11\text{--}99 \times 2\text{--}9$) | $2\text{D} \times 2\text{D}$ ($11\text{--}99 \times 11\text{--}99$) | $3\text{D} \times 2\text{D}$ ($101\text{--}999 \times 11\text{--}99$) | Excludes pure powers of 10 |
+| Division | $2\text{D} \div 1\text{D}$ | $3\text{D} \div 1\text{D}$ | $3\text{--}4\text{D} \div 2\text{D}$ | Exact division, no remainder |
+| Squares | $11^2\text{--}30^2$ | $31^2\text{--}50^2$ | $51^2\text{--}99^2$ | Excludes multiples of 10 in hard |
+| Cubes | $2^3\text{--}12^3$ | $13^3\text{--}20^3$ | $21^3\text{--}30^3$ | Excludes multiples of 10 in hard |
+| Square Roots | $\sqrt{121}\text{--}\sqrt{900}$ ($11\text{--}30$) | $\sqrt{961}\text{--}\sqrt{2500}$ ($31\text{--}50$) | $\sqrt{2601}\text{--}\sqrt{9801}$ ($51\text{--}99$) | Perfect squares |
+| Cube Roots | $\sqrt[3]{8}\text{--}\sqrt[3]{1728}$ ($2\text{--}12$) | $\sqrt[3]{2197}\text{--}\sqrt[3]{8000}$ ($13\text{--}20$) | $\sqrt[3]{9261}\text{--}\sqrt[3]{27000}$ ($21\text{--}30$) | Perfect cubes |
+| Exponents | $2^3\text{--}2^6, 3^2\text{--}3^4, 4^2\text{--}4^3, 5^2\text{--}5^3$ | $2^7\text{--}2^{10}, 3^5, 4^4, 5^4, 6^3\text{--}7^3$ | $2^{11}\text{--}2^{12}, 6^4, 7^4, 8^3\text{--}9^3$ | Integer result $\le 10000$ |
+| Percentages | $x\% \text{ of } N$, $x \in \{10, 20, 25, 50\}$, $N \in [20, 400]$ mult. 20 | $x \in [5, 95]$ step 5, $N \in [100, 1000]$ mult. 20 | $x\% \text{ of } A \pm y\% \text{ of } B$, $A, B \in [200, 1500]$ mult. 20 | Positive whole answer |
+| Fractions | $\frac{a}{b} \text{ of } N$, $b \in \{2..10\}$, $N \le 200$ mult. $b$ | $b \in [2, 12]$, $N \in [100, 1000]$ mult. $b$ | Mixed fractions, compound sums, brackets | Positive whole answer |
+| Simplification | $a + b \times c$, $a \times b - c$ | $(a + b) \times c - d$, $a \times b + c \times d$ | $A^2 - B / C + D \times E$ | Positive whole answer |
+| Averages | Average of 3 $2\text{D}$ numbers | Average of 5 numbers ($2\text{--}3\text{D}$) | Word problems: group sums, joined/left, weighted | Divisible, whole positive result |
+| Missing Number | $? + a = b$, $a \times ? = b$, $b - ? = a$ | $? \times a = b$, $? / a = b$, $a - ? = b$ | $? \times a - b = c$, $(? + a) \times b = c$ | Whole positive result |
+| Number Series | Progressions of 5–6 terms (arithmetic, $\times 2/3$, squares, cubes, odd/even) | Growing diff, Fibonacci, $\times n \pm k$, $n^2 \pm k$, primes | Interleaved, growing multipliers, square/cube diffs | Missing term marked as `?`, whole positive result |
+| Approximation | Near product ($a \times b$), near 2-ops ($a + b \times c$) | Near percentage, near square root, near 3-ops | Compound percentage, mixed powers & divisions | Ends with $\approx ?$, positive whole answer |
 
 ---
 
-## How To Run
-```bash
-cd "/Users/rameez/Desktop/Speed Math"
-flutter pub get
-flutter analyze      # 0 issues
-```
+## What to Check by Hand (Phase 7D Checklist)
+
+1. **Bug Fix A1 (Practice Launch Lock)**:
+   - Start a practice session $\to$ answer 2 questions $\to$ tap Close $\to$ choose *"End and see results"*.
+   - On the Results screen, tap *"Change Setup"*.
+   - On the Practice Setup screen, tap *"Start Practice"*. Verify the session launches immediately without sticking.
+   - Test the same after Discarding a session and after completing a Mistakes session.
+
+2. **Bug Fix A2 (Coach Screen Navigation)**:
+   - Open Coach chat $\to$ tap *"Open Performance Report"* (or ask for report) $\to$ verify the Report screen opens with content (not a blank white screen) and has a back button returning to Coach.
+   - Do the same with *"Open Statistics"* action.
+
+3. **AppToast Overlay**:
+   - In Settings, tap *"Reset all data"* $\to$ confirm $\to$ verify custom black overlay card slides in at top with checkmark and auto-dismisses smoothly (zero SnackBar).
+   - In Mistakes, swipe away a mistake $\to$ verify AppToast displays at the top with "Undo" button.
+
+4. **Home Screen 3 Topic Groups**:
+   - Verify Home screen displays 3 sections: **"Arithmetic"** (4 topics), **"Powers & Roots"** (5 topics), and **"Applied Maths"** (7 topics).
+   - Verify the Level chip in the gradient header shows your current level, title, XP, and progress bar.
+
+5. **Question Rendering & Mixed Fractions**:
+   - Start a Fractions drill $\to$ verify mixed fractions (e.g. $3\frac{1}{4}$) render with the whole number followed by stacked vertical fraction.
+   - Start a Simplification or Word problem drill $\to$ verify long expressions split cleanly onto two balanced lines with operator on line 2, never overflowing the card width at 360px.
+
+6. **New Exam Content (Number Series & Approximation)**:
+   - Practice Number Series $\to$ verify sequences of 5–6 numbers with one `?`. All answers whole numbers.
+   - Practice Approximation $\to$ verify expressions with decimals ending in `≈ ?` and hint line displayed.
+
+7. **Gamified Practice & Game Effects Setting**:
+   - Answer 2+ questions correctly in a row $\to$ verify flame streak chip appears and grows slightly.
+   - Skips or wrong answers reset streak quietly without color flash, shake or blink.
+   - At streaks of 5, 10, 20, 30 $\to$ verify milestone toast appears at top for 1.5s with light haptic.
+   - On correct answers $\to$ verify speed tag ("Lightning", "On pace", "Steady") shows for 600ms.
+   - In Question mode $\to$ verify top progress bar has milestone dots at 25%, 50%, and 75%.
+   - On Results $\to$ verify 1–3 stars, smooth score count-up, XP progress bar, and confetti on new best score / perfect round.
+   - In Settings, turn OFF "Game effects" $\to$ verify streaks, speed tags, milestone toasts, and confetti are turned off cleanly.
 
 ---
 
-## What to Check by Hand (Phase 7C Checklist)
+### Phase 7D.1 — Bug Fixes & Refinements ✅ (Version 1.8.1)
+- [x] **A1: Questions Show as a Gray Box (Root Cause & Fix)**:
+  - *Root Cause*: `QuestionTextWidget._buildExpressionWidget` passed `TextSpan`s containing `WidgetSpan`s (for superscript exponents and stacked fractions) directly into `TextPainter.layout()`. Without providing explicit placeholder dimensions, Flutter threw `AssertionError: !hasInlineWidgets || hasValidPlaceholders`. In release builds, Flutter catches unhandled layout exceptions and renders `ErrorWidget` (plain gray box).
+  - *Proper Fix*: Tokenized expressions (`_TextToken`, `_PowerToken`, `_FractionToken`, `_RadicalToken`). Decoupled token width measurement using `TextPainter` strictly on plain text components (0 `WidgetSpan` measured with `TextPainter`). Baseline-aligned rows for math tokens. Wrapped questions in safe fallback `try...catch` logging with `debugPrint` and falling back to clean text (`17^2`) with `BoxFit.scaleDown`.
+  - *Custom ErrorWidget.builder*: Configured in `lib/main.dart` to show a neutral slate placeholder instead of Flutter's default gray box.
+  - *Question Gallery Screen*: Added in `lib/features/settings/question_gallery_screen.dart` (accessed via Settings > About > Long-press version > Data check > Question Gallery). Visualizes all 16 topics across Easy/Medium/Hard with 320/360/411dp width selectors and 1.0x/1.3x text scale switches, showing "FALLBACK USED" banner if fallback is triggered.
+  - *Throwaway Render Check*: Executed widget harness across all 16 topics $\times$ 3 difficulties $\times$ 20 samples $\times$ 3 widths $\times$ 2 text scales = 5,760 renders. Result: 0 failures, 0 fallbacks used. Test harness deleted.
+- [x] **A2: Typed Answer Invisibility (Root Cause & Fix)**:
+  - *Root Cause*: Cascading layout failure from `QuestionTextWidget`. Because the question and answer box were in the same card container, when `QuestionTextWidget` crashed with `AssertionError`, Flutter replaced the entire card with the gray `ErrorWidget`, obscuring the answer box completely. In addition, the answer box lacked high contrast text, had an empty state showing a faint dash `'—'` instead of a static hint, and lacked `BoxFit.scaleDown` for 5–6 digit numbers.
+  - *Fix*: Answer display box redesigned with `minWidth: 200, maxWidth: 280, height: 58`, high contrast bold dark text (`Color(0xFF0F172A)`, `fontSize: 34`, `FontWeight.w900`) wrapped in `FittedBox(fit: BoxFit.scaleDown)` to prevent any clipping on large numbers, and a clear static hint (`"Type your answer"`, `fontSize: 16`, `Color(0xFF94A3B8)`) when empty.
+- [x] **A3: "Revise your mistakes" Card Redesign**:
+  - Redesigned on Practice screen as a compact warm tinted card (`Color(0xFFFFF7ED)`, border `Color(0xFFFED7AA)`).
+  - Circular icon container on left (`Color(0xFFFFEDD5)`), title `"Revise your mistakes"`, subtitle `"X questions waiting"`, small underlined `"See all"` link, and filled pill button `"Practice N"` (`StadiumBorder`, `Color(0xFFEA580C)`).
+  - Hidden completely when `_mistakeCount == 0`. Clean layout verified with zero overflow at 360px and 1.3x text scale.
+- [x] **A4: "All topics" Chip Toggle & Empty State Handling**:
+  - Tapping "All topics" when all topics are selected deselects all topics. Tapping again selects all topics.
+  - Deselecting the last individual topic leaves 0 topics selected.
+  - When 0 topics are selected, the Start button is disabled (`onPressed: null`), the live summary line reads `"Choose at least one topic"`, and tapping any topic chip selects just that topic.
+  - "All topics" chip shows as selected only when every topic is selected.
+- [x] **A5: Light Mode Only**:
+  - Completely removed dark mode: app forced to `themeMode: ThemeMode.light`.
+  - Removed Appearance / Theme selector section from `SettingsScreen`.
+  - Migrated `SettingsRepository` to ignore and clear any stale saved dark mode settings (`themeMode` getter always returns `ThemeMode.light`).
+  - Removed dark-theme code paths and dark-only colors from `AppTheme`. Status bar icons set to dark (`SystemUiOverlayStyle.dark`).
+- [x] **Finish**:
+  - Version bumped to `1.8.1+14` in `pubspec.yaml` and `1.8.1` in `AppConstants.appVersion`.
+  - `flutter analyze` clean with 0 issues.
 
-1. **Home Screen Layout (Two Groups)**:
-   - Verify header says "14 Topics".
-   - First group is labelled "Basics" with the original 9 topics (Addition, Subtraction, Multiplication, Division, Squares, Cubes, Square Roots, Cube Roots, Exponents).
-   - Second group is labelled "More topics" with the 5 new topics: Percentages, Fractions, Simplification, Averages, Missing Number.
-   - Verify each topic card has its distinctive signature color and icon.
+---
 
-2. **Question Rendering & Fractions Display**:
-   - Start a Fractions practice session $\to$ verify fraction (e.g. $\frac{3}{8}$ of $640$) displays as a cleanly stacked fraction with a horizontal divider bar drawn via Flutter custom painting.
-   - Start a Simplification session $\to$ verify powers (e.g. $23^2$), brackets, division signs ($\div$), and multiplication signs ($\times$) render cleanly on one or two lines without overflowing.
-   - Verify font scales dynamically down to 26px for complex expressions with zero horizontal overflow at 360px device width and 1.3x text scale.
+### Phase 7E — Full Visual Redesign (UI UX Pro Max) ✅ (Version 1.9.0)
+- [x] **Skill Ingestion & Design System**:
+  - Ingested UI UX Pro Max skill guidelines for: *"a mobile learning app for students preparing for competitive exams, daily speed-calculation practice with game-like feedback and progress tracking, light mode only, bright but calm, motivating, not childish"*.
+  - Authored root `DESIGN.md` establishing color tokens, typography scales, card metrics, ambient shadow tokens, and 60fps performance guardrails (zero `BackdropFilter` or blur shaders in scrollable lists).
+- [x] **Theme & App Shell Redesign**:
+  - `lib/app/theme.dart`: Expressive light theme with Indigo 600 (`#4F46E5`), Slate 900 (`#0F172A`) high-contrast text, ambient soft shadows, and signature topic color system.
+  - `lib/app/shell.dart`: Custom `_AnimatedPillBottomNavBar` with active pill container (`#EEF2FF`), 0.96 tap scale, and crisp top border (`#E2E8F0`).
+- [x] **Core Reusable Design Components**:
+  - `lib/core/widgets/screen_header.dart`: Clean illustrated header with soft gradient background and subtle math geometry painter (`_HeaderGeometryPainter`).
+  - `lib/core/widgets/tactile_card.dart`: 20dp/16dp radius card with `#E2E8F0` border, soft ambient elevation, and 0.98 press micro-interaction.
+  - `lib/core/widgets/empty_state_view.dart`: Unified empty state with circular tinted icon, bold headline, supportive copy, and primary action button.
+- [x] **All Screens Visual Redesign**:
+  - **Home**: Header banner with dynamic greeting, level pill with gold progress bar, `TactileCard` for Last Session and Home Report Card, 3 topic category sections with pill count badges and tactile topic tiles.
+  - **Practice Setup**: `ScreenHeader`, `TactileCard` for weak areas toggle, animated pill selection for target pills with primary glow, sticky bottom bar.
+  - **Practice Session**: Uncluttered focused view, prominent question card, high-contrast answer box with static hint, comfortable keypad, gamified streak chip and speed tag.
+  - **Results**: Score hero card with stars and gradient, level/XP progress bar, stats grid, coach insight card, mistake review cards.
+  - **Stats**: `ScreenHeader` with History button, `TactileCard` for skill level card and best times, `EmptyStateView` fallback.
+  - **History**: Topic filter chips, `TactileCard` for session tiles with accuracy and score badges, `EmptyStateView`.
+  - **Session Details**: `ScreenHeader`, `TactileCard` for overview hero, metric grid, and individual attempt tiles with slowest question callout.
+  - **Report**: `ScreenHeader`, `TactileCard` for Speed Score hero, Today's Plan block cards, weekly comparison, strong/weak areas, topic breakdown table, and unlock progress empty state.
+  - **Coach**: `ScreenHeader`, AI chat bubbles (primary user bubble, white card coach bubble with soft shadow), `TactileCard` starter cards, suggestion pills, modern pill composer.
+  - **Mistakes**: `ScreenHeader`, `EmptyStateView`, `TactileCard` for mistake tiles with swipe-to-dismiss, sticky bottom bar with question count selector and practice button.
+  - **Settings**: `ScreenHeader`, grouped `TactileCard` sections for keypad preview, practice experience, haptics, volume sliders, data reset, and about card.
+  - **Splash**: Brand gradient icon container with glow shadow, Poppins typography, and clean spinner.
+  - **AppToast**: Top pill overlay with soft semantic icons and undo action chip.
+- [x] **Cleanup & Verification**:
+  - Deleted downloaded skill files outside the app directory (`/tmp/ui-ux-pro-max-skill`).
+  - Strict terminology guard: zero usage of "bank", "IQ", or exam names in user-facing UI text.
+  - Version bumped to `1.9.0+15` in `pubspec.yaml` and `1.9.0` in `AppConstants.appVersion`.
+  - `flutter analyze`: clean with 0 issues.
 
-3. **Whole Positive Answers Guarantee**:
-   - Practice all 5 new topics across Easy, Medium, and Hard.
-   - Confirm that every single answer is a whole positive integer ($> 0$), suitable for the number keypad (which has no decimal key).
-   - Confirm that Missing Number displays the target unknown as `?`.
+---
 
-4. **Practice Setup & Filter Chips Everywhere**:
-   - Open Practice Setup $\to$ verify all 14 topics are selectable in the topic selector.
-   - Verify chips have solid color fill when selected with white text/icon, and outline when unselected (no tick marks).
-   - Verify My Mistakes screen and History screen filters display all 14 topics without checkmarks.
+## What to Check by Hand (Phase 7E Checklist)
 
-5. **AI Coach Recognition**:
-   - Ask Coach: "How are my percentages?", "Status of fractions", "Practice averages 10 questions", "Tips for simplification", "Drill missing number easy".
-   - Verify Coach correctly identifies the topics and provides grounded responses quoting real data or offering a practice action.
+1. **App Shell & Bottom Navigation**:
+   - Verify bottom navigation bar features active pill indicators (`#EEF2FF` background with `#4F46E5` icon + text).
+   - Switch between Home, Practice, Stats, Report, and Settings tabs: verify smooth transitions and zero overflow.
+2. **Home Screen**:
+   - Verify the custom illustrated header with dynamic greeting and level chip with gold progress bar.
+   - Check the Last Session card or Welcome card (rendered as a `TactileCard` with soft shadow).
+   - Check the 3 topic category sections (Foundations, Advanced, Exam-style) with pill badges and tactile cards.
+3. **Practice Setup & Session Flow**:
+   - Tap any topic to enter Practice Setup: check `ScreenHeader`, `TactileCard` for weak areas toggle, and target pills.
+   - Tap "Start Practice": verify uncluttered question card, prominent answer box with hint `"Type your answer"`, and comfortable keypad.
+   - Answer questions: verify streak chip increments, speed tags appear on fast answers, and progress bar moves.
+4. **Results Screen**:
+   - Complete or quit a session: verify score hero card with stars, XP/level progress card, stats grid, and coach insight card.
+5. **Stats & History Screens**:
+   - Open Stats: verify Skill Level card and Best Times cards. Tap "History" in header: verify chronological sessions rendered in `TactileCard`s.
+   - Tap any session: verify Session Details screen with overview card, metric grid, and attempt tiles highlighting the slowest question.
+6. **Performance Report & Coach Screens**:
+   - Open Report: verify Speed Score hero with ring indicator, Today's Plan block cards with "Start" buttons, weekly comparison, and topic table.
+   - Tap "Ask Coach" (or the psychology icon): verify AI chat interface with starter cards, coach bubbles, copy/report actions, and modern pill composer.
+7. **My Mistakes Screen**:
+   - Go to Practice > "Revise your mistakes" (or Coach > practice mistakes): verify topic filter bar, `TactileCard` mistake tiles, swipe-to-dismiss with Undo toast, and sticky bottom bar.
+8. **Settings Screen**:
+   - Open Settings: verify grouped sections in clean `TactileCard` containers, keypad live preview, volume sliders, haptic strength selector, and v1.9.0 in About card.
+   - Long-press version in About: verify Data Check diagnostics screen opens.
 
-6. **Static Analysis & Version**:
-   - Verify Settings > About displays `v1.7.0`.
-   - `flutter analyze` runs cleanly with 0 issues.
-
-
-
+1. **Question Display & Question Gallery (A1)**:
+   - Go to Settings > About > Long-press the version number (1.8.1) > tap "Question Gallery".
+   - Test topics that previously failed (Squares, Cubes, Exponents, Simplification, Fractions) across all 3 difficulties.
+   - Toggle widths (320, 360, 411 dp) and text scales (1.0x, 1.3x). Verify no question shows a gray box and no red "FALLBACK USED" banner appears.
+2. **Answer Box Typing & Long Answers (A2)**:
+   - Start a practice session on any topic. Verify the empty answer box displays the static hint `"Type your answer"`.
+   - Type digits using the keypad (test both Phone dialer and Calculator styles). Verify typed numbers appear large, bold, centered, and dark (`#0F172A`).
+   - Test long answers up to 5–6 digits (e.g. on Large Addition or Exponents) and negative sign: verify text scales down smoothly without clipping or overflow.
+   - Test with both Auto-submit ON and OFF.
+3. **Mistakes Card Redesign (A3)**:
+   - With mistakes waiting: verify the card has a warm amber/orange tint with round icon on left, title "Revise your mistakes", subtitle "X questions waiting", underlined "See all" link, and "Practice N" pill button on right.
+   - With 0 mistakes: verify the card is completely hidden.
+4. **"All topics" Toggle & 0 Topics State (A4)**:
+   - On the Practice setup screen with all topics selected, tap "All topics": verify all topics become unselected.
+   - Verify the Start button is disabled and the bottom summary says `"Choose at least one topic"`.
+   - Tap any topic chip: verify that single topic is selected and Start button enables.
+   - Deselect the only remaining topic: verify it transitions back to the 0-topic disabled state.
+   - Tap "All topics" again: verify all 16 topics are selected.
+5. **Light Mode Only (A5)**:
+   - Open Settings: verify the "Appearance" / "Theme" selector row is completely gone.
+   - Verify all screens (Home, Practice, Session, Results, Stats, Mistakes, Coach, Settings) render cleanly in light mode with dark status bar icons.

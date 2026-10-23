@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/db/database_helper.dart';
 import '../../data/repositories/report_repository.dart';
 import '../../data/repositories/settings_repository.dart';
+import '../../core/widgets/app_toast.dart';
 import '../coach/controllers/coach_controller.dart';
+import 'package:speed_math_with_ai/features/settings/question_gallery_screen.dart';
 
 /// Hidden diagnostic screen accessible by long-pressing the version number in Settings > About.
 /// Displays raw SQLite table counts and compares them with derived cache values across
@@ -150,11 +152,10 @@ class _DataCheckScreenState extends ConsumerState<DataCheckScreen> {
     await _fetchRawDbData();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Recomputed! Caches invalidated and DB re-queried.'),
-          duration: Duration(seconds: 2),
-        ),
+      AppToast.show(
+        context,
+        message: 'Recomputed! Caches invalidated and DB re-queried.',
+        type: AppToastType.success,
       );
     }
   }
@@ -184,14 +185,38 @@ class _DataCheckScreenState extends ConsumerState<DataCheckScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               children: [
                 // Top Action Banner
-                FilledButton.icon(
-                  onPressed: _recomputeNow,
-                  icon: const Icon(Icons.sync_rounded),
-                  label: const Text('Recompute Now'),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: _recomputeNow,
+                        icon: const Icon(Icons.sync_rounded),
+                        label: const Text('Recompute Now'),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const QuestionGalleryScreen(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.collections_bookmark_rounded),
+                        label: const Text('Question Gallery'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
 

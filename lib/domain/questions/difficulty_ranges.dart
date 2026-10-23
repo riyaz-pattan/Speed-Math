@@ -230,4 +230,32 @@ abstract final class DifficultyRanges {
   // Hard: ? × 17 - 45 = 392, (? + 18) × 7 = 245
   static const int missingNumberHardOperandMin = 3;
   static const int missingNumberHardOperandMax = 500;
+
+  // --- Number Series ---
+  // Easy: constant difference (2..15), x2/x3, squares (1..15²), cubes (1..8³), odd/even
+  static const int numberSeriesEasyTermMin = 1;
+  static const int numberSeriesEasyTermMax = 500;
+  static const int numberSeriesEasyDiffMin = 2;
+  static const int numberSeriesEasyDiffMax = 15;
+
+  // Medium: growing differences (+3, +5, +7..), Fibonacci, xn ± k, primes
+  static const int numberSeriesMediumTermMin = 1;
+  static const int numberSeriesMediumTermMax = 5000;
+
+  // Hard: interleaved series, growing multipliers, square/cube differences (terms < 100000)
+  static const int numberSeriesHardTermMin = 1;
+  static const int numberSeriesHardTermMax = 100000;
+
+  // --- Approximation ---
+  // Easy: two operations with friendly roundable numbers
+  static const int approximationEasyResultMin = 10;
+  static const int approximationEasyResultMax = 2500;
+
+  // Medium: three operations including near %, square or square root
+  static const int approximationMediumResultMin = 10;
+  static const int approximationMediumResultMax = 15000;
+
+  // Hard: 4 to 5 operations mixing division, %, powers, larger numbers
+  static const int approximationHardResultMin = 50;
+  static const int approximationHardResultMax = 100000;
 }

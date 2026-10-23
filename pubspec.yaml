@@ -1,7 +1,7 @@
 name: speed_math_with_ai
 description: "Speed Math with AI - Master mental calculation for competitive exams"
 publish_to: 'none'
-version: 1.7.0+12
+version: 1.9.0+15
 
 environment:
   sdk: ^3.9.2

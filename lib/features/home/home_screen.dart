@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
 import '../../core/enums/enums.dart';
+import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
 import '../../data/models/session.dart';
 import '../../data/repositories/report_repository.dart';
 import '../../data/repositories/session_repository.dart';
 import '../../data/repositories/settings_repository.dart';
+import '../../domain/scoring/xp_calculator.dart';
 import 'widgets/home_report_card.dart';
 
 /// Home screen displaying time-of-day greeting in a gradient header,
@@ -80,119 +82,238 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _loadLastSession,
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            children: [
-              // Gradient Header Area with Greeting
-              _buildHeaderArea(theme, colorScheme),
-              const SizedBox(height: 20),
+      backgroundColor: AppTheme.canvasBackground,
+      body: RefreshIndicator(
+        onRefresh: _loadLastSession,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            // Header Sliver
+            SliverToBoxAdapter(
+              child: _buildHeaderArea(),
+            ),
 
-              // "Last Session" or Welcome Card
-              if (_isLoading)
-                const SizedBox(
-                  height: 90,
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (_lastSession != null)
-                _buildLastSessionCard(_lastSession!, colorScheme)
-              else
-                _buildWelcomeCard(colorScheme),
+            // Content List
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  // "Last Session" or Welcome Card
+                  if (_isLoading)
+                    const SizedBox(
+                      height: 90,
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (_lastSession != null)
+                    _buildLastSessionCard(_lastSession!, colorScheme)
+                  else
+                    _buildWelcomeCard(colorScheme),
 
-              const SizedBox(height: 20),
+                  const SizedBox(height: 18),
 
-              // Home Performance Report Summary Card
-              const HomeReportCard(),
+                  // Home Performance Report Summary Card
+                  const HomeReportCard(),
 
-              const SizedBox(height: 28),
+                  const SizedBox(height: 24),
 
-              // Practice Topics Grid Title
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Practice Topics',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface,
-                    ),
+                  // Practice Topics Section Title
+                  Row(
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 18,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Practice Topics',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.textPrimary,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    '${Topic.standardTopics.length} Topics',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+                  const SizedBox(height: 14),
+
+                  // Topic Practice Cards grouped by Arithmetic, Powers & Roots, Applied Maths
+                  _buildTopicGrid(colorScheme),
+                  const SizedBox(height: 24),
+                ]),
               ),
-              const SizedBox(height: 12),
-
-              // Topic Practice Cards
-              _buildTopicGrid(colorScheme),
-              const SizedBox(height: 24),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildHeaderArea(ThemeData theme, ColorScheme colorScheme) {
+  Widget _buildHeaderArea() {
+    final topPadding = MediaQuery.of(context).padding.top;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        gradient: AppTheme.primaryGradient,
-        borderRadius: BorderRadius.circular(24),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFF3730A3), // Indigo 800
+            Color(0xFF4F46E5), // Indigo 600
+            Color(0xFF6366F1), // Indigo 500
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryColor.withValues(alpha: 0.28),
+            color: Color(0x1F0F172A),
             blurRadius: 18,
-            offset: const Offset(0, 6),
+            offset: Offset(0, 6),
           ),
         ],
+      ),
+      child: Stack(
+        children: [
+          // Decorative background circles
+          Positioned(
+            right: -20,
+            top: -20,
+            child: Container(
+              width: 140,
+              height: 140,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.05),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 20,
+            bottom: -30,
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.04),
+              ),
+            ),
+          ),
+
+          Padding(
+            padding: EdgeInsets.fromLTRB(20, topPadding + 14, 20, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _getGreeting(),
+                        style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.16),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.bolt_rounded,
+                        color: Colors.amberAccent,
+                        size: 20,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Master speed and precision for competitive exams',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white.withValues(alpha: 0.88),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildCompactLevelChip(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactLevelChip() {
+    final totalXpAsync = ref.watch(totalXpProvider);
+    final totalXp = totalXpAsync.valueOrNull ?? 0;
+    final level = XpCalculator.levelFromXp(totalXp);
+    final title = XpCalculator.titleForLevel(level);
+    final progress = XpCalculator.progressToNextLevel(totalXp);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                _getGreeting(),
-                style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  letterSpacing: -0.5,
+              const Icon(
+                Icons.military_tech_rounded,
+                color: Colors.amberAccent,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Level $level • $title',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.bolt_rounded,
-                  color: Colors.white,
-                  size: 20,
+              Text(
+                '$totalXp XP',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white.withValues(alpha: 0.9),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            'Master speed and precision for competitive exams',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.white.withValues(alpha: 0.88),
-              fontWeight: FontWeight.w500,
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 5,
+              backgroundColor: Colors.white.withValues(alpha: 0.2),
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.amberAccent),
             ),
           ),
         ],
@@ -223,114 +344,100 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
+        const Padding(
+          padding: EdgeInsets.only(left: 2, bottom: 8),
           child: Text(
             'Last Session',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.bold,
-              color: colorScheme.onSurfaceVariant,
-              letterSpacing: 0.3,
+              color: AppTheme.textSecondary,
+              letterSpacing: 0.2,
             ),
           ),
         ),
-        Material(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(20),
-          child: InkWell(
-            onTap: () => context.push('/history/details', extra: session),
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: topicColor.withValues(alpha: 0.3),
-                  width: 1.5,
+        TactileCard(
+          onTap: () => context.push('/history/details', extra: session),
+          padding: const EdgeInsets.all(14),
+          borderColor: topicColor.withValues(alpha: 0.28),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: topicColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: topicColor.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+                child: Center(
+                  child: Text(
+                    session.topic.symbol,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: topicColor,
+                    ),
                   ),
-                ],
+                ),
               ),
-              child: Row(
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      modeSubtitle,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: topicColor.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Center(
-                      child: Text(
-                        session.topic.symbol,
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: topicColor,
-                        ),
-                      ),
+                  Text(
+                    '${session.score.toStringAsFixed(0)} pts',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: topicColor,
                     ),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          modeSubtitle,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 2),
+                  Text(
+                    '$accuracyPercent% acc',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textSecondary,
                     ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        '${session.score.toStringAsFixed(0)} pts',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: topicColor,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '$accuracyPercent% acc',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 6),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    size: 20,
-                    color: colorScheme.onSurfaceVariant,
                   ),
                 ],
               ),
-            ),
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: AppTheme.textMuted,
+              ),
+            ],
           ),
         ),
       ],
@@ -338,42 +445,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildWelcomeCard(ColorScheme colorScheme) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.15)),
-      ),
+    return TactileCard(
+      padding: const EdgeInsets.all(16),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withValues(alpha: 0.12),
+              color: AppTheme.primaryTint,
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(
               Icons.school_rounded,
               color: AppTheme.primaryColor,
-              size: 28,
+              size: 26,
             ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
+          const SizedBox(width: 14),
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Welcome to Speed Math!',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 3),
                 Text(
                   'Select any topic below to start your mental calculation practice.',
                   style: TextStyle(
                     fontSize: 12,
-                    color: colorScheme.onSurfaceVariant,
+                    color: AppTheme.textSecondary,
+                    height: 1.35,
                   ),
                 ),
               ],
@@ -385,11 +492,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildTopicGrid(ColorScheme colorScheme) {
-    const basicTopics = [
+    const arithmeticTopics = [
       (Topic.addition, '2 & 3-digit speed addition'),
       (Topic.subtraction, 'Mental subtraction drills'),
       (Topic.multiplication, 'Fast multiplication tables'),
       (Topic.division, 'Exact mental division'),
+    ];
+
+    const powersRootsTopics = [
       (Topic.squares, 'Squares from 1 to 99'),
       (Topic.cubes, 'Cubes from 2 to 35'),
       (Topic.squareRoots, 'Perfect square roots up to 99²'),
@@ -397,125 +507,138 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       (Topic.exponents, 'Powers & exponent calculations'),
     ];
 
-    const moreTopics = [
+    const appliedMathsTopics = [
       (Topic.percentages, 'Fast percentage of numbers'),
-      (Topic.fractions, 'Fractions of numbers & parts'),
+      (Topic.fractions, 'Fractions & mixed fraction parts'),
       (Topic.simplification, 'Order of operations (BODMAS)'),
-      (Topic.averages, 'Fast mean & missing averages'),
+      (Topic.approximation, 'Fast rounding & estimation'),
+      (Topic.averages, 'Group & series averages'),
       (Topic.missingNumber, 'Solve for the missing ?'),
+      (Topic.numberSeries, 'Find the missing sequence term'),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildTopicGroupHeader('Basics', colorScheme),
+        _buildTopicGroupHeader('Arithmetic', arithmeticTopics.length),
         const SizedBox(height: 10),
-        ...basicTopics.map((item) => _buildTopicCard(item.$1, item.$2, colorScheme)),
+        ...arithmeticTopics.map((item) => _buildTopicCard(item.$1, item.$2)),
         const SizedBox(height: 16),
-        _buildTopicGroupHeader('More topics', colorScheme),
+        _buildTopicGroupHeader('Powers & Roots', powersRootsTopics.length),
         const SizedBox(height: 10),
-        ...moreTopics.map((item) => _buildTopicCard(item.$1, item.$2, colorScheme)),
+        ...powersRootsTopics.map((item) => _buildTopicCard(item.$1, item.$2)),
+        const SizedBox(height: 16),
+        _buildTopicGroupHeader('Applied Maths', appliedMathsTopics.length),
+        const SizedBox(height: 10),
+        ...appliedMathsTopics.map((item) => _buildTopicCard(item.$1, item.$2)),
       ],
     );
   }
 
-  Widget _buildTopicGroupHeader(String title, ColorScheme colorScheme) {
+  Widget _buildTopicGroupHeader(String title, int count) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: colorScheme.onSurfaceVariant,
-          letterSpacing: 0.2,
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+      child: Row(
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textSecondary,
+              letterSpacing: 0.2,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceSecondary,
+              borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+            ),
+            child: Text(
+              '$count',
+              style: const TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textMuted,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildTopicCard(
-    Topic topic,
-    String description,
-    ColorScheme colorScheme,
-  ) {
+  Widget _buildTopicCard(Topic topic, String description) {
     final topicColor = AppTheme.getTopicColor(topic);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          onTap: () => _onTopicTapped(topic),
-          borderRadius: BorderRadius.circular(18),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: topicColor.withValues(alpha: 0.25),
-                width: 1.2,
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TactileCard(
+        onTap: () => _onTopicTapped(topic),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: topicColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: topicColor.withValues(alpha: 0.04),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: topicColor.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(14),
+              child: Center(
+                child: Text(
+                  topic.symbol,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: topicColor,
                   ),
-                  child: Center(
-                    child: Text(
-                      topic.symbol,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: topicColor,
-                      ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    topic.displayName,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
                     ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        topic.displayName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        description,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 2),
+                  Text(
+                    description,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textSecondary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 15,
-                  color: topicColor,
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+            const SizedBox(width: 8),
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: topicColor.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.arrow_forward_rounded,
+                size: 15,
+                color: topicColor,
+              ),
+            ),
+          ],
         ),
       ),
     );

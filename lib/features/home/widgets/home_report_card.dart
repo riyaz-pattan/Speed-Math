@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme.dart';
+import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
 import '../../../data/repositories/report_repository.dart';
 import '../../../domain/report/report_constants.dart';
 import '../../../domain/report/report_data.dart';
@@ -15,8 +16,6 @@ class HomeReportCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final reportAsync = ref.watch(reportViewModelProvider);
 
     return reportAsync.when(
@@ -28,23 +27,23 @@ class HomeReportCard extends ConsumerWidget {
         final text = vm.text;
 
         if (!data.hasEnoughData) {
-          final progress = data.totalQuestionsAllTime.clamp(0, ReportConstants.minTotalQuestionsForReport);
-          return Container(
+          final progress = data.totalQuestionsAllTime
+              .clamp(0, ReportConstants.minTotalQuestionsForReport);
+          return TactileCard(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: colorScheme.outline.withValues(alpha: 0.15)),
-            ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.12),
+                  decoration: const BoxDecoration(
+                    color: AppTheme.primaryTint,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.insights_rounded, color: AppTheme.primaryColor, size: 22),
+                  child: const Icon(
+                    Icons.insights_rounded,
+                    color: AppTheme.primaryColor,
+                    size: 22,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -53,12 +52,19 @@ class HomeReportCard extends ConsumerWidget {
                     children: [
                       const Text(
                         'Performance Report',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimary,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         'Practice to unlock ($progress/${ReportConstants.minTotalQuestionsForReport} Q)',
-                        style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textSecondary,
+                        ),
                       ),
                     ],
                   ),
@@ -66,11 +72,19 @@ class HomeReportCard extends ConsumerWidget {
                 OutlinedButton.icon(
                   onPressed: () => context.push('/coach'),
                   icon: const Icon(Icons.psychology_rounded, size: 16),
-                  label: const Text('Ask Coach', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  label: const Text(
+                    'Ask Coach',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
                   style: OutlinedButton.styleFrom(
                     visualDensity: VisualDensity.compact,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                   ),
                 ),
               ],
@@ -81,176 +95,178 @@ class HomeReportCard extends ConsumerWidget {
         // Populated card
         final score = data.overallSpeedScore;
         final scoreLabel = data.speedScoreLabel?.displayName ?? 'Building';
-        final scoreText = score != null ? '${score.round()} • $scoreLabel' : scoreLabel;
+        final scoreText =
+            score != null ? '${score.round()} • $scoreLabel' : scoreLabel;
 
         final Color scoreColor = switch (data.speedScoreLabel) {
-          SpeedScoreLabel.elite => const Color(0xFF10B981),
+          SpeedScoreLabel.elite => AppTheme.accentGreen,
           SpeedScoreLabel.strong => AppTheme.primaryLight,
-          SpeedScoreLabel.building => const Color(0xFFF59E0B),
+          SpeedScoreLabel.building => AppTheme.warningAmber,
           _ => AppTheme.primaryColor,
         };
 
-        return Material(
-          color: theme.cardColor,
-          borderRadius: BorderRadius.circular(20),
-          child: InkWell(
-            onTap: () => context.push('/report'),
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: scoreColor.withValues(alpha: 0.25), width: 1.4),
-                boxShadow: [
-                  BoxShadow(
-                    color: scoreColor.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        return TactileCard(
+          onTap: () => context.push('/report'),
+          borderColor: scoreColor.withValues(alpha: 0.25),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header: Speed Score + shortcut
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Header: Speed Score + shortcut
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: scoreColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.bolt_rounded, size: 16, color: scoreColor),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Speed Score: $scoreText',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: scoreColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: scoreColor.withValues(alpha: 0.14),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.bolt, size: 16, color: scoreColor),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Speed Score: $scoreText',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                    color: scoreColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                      Text(
+                        'Report',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primaryColor,
+                        ),
                       ),
-                      Row(
-                        children: [
-                          Text(
-                            'Report',
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.bold,
-                              color: colorScheme.primary,
-                            ),
-                          ),
-                          Icon(
-                            Icons.chevron_right_rounded,
-                            size: 18,
-                            color: colorScheme.primary,
-                          ),
-                        ],
+                      const SizedBox(width: 2),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 18,
+                        color: AppTheme.primaryColor,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
-                  // Insight sentence
-                  Text(
-                    text.headline,
-                    style: TextStyle(
-                      fontSize: 13,
-                      height: 1.35,
-                      color: colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                ],
+              ),
+              const SizedBox(height: 10),
+              // Insight sentence
+              Text(
+                text.headline,
+                style: const TextStyle(
+                  fontSize: 13,
+                  height: 1.4,
+                  color: AppTheme.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 12),
+              // Plan status
+              Row(
+                children: [
+                  Icon(
+                    plan.isAllCompleted
+                        ? Icons.check_circle_rounded
+                        : Icons.calendar_today_rounded,
+                    size: 15,
+                    color: plan.isAllCompleted
+                        ? AppTheme.accentGreen
+                        : AppTheme.textSecondary,
                   ),
-                  const SizedBox(height: 12),
-                  // Plan status
-                  Row(
-                    children: [
-                      Icon(
-                        plan.isAllCompleted
-                            ? Icons.check_circle_rounded
-                            : Icons.calendar_today_rounded,
-                        size: 15,
-                        color: plan.isAllCompleted
-                            ? const Color(0xFF10B981)
-                            : colorScheme.onSurfaceVariant,
+                  const SizedBox(width: 6),
+                  Text(
+                    "Today's plan: ${plan.completedCount} of ${plan.totalCount} done",
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: plan.isAllCompleted
+                          ? AppTheme.accentGreen
+                          : AppTheme.textSecondary,
+                    ),
+                  ),
+                  const Spacer(),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: SizedBox(
+                      width: 80,
+                      height: 6,
+                      child: LinearProgressIndicator(
+                        value: plan.totalCount > 0
+                            ? plan.completedCount / plan.totalCount
+                            : 0.0,
+                        backgroundColor: AppTheme.surfaceSecondary,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          plan.isAllCompleted
+                              ? AppTheme.accentGreen
+                              : AppTheme.primaryColor,
+                        ),
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        "Today's plan: ${plan.completedCount} of ${plan.totalCount} done",
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              // Action buttons: Ask Coach & View Report
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.tonalIcon(
+                      onPressed: () => context.push('/coach'),
+                      icon: const Icon(Icons.psychology_rounded, size: 16),
+                      label: const Text(
+                        'Ask Coach',
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: plan.isAllCompleted
-                              ? const Color(0xFF10B981)
-                              : colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const Spacer(),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: SizedBox(
-                          width: 80,
-                          height: 6,
-                          child: LinearProgressIndicator(
-                            value: plan.totalCount > 0
-                                ? plan.completedCount / plan.totalCount
-                                : 0.0,
-                            backgroundColor: colorScheme.surfaceContainerHighest,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              plan.isAllCompleted ? const Color(0xFF10B981) : AppTheme.primaryColor,
-                            ),
-                          ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.primaryTint,
+                        foregroundColor: AppTheme.primaryColor,
+                        visualDensity: VisualDensity.compact,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                         ),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
                       ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 14),
-                  // Action buttons: Ask Coach & View Report
-                  Row(
-                    children: [
-                      Expanded(
-                        child: FilledButton.tonalIcon(
-                          onPressed: () => context.push('/coach'),
-                          icon: const Icon(Icons.psychology_rounded, size: 16),
-                          label: const Text('Ask Coach', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                          style: FilledButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                          ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => context.push('/report'),
+                      icon: const Icon(Icons.insights_rounded, size: 16),
+                      label: const Text(
+                        'View Report',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => context.push('/report'),
-                          icon: const Icon(Icons.insights_rounded, size: 16),
-                          label: const Text('View Report', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                          style: OutlinedButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                          ),
+                      style: OutlinedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                         ),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
                       ),
-                    ],
+                    ),
                   ),
                 ],
               ),
-            ),
+            ],
           ),
         );
       },

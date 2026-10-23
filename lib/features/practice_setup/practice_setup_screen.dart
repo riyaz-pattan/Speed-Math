@@ -6,12 +6,14 @@ import '../../app/theme.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/enums/enums.dart';
 import '../../core/strings/app_strings.dart';
+import '../../core/widgets/app_segmented_control.dart';
+import '../../core/widgets/screen_header.dart';
+import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
 import '../../data/repositories/mistake_repository.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../data/repositories/skill_repository.dart';
 import '../../domain/adaptive/skill_rating.dart';
 import '../../domain/questions/session_random.dart';
-import '../../core/widgets/app_segmented_control.dart';
 import '../practice_session/models/practice_models.dart';
 
 /// Single unified Practice Screen for configuring and launching drills,
@@ -43,8 +45,16 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
   bool _isLaunching = false;
 
   @override
+  void activate() {
+    super.activate();
+    _isLaunching = false;
+    _loadData();
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _isLaunching = false;
     if (!_initialized) {
       final settings = ref.read(settingsRepositoryProvider);
 
@@ -116,24 +126,33 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
   void _toggleTopic(Topic topic) {
     setState(() {
       if (_selectedTopics.contains(topic)) {
-        if (_selectedTopics.length > 1) {
-          _selectedTopics.remove(topic);
-        }
+        _selectedTopics.remove(topic);
       } else {
         _selectedTopics.add(topic);
       }
     });
   }
 
-  void _selectAllTopics() {
+  void _toggleAllTopics() {
     setState(() {
-      _selectedTopics = List.from(Topic.standardTopics);
+      if (_selectedTopics.length == Topic.standardTopics.length) {
+        _selectedTopics.clear();
+      } else {
+        _selectedTopics = List.from(Topic.standardTopics);
+      }
     });
   }
 
   Future<void> _startPractice() async {
-    if (_isLaunching) return;
-    _isLaunching = true;
+    if (_selectedTopics.isEmpty || _isLaunching) return;
+    setState(() => _isLaunching = true);
+
+    // Safety fallback: ensure lock is released after 1.5s even if navigation futures are aborted
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted && _isLaunching) {
+        setState(() => _isLaunching = false);
+      }
+    });
 
     try {
       final settings = ref.read(settingsRepositoryProvider);
@@ -176,15 +195,22 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
         await _loadData();
       }
     } finally {
+      _isLaunching = false;
       if (mounted) {
-        setState(() => _isLaunching = false);
+        setState(() {});
       }
     }
   }
 
   Future<void> _startMistakePractice() async {
     if (_mistakeCount == 0 || _isLaunching) return;
-    _isLaunching = true;
+    setState(() => _isLaunching = true);
+
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted && _isLaunching) {
+        setState(() => _isLaunching = false);
+      }
+    });
 
     try {
       final repo = ref.read(mistakeRepositoryProvider);
@@ -217,13 +243,18 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
         await _loadData();
       }
     } finally {
+      _isLaunching = false;
       if (mounted) {
-        setState(() => _isLaunching = false);
+        setState(() {});
       }
     }
   }
 
   String _buildSummaryLine() {
+    if (_selectedTopics.isEmpty) {
+      return 'Choose at least one topic';
+    }
+
     final String topicPart;
     if (_selectedTopics.length == 1) {
       topicPart = _selectedTopics.first.displayName;
@@ -268,63 +299,62 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          AppStrings.practice,
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                children: [
-                  // 1. Weak Spots quick chips (if available)
-                  if (_weakSpots.isNotEmpty) ...[
-                    _buildWeakSpotsRow(colorScheme),
-                    const SizedBox(height: 20),
-                  ],
-
-                  // 2. Topics Selector
-                  _buildSectionHeader(
-                    'Topics',
-                    subtitle: '${_selectedTopics.length} of ${Topic.standardTopics.length} selected',
-                  ),
-                  const SizedBox(height: 10),
-                  _buildTopicsChips(colorScheme),
-                  const SizedBox(height: 24),
-
-                  // 3. Difficulty Selector
-                  _buildSectionHeader('Difficulty'),
-                  const SizedBox(height: 10),
-                  _buildDifficultySegmented(colorScheme),
+      backgroundColor: AppTheme.canvasBackground,
+      body: Column(
+        children: [
+          const ScreenHeader(
+            title: AppStrings.practice,
+            subtitle: 'Customize your calculation drill',
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              children: [
+                // 1. Weak Spots quick chips (if available)
+                if (_weakSpots.isNotEmpty) ...[
+                  _buildWeakSpotsRow(colorScheme),
                   const SizedBox(height: 20),
+                ],
 
-                  // 4. "Focus on my weak areas" Switch (shown in every case)
-                  _buildWeakAreasSwitch(colorScheme),
-                  const SizedBox(height: 20),
+                // 2. Topics Selector
+                _buildSectionHeader(
+                  'Topics',
+                  subtitle: '${_selectedTopics.length} of ${Topic.standardTopics.length} selected',
+                ),
+                const SizedBox(height: 10),
+                _buildTopicsChips(colorScheme),
+                const SizedBox(height: 24),
 
-                  // 5. Practice Mode & Target
-                  _buildSectionHeader('Practice Mode'),
-                  const SizedBox(height: 10),
-                  _buildModeSelector(colorScheme),
-                  const SizedBox(height: 14),
-                  _buildTargetPills(colorScheme),
-                  const SizedBox(height: 28),
+                // 3. Difficulty Selector
+                _buildSectionHeader('Difficulty'),
+                const SizedBox(height: 10),
+                _buildDifficultySegmented(colorScheme),
+                const SizedBox(height: 20),
 
-                  // 6. Practice My Mistakes Card
+                // 4. "Focus on my weak areas" Switch (shown in every case)
+                _buildWeakAreasSwitch(colorScheme),
+                const SizedBox(height: 20),
+
+                // 5. Practice Mode & Target
+                _buildSectionHeader('Practice Mode'),
+                const SizedBox(height: 10),
+                _buildModeSelector(colorScheme),
+                const SizedBox(height: 14),
+                _buildTargetPills(colorScheme),
+                const SizedBox(height: 28),
+
+                // 6. Practice My Mistakes Card
+                if (_mistakeCount > 0) ...[
                   _buildMistakesCard(colorScheme),
                   const SizedBox(height: 16),
                 ],
-              ),
+              ],
             ),
+          ),
 
-            // Sticky Bottom Section: Summary line + Start Practice Button
-            _buildStickyBottom(colorScheme),
-          ],
-        ),
+          // Sticky Bottom Section: Summary line + Start Practice Button
+          _buildStickyBottom(colorScheme),
+        ],
       ),
     );
   }
@@ -412,11 +442,10 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
   Widget _buildTopicsChips(ColorScheme colorScheme) {
     final isAllSelected = _selectedTopics.length == Topic.standardTopics.length;
 
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // "All topics" chip
+        // "All topics" chip at the top
         FilterChip(
           showCheckmark: false,
           label: const Text('All topics'),
@@ -436,42 +465,70 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          onSelected: (_) => _selectAllTopics(),
+          onSelected: (_) => _toggleAllTopics(),
         ),
+        const SizedBox(height: 12),
 
-        // 9 standard topics
-        ...Topic.standardTopics.map((topic) {
-          final isSelected = _selectedTopics.contains(topic);
-          final topicColor = AppTheme.getTopicColor(topic);
+        // Subgroups
+        ...TopicGroup.values.map((group) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 2, bottom: 6),
+                  child: Text(
+                    group.displayName,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurfaceVariant,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: group.topics.map((topic) {
+                    final isSelected = _selectedTopics.contains(topic);
+                    final topicColor = AppTheme.getTopicColor(topic);
 
-          return FilterChip(
-            showCheckmark: false,
-            avatar: Text(
-              topic.symbol,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.white : topicColor,
-              ),
+                    return FilterChip(
+                      showCheckmark: false,
+                      avatar: Text(
+                        topic.symbol,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? Colors.white : topicColor,
+                        ),
+                      ),
+                      label: Text(topic.displayName),
+                      selected: isSelected,
+                      backgroundColor: colorScheme.surface,
+                      selectedColor: topicColor,
+                      labelStyle: TextStyle(
+                        fontSize: 13,
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.w500,
+                        color: isSelected ? Colors.white : colorScheme.onSurface,
+                      ),
+                      side: BorderSide(
+                        color: isSelected
+                            ? topicColor
+                            : colorScheme.outline.withValues(alpha: 0.25),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      onSelected: (_) => _toggleTopic(topic),
+                    );
+                  }).toList(),
+                ),
+              ],
             ),
-            label: Text(topic.displayName),
-            selected: isSelected,
-            backgroundColor: colorScheme.surface,
-            selectedColor: topicColor,
-            labelStyle: TextStyle(
-              fontSize: 13,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-              color: isSelected ? Colors.white : colorScheme.onSurface,
-            ),
-            side: BorderSide(
-              color: isSelected
-                  ? topicColor
-                  : colorScheme.outline.withValues(alpha: 0.25),
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            onSelected: (_) => _toggleTopic(topic),
           );
         }),
       ],
@@ -526,35 +583,41 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
   }
 
   Widget _buildWeakAreasSwitch(ColorScheme colorScheme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.outline.withValues(alpha: 0.12),
-        ),
-      ),
+    return TactileCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryTint,
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+            ),
+            child: const Icon(
+              Icons.tune_rounded,
+              color: AppTheme.primaryColor,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   AppStrings.focusWeakAreas,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
+                    color: AppTheme.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   AppStrings.focusWeakAreasExplanation,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
-                    color: colorScheme.onSurfaceVariant,
+                    color: AppTheme.textSecondary,
                   ),
                 ),
               ],
@@ -562,6 +625,7 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
           ),
           Switch.adaptive(
             value: _focusOnWeakAreas,
+            activeTrackColor: AppTheme.primaryColor,
             onChanged: (val) => setState(() => _focusOnWeakAreas = val),
           ),
         ],
@@ -602,31 +666,36 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
           return Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 3),
-              child: InkWell(
-                onTap: () => setState(() => _selectedTimerDuration = seconds),
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? colorScheme.primary
-                        : colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isSelected
-                          ? colorScheme.primary
-                          : colorScheme.outline.withValues(alpha: 0.15),
-                    ),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                decoration: BoxDecoration(
+                  color: isSelected ? AppTheme.primaryColor : AppTheme.surfaceCard,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isSelected ? AppTheme.primaryColor : AppTheme.borderLight,
+                    width: 1.2,
                   ),
-                  child: Text(
-                    '${mins}m',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: isSelected
-                          ? colorScheme.onPrimary
-                          : colorScheme.onSurface,
+                  boxShadow: isSelected ? AppTheme.primaryGlow : AppTheme.cardShadow,
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(14),
+                  child: InkWell(
+                    onTap: () => setState(() => _selectedTimerDuration = seconds),
+                    borderRadius: BorderRadius.circular(14),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Center(
+                        child: Text(
+                          '${mins}m',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected ? Colors.white : AppTheme.textPrimary,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -643,31 +712,36 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
           return Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 3),
-              child: InkWell(
-                onTap: () => setState(() => _selectedQuestionCount = count),
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? colorScheme.primary
-                        : colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isSelected
-                          ? colorScheme.primary
-                          : colorScheme.outline.withValues(alpha: 0.15),
-                    ),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                decoration: BoxDecoration(
+                  color: isSelected ? AppTheme.primaryColor : AppTheme.surfaceCard,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isSelected ? AppTheme.primaryColor : AppTheme.borderLight,
+                    width: 1.2,
                   ),
-                  child: Text(
-                    '${count}Q',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: isSelected
-                          ? colorScheme.onPrimary
-                          : colorScheme.onSurface,
+                  boxShadow: isSelected ? AppTheme.primaryGlow : AppTheme.cardShadow,
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(14),
+                  child: InkWell(
+                    onTap: () => setState(() => _selectedQuestionCount = count),
+                    borderRadius: BorderRadius.circular(14),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Center(
+                        child: Text(
+                          '${count}Q',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected ? Colors.white : AppTheme.textPrimary,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -680,85 +754,92 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
   }
 
   Widget _buildMistakesCard(ColorScheme colorScheme) {
-    final hasMistakes = _mistakeCount > 0;
+    if (_mistakeCount == 0) return const SizedBox.shrink();
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(20),
+        color: const Color(0xFFFFF7ED), // Soft warm amber-50 background
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: colorScheme.outline.withValues(alpha: 0.15),
+          color: const Color(0xFFFED7AA), // Amber-200 border
+          width: 1.2,
         ),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppTheme.mixedColor.withValues(alpha: 0.15),
+            width: 40,
+            height: 40,
+            decoration: const BoxDecoration(
+              color: Color(0xFFFFEDD5), // Amber-100 round icon
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.history_edu_rounded,
-              color: AppTheme.mixedColor,
+              color: Color(0xFFEA580C), // Orange-600 icon
               size: 22,
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  AppStrings.practiceMyMistakes,
-                  style: const TextStyle(
-                    fontSize: 15,
+                const Text(
+                  'Revise your mistakes',
+                  style: TextStyle(
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B),
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  hasMistakes
-                      ? '$_mistakeCount ${AppStrings.mistakesToRevise}'
-                      : AppStrings.noMistakesToRevise,
-                  style: TextStyle(
+                  '$_mistakeCount questions waiting',
+                  style: const TextStyle(
                     fontSize: 12,
-                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                GestureDetector(
+                  onTap: () => context.push('/mistakes'),
+                  child: const Text(
+                    'See all',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFFEA580C),
+                      decoration: TextDecoration.underline,
+                      decorationColor: Color(0xFFEA580C),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          if (hasMistakes)
-            FilledButton(
-              onPressed: _startMistakePractice,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppTheme.mixedColor,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text('Practice ${min(10, _mistakeCount)}'),
-            )
-          else
-            OutlinedButton(
-              onPressed: null,
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text('Start'),
+          const SizedBox(width: 8),
+          FilledButton(
+            onPressed: _startMistakePractice,
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFEA580C),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              minimumSize: const Size(0, 38),
+              shape: const StadiumBorder(),
             ),
-          const SizedBox(width: 4),
-          TextButton(
-            onPressed: () => context.push('/mistakes'),
-            child: const Text(
-              AppStrings.seeAll,
-              style: TextStyle(fontWeight: FontWeight.bold),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'Practice ${min(10, _mistakeCount)}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
         ],
@@ -770,21 +851,16 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
     final summary = _buildSummaryLine();
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+      decoration: const BoxDecoration(
+        color: AppTheme.surfaceCard,
         border: Border(
           top: BorderSide(
-            color: colorScheme.outline.withValues(alpha: 0.12),
+            color: AppTheme.borderLight,
+            width: 1.2,
           ),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -3),
-          ),
-        ],
+        boxShadow: AppTheme.stickyShadow,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -792,10 +868,10 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
           // Live summary line
           Text(
             summary,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: colorScheme.onSurfaceVariant,
+              color: AppTheme.textSecondary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -805,20 +881,27 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
           SizedBox(
             width: double.infinity,
             height: 52,
-            child: FilledButton.icon(
-              onPressed: _startPractice,
-              icon: const Icon(Icons.play_arrow_rounded, size: 24),
-              label: const Text(
-                AppStrings.startPractice,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.3,
-                ),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: _selectedTopics.isEmpty ? null : AppTheme.primaryGlow,
               ),
-              style: FilledButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+              child: FilledButton.icon(
+                onPressed: _selectedTopics.isEmpty ? null : _startPractice,
+                icon: const Icon(Icons.play_arrow_rounded, size: 24),
+                label: const Text(
+                  AppStrings.startPractice,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
               ),
             ),

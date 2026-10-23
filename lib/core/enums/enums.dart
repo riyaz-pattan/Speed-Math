@@ -16,6 +16,8 @@ enum Topic {
   simplification(symbol: '( )'),
   averages(symbol: 'x̄'),
   missingNumber(symbol: '?'),
+  numberSeries(symbol: '...'),
+  approximation(symbol: '≈'),
   mixed(symbol: '±');
 
   const Topic({required this.symbol});
@@ -37,12 +39,52 @@ enum Topic {
     Topic.simplification => AppStrings.simplification,
     Topic.averages => AppStrings.averages,
     Topic.missingNumber => AppStrings.missingNumber,
+    Topic.numberSeries => AppStrings.numberSeries,
+    Topic.approximation => AppStrings.approximation,
     Topic.mixed => AppStrings.mixedTopics,
   };
 
-  /// The 9 standard math drill topics (excludes mixed/smart topics).
+  /// The standard math drill topics (excludes mixed/smart topics).
   static List<Topic> get standardTopics =>
       values.where((t) => t != Topic.mixed).toList();
+}
+
+/// The three broad groups organizing practice topics across Home and Practice screens.
+enum TopicGroup {
+  arithmetic,
+  powersAndRoots,
+  appliedMaths;
+
+  String get displayName => switch (this) {
+    TopicGroup.arithmetic => 'Arithmetic',
+    TopicGroup.powersAndRoots => 'Powers & Roots',
+    TopicGroup.appliedMaths => 'Applied Maths',
+  };
+
+  List<Topic> get topics => switch (this) {
+    TopicGroup.arithmetic => const [
+      Topic.addition,
+      Topic.subtraction,
+      Topic.multiplication,
+      Topic.division,
+    ],
+    TopicGroup.powersAndRoots => const [
+      Topic.squares,
+      Topic.cubes,
+      Topic.squareRoots,
+      Topic.cubeRoots,
+      Topic.exponents,
+    ],
+    TopicGroup.appliedMaths => const [
+      Topic.percentages,
+      Topic.fractions,
+      Topic.simplification,
+      Topic.approximation,
+      Topic.averages,
+      Topic.missingNumber,
+      Topic.numberSeries,
+    ],
+  };
 }
 
 /// Difficulty levels with corresponding scoring multipliers.

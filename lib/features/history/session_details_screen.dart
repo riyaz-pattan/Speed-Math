@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
 import '../../core/enums/enums.dart';
-import '../../core/strings/app_strings.dart';
 import '../../core/widgets/question_text_widget.dart';
+import 'package:speed_math_with_ai/core/widgets/screen_header.dart';
+import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
 import '../../data/models/attempt.dart';
 import '../../data/models/session.dart';
 import '../../data/repositories/attempt_repository.dart';
@@ -65,8 +67,6 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final session = widget.session;
 
     // Identify the slowest attempt
@@ -88,98 +88,106 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
             : '${session.topic.displayName} - ${session.difficulty.displayName}';
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          screenTitle,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          children: [
-            // Session Overview Header
-            _buildOverviewCard(session, colorScheme),
-            const SizedBox(height: 16),
-
-            // Performance Metrics Grid
-            _buildMetricsGrid(session, colorScheme),
-            const SizedBox(height: 24),
-
-            // Questions List Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      backgroundColor: AppTheme.canvasBackground,
+      body: Column(
+        children: [
+          ScreenHeader(
+            title: screenTitle,
+            subtitle: _formatDate(session.startedAt),
+            leading: HeaderIconButton(
+              icon: Icons.arrow_back_rounded,
+              onPressed: () => context.pop(),
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               children: [
-                Text(
-                  'Questions (${_attempts.length})',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-                if (!session.completed)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orange),
-                    ),
-                    child: const Text(
-                      'Ended early',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange,
+                // Session Overview Header
+                _buildOverviewCard(session),
+                const SizedBox(height: 14),
+
+                // Performance Metrics Grid
+                _buildMetricsGrid(session),
+                const SizedBox(height: 20),
+
+                // Questions List Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Questions (${_attempts.length})',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textPrimary,
                       ),
                     ),
-                  ),
+                    if (!session.completed)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppTheme.warningColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppTheme.warningColor.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        child: const Text(
+                          'Ended early',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.warningColor,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                if (_isLoading)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else if (_attempts.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(
+                      child: Text(
+                        'No question records available for this session.',
+                        style: TextStyle(color: AppTheme.textSecondary),
+                      ),
+                    ),
+                  )
+                else
+                  ...List.generate(_attempts.length, (index) {
+                    final attempt = _attempts[index];
+                    final isSlowest =
+                        attempt.id == slowestAttemptId && _attempts.length > 1;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _buildAttemptTile(
+                        index + 1,
+                        attempt,
+                        isSlowest,
+                      ),
+                    );
+                  }),
+                const SizedBox(height: 20),
               ],
             ),
-            const SizedBox(height: 10),
-
-            if (_isLoading)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32),
-                  child: CircularProgressIndicator(),
-                ),
-              )
-            else if (_attempts.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Center(
-                  child: Text(
-                    'No question records available for this session.',
-                    style: TextStyle(color: colorScheme.onSurfaceVariant),
-                  ),
-                ),
-              )
-            else
-              ...List.generate(_attempts.length, (index) {
-                final attempt = _attempts[index];
-                final isSlowest =
-                    attempt.id == slowestAttemptId && _attempts.length > 1;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: _buildAttemptTile(
-                    index + 1,
-                    attempt,
-                    isSlowest,
-                    colorScheme,
-                  ),
-                );
-              }),
-            const SizedBox(height: 20),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildOverviewCard(Session session, ColorScheme colorScheme) {
+  Widget _buildOverviewCard(Session session) {
     final isMixed = session.kind == SessionKind.mixed || session.mode == PracticeMode.smart;
     final isMistakes = session.kind == SessionKind.mistakes || session.mode == PracticeMode.mistakes;
     final modeLabel = session.mode == PracticeMode.timer
@@ -189,59 +197,62 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
         ? AppTheme.mixedColor
         : AppTheme.getTopicColor(session.topic);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: topicColor.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: topicColor.withValues(alpha: 0.28),
-        ),
-      ),
+    return TactileCard(
+      padding: const EdgeInsets.all(18),
+      borderColor: topicColor.withValues(alpha: 0.3),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                modeLabel,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.primary,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: topicColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  modeLabel,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: topicColor,
+                  ),
                 ),
               ),
               Text(
-                _formatDate(session.startedAt),
-                style: TextStyle(
+                'ID #${session.id ?? 0}',
+                style: const TextStyle(
                   fontSize: 12,
-                  color: colorScheme.onSurfaceVariant,
+                  color: AppTheme.textTertiary,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    AppStrings.score.toUpperCase(),
+                  const Text(
+                    'TOTAL SCORE',
                     style: TextStyle(
                       fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                      color: AppTheme.textSecondary,
                     ),
                   ),
+                  const SizedBox(height: 2),
                   Text(
                     session.score.toStringAsFixed(0),
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      color: colorScheme.primary,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.primaryColor,
                     ),
                   ),
                 ],
@@ -249,19 +260,24 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    AppStrings.accuracy.toUpperCase(),
+                  const Text(
+                    'ACCURACY',
                     style: TextStyle(
                       fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                      color: AppTheme.textSecondary,
                     ),
                   ),
+                  const SizedBox(height: 2),
                   Text(
                     '${(session.accuracy <= 1.0 ? session.accuracy * 100 : session.accuracy).toStringAsFixed(0)}%',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 32,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w800,
+                      color: session.accuracy >= 0.8
+                          ? AppTheme.successColor
+                          : AppTheme.textPrimary,
                     ),
                   ),
                 ],
@@ -273,7 +289,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
     );
   }
 
-  Widget _buildMetricsGrid(Session session, ColorScheme colorScheme) {
+  Widget _buildMetricsGrid(Session session) {
     return Row(
       children: [
         Expanded(
@@ -281,7 +297,6 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
             'Duration',
             _formatDuration(session.durationMs),
             Icons.timer_outlined,
-            colorScheme,
           ),
         ),
         const SizedBox(width: 8),
@@ -290,7 +305,6 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
             'Avg. Time',
             '${(session.avgTimeMs / 1000).toStringAsFixed(1)}s',
             Icons.speed_rounded,
-            colorScheme,
           ),
         ),
         const SizedBox(width: 8),
@@ -299,8 +313,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
             'Correct',
             '${session.correctCount} / ${session.totalQuestions}',
             Icons.check_circle_outline_rounded,
-            colorScheme,
-            valueColor: Colors.green,
+            valueColor: AppTheme.successColor,
           ),
         ),
       ],
@@ -310,34 +323,31 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
   Widget _buildMiniStat(
     String title,
     String value,
-    IconData icon,
-    ColorScheme colorScheme, {
+    IconData icon, {
     Color? valueColor,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: colorScheme.outline.withValues(alpha: 0.15),
-        ),
-      ),
+    return TactileCard(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      borderRadius: AppTheme.radiusMd,
       child: Column(
         children: [
-          Icon(icon, size: 16, color: colorScheme.onSurfaceVariant),
+          Icon(icon, size: 18, color: AppTheme.textSecondary),
           const SizedBox(height: 4),
           Text(
             title,
-            style: TextStyle(fontSize: 10, color: colorScheme.onSurfaceVariant),
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textSecondary,
+            ),
           ),
           const SizedBox(height: 2),
           Text(
             value,
             style: TextStyle(
               fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: valueColor ?? colorScheme.onSurface,
+              fontWeight: FontWeight.w700,
+              color: valueColor ?? AppTheme.textPrimary,
             ),
           ),
         ],
@@ -349,7 +359,6 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
     int number,
     Attempt attempt,
     bool isSlowest,
-    ColorScheme colorScheme,
   ) {
     final isCorrect = attempt.isCorrect;
     final isSkipped = attempt.isSkipped;
@@ -358,30 +367,27 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
     final IconData statusIcon;
 
     if (isSkipped) {
-      statusColor = Colors.orange;
+      statusColor = AppTheme.warningColor;
       statusIcon = Icons.skip_next_rounded;
     } else if (isCorrect) {
-      statusColor = Colors.green;
+      statusColor = AppTheme.successColor;
       statusIcon = Icons.check_circle_rounded;
     } else {
-      statusColor = Colors.red;
+      statusColor = AppTheme.errorColor;
       statusIcon = Icons.cancel_rounded;
     }
 
-    return Container(
+    return TactileCard(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: isSlowest
-            ? Colors.orange.withValues(alpha: 0.08)
-            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isSlowest
-              ? Colors.orange.withValues(alpha: 0.6)
-              : colorScheme.outline.withValues(alpha: 0.12),
-          width: isSlowest ? 1.5 : 1.0,
-        ),
-      ),
+      borderRadius: AppTheme.radiusMd,
+      borderColor: isSlowest
+          ? AppTheme.warningColor.withValues(alpha: 0.5)
+          : (!isCorrect && !isSkipped)
+              ? AppTheme.errorColor.withValues(alpha: 0.2)
+              : AppTheme.borderLight,
+      backgroundColor: isSlowest
+          ? AppTheme.warningColor.withValues(alpha: 0.05)
+          : AppTheme.surfaceCard,
       child: Row(
         children: [
           // Index number
@@ -389,10 +395,10 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
             width: 26,
             child: Text(
               '$number.',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.textTertiary,
               ),
             ),
           ),
@@ -405,32 +411,33 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                 QuestionTextWidget(
                   text: attempt.questionText,
                   style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary,
                   ),
                   textAlign: TextAlign.start,
                 ),
                 if (!isCorrect && !isSkipped)
                   Padding(
-                    padding: const EdgeInsets.only(top: 2),
+                    padding: const EdgeInsets.only(top: 3),
                     child: Text(
                       'Answered: ${attempt.userAnswer ?? "—"} (Correct: ${attempt.correctAnswer})',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
-                        color: Colors.red.shade400,
-                        fontWeight: FontWeight.w500,
+                        color: AppTheme.errorColor,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   )
                 else if (isSkipped)
                   Padding(
-                    padding: const EdgeInsets.only(top: 2),
+                    padding: const EdgeInsets.only(top: 3),
                     child: Text(
                       'Skipped (Correct: ${attempt.correctAnswer})',
                       style: const TextStyle(
                         fontSize: 12,
-                        color: Colors.orange,
-                        fontWeight: FontWeight.w500,
+                        color: AppTheme.warningColor,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -444,15 +451,15 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.2),
+                color: AppTheme.warningColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: const Text(
                 'Slowest',
                 style: TextStyle(
                   fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.orange,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.warningColor,
                 ),
               ),
             ),
@@ -462,8 +469,8 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
             '${(attempt.timeMs / 1000).toStringAsFixed(1)}s',
             style: TextStyle(
               fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: isSlowest ? Colors.orange : colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+              color: isSlowest ? AppTheme.warningColor : AppTheme.textSecondary,
             ),
           ),
           const SizedBox(width: 8),

@@ -2,15 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../app/theme.dart';
 import '../../core/enums/enums.dart';
+import 'package:speed_math_with_ai/core/widgets/app_toast.dart';
+import 'package:speed_math_with_ai/core/widgets/screen_header.dart';
+import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
 import '../../data/models/coach_message.dart';
 import '../../domain/coach/coach_reply.dart';
 import '../practice_session/models/practice_models.dart';
+import '../practice_setup/practice_setup_screen.dart';
+import '../report/report_screen.dart';
+import '../stats/stats_screen.dart';
 import 'controllers/coach_controller.dart';
 
 /// The on-device AI Coach chat screen featuring a modern AI messenger interface
-/// (ChatGPT / Claude / Gemini style) with auto-resizing pill composer, starter cards,
-/// selectable message text, and grounded practice actions.
+/// with auto-resizing pill composer, starter cards, selectable message text,
+/// and grounded practice actions.
 class CoachScreen extends ConsumerStatefulWidget {
   const CoachScreen({super.key});
 
@@ -80,17 +87,28 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
         if (action.payload is PracticeConfig) {
           context.push('/practice/session', extra: action.payload);
         } else {
-          context.push('/practice');
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => PracticeSetupScreen(
+                initialTopic:
+                    action.payload is Topic ? action.payload as Topic : null,
+              ),
+            ),
+          );
         }
         break;
       case CoachActionType.openReport:
-        context.push('/report');
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const ReportScreen()),
+        );
         break;
       case CoachActionType.practiceMistakes:
         context.push('/mistakes');
         break;
       case CoachActionType.openStats:
-        context.push('/stats');
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const StatsScreen()),
+        );
         break;
       case CoachActionType.selectTopic:
         if (action.payload is Topic) {
@@ -119,14 +137,14 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            final colorScheme = Theme.of(context).colorScheme;
             return AlertDialog(
+              backgroundColor: AppTheme.surfaceCard,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
               title: const Text(
                 'Report this answer',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
               ),
               content: RadioGroup<String>(
                 groupValue: selectedReason,
@@ -139,11 +157,11 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Help us improve Coach responses. What went wrong?',
                       style: TextStyle(
                         fontSize: 13,
-                        color: colorScheme.onSurfaceVariant,
+                        color: AppTheme.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -180,11 +198,10 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
             reason: selectedReason,
           );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Thanks, saved on your phone.'),
-            duration: Duration(seconds: 2),
-          ),
+        AppToast.show(
+          context,
+          message: 'Thanks, saved on your phone.',
+          type: AppToastType.success,
         );
       }
     }
@@ -192,18 +209,15 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
 
   void _copyToClipboard(String text) {
     Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Copied to clipboard'),
-        duration: Duration(seconds: 1),
-      ),
+    AppToast.show(
+      context,
+      message: 'Copied to clipboard',
+      type: AppToastType.info,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final state = ref.watch(coachControllerProvider);
 
     ref.listen(coachControllerProvider, (_, __) {
@@ -213,118 +227,89 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
     final isOnlyWelcome = state.messages.length <= 1;
 
     return Scaffold(
-      appBar: AppBar(
-        titleSpacing: 0,
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(
-                color: colorScheme.primary.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.psychology_rounded,
-                color: colorScheme.primary,
-                size: 20,
-              ),
+      backgroundColor: AppTheme.canvasBackground,
+      body: Column(
+        children: [
+          ScreenHeader(
+            title: 'Coach',
+            subtitle: 'On-device practice assistant',
+            leading: HeaderIconButton(
+              icon: Icons.arrow_back_rounded,
+              onPressed: () => context.pop(),
             ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Coach',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
-                ),
-                Text(
-                  'On-device practice assistant',
-                  style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
-                ),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert_rounded),
-            onSelected: (val) {
-              if (val == 'clear') {
-                ref.read(coachControllerProvider.notifier).clearChat();
-              }
-            },
-            itemBuilder: (ctx) => [
-              const PopupMenuItem(
-                value: 'clear',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_outline_rounded, size: 18),
-                    SizedBox(width: 8),
-                    Text('Clear chat'),
-                  ],
-                ),
+            actions: [
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert_rounded, color: AppTheme.textSecondary),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                onSelected: (val) {
+                  if (val == 'clear') {
+                    ref.read(coachControllerProvider.notifier).clearChat();
+                  }
+                },
+                itemBuilder: (ctx) => [
+                  const PopupMenuItem(
+                    value: 'clear',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_outline_rounded, size: 18, color: AppTheme.errorColor),
+                        SizedBox(width: 8),
+                        Text('Clear chat', style: TextStyle(color: AppTheme.errorColor)),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              itemCount: state.messages.length + (state.isLoading ? 1 : 0) + (isOnlyWelcome ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index < state.messages.length) {
+                  final msg = state.messages[index];
+                  return _buildMessageItem(msg);
+                }
+
+                if (isOnlyWelcome && index == state.messages.length) {
+                  return _buildStarterCards();
+                }
+
+                return _buildThinkingIndicator();
+              },
+            ),
+          ),
+
+          // Ready-made Question Chips Row
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 200),
+            crossFadeState: _hasText ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            firstChild: _buildSuggestionsRow(state.suggestions),
+            secondChild: const SizedBox.shrink(),
+          ),
+
+          // Modern Pill Composer
+          _buildModernComposer(),
+
+          // Bottom Disclaimer
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Text(
+              'Coach answers come from your practice on this phone. It cannot answer general questions.',
+              style: TextStyle(
+                fontSize: 11,
+                color: AppTheme.textTertiary.withValues(alpha: 0.9),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
         ],
-      ),
-      body: SafeArea(
-        top: false,
-        bottom: true,
-        child: Column(
-          children: [
-            // Messages List or Welcome Starter Cards
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                itemCount: state.messages.length + (state.isLoading ? 1 : 0) + (isOnlyWelcome ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index < state.messages.length) {
-                    final msg = state.messages[index];
-                    return _buildMessageItem(msg, colorScheme);
-                  }
-
-                  if (isOnlyWelcome && index == state.messages.length) {
-                    return _buildStarterCards(colorScheme);
-                  }
-
-                  return _buildThinkingIndicator(colorScheme);
-                },
-              ),
-            ),
-
-            // Ready-made Question Chips Row (Fades away when text is entered)
-            AnimatedCrossFade(
-              duration: const Duration(milliseconds: 200),
-              crossFadeState: _hasText ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-              firstChild: _buildSuggestionsRow(state.suggestions, colorScheme),
-              secondChild: const SizedBox.shrink(),
-            ),
-
-            // Modern Pill Composer
-            _buildModernComposer(colorScheme),
-
-            // Bottom Disclaimer
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
-              child: Text(
-                'Coach answers come from your practice on this phone. It cannot answer general questions.',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
 
-  Widget _buildStarterCards(ColorScheme colorScheme) {
+  Widget _buildStarterCards() {
     final starters = [
       (
         icon: Icons.track_changes_rounded,
@@ -353,14 +338,14 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 8),
+          const Padding(
+            padding: EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
               'Or tap a starter to begin:',
               style: TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.textSecondary,
               ),
             ),
           ),
@@ -368,47 +353,48 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
             crossAxisCount: 2,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            childAspectRatio: 1.45,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 1.4,
             children: starters.map((s) {
-              return Material(
-                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-                borderRadius: BorderRadius.circular(16),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () => _handleSend(s.title),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(s.icon, size: 20, color: colorScheme.primary),
-                        const SizedBox(height: 6),
-                        Text(
-                          s.title,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.onSurface,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          s.subtitle,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
+              return TactileCard(
+                onTap: () => _handleSend(s.title),
+                padding: const EdgeInsets.all(12),
+                borderRadius: AppTheme.radiusMd,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryTint,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(s.icon, size: 18, color: AppTheme.primaryColor),
                     ),
-                  ),
+                    const SizedBox(height: 8),
+                    Text(
+                      s.title,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textPrimary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      s.subtitle,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: AppTheme.textSecondary,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               );
             }).toList(),
@@ -418,7 +404,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
     );
   }
 
-  Widget _buildMessageItem(CoachMessage msg, ColorScheme colorScheme) {
+  Widget _buildMessageItem(CoachMessage msg) {
     if (msg.isUser) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 14),
@@ -428,22 +414,26 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
             constraints: const BoxConstraints(maxWidth: 300),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: colorScheme.primaryContainer.withValues(alpha: 0.7),
+              color: AppTheme.primaryColor,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(20),
                 topRight: Radius.circular(20),
                 bottomLeft: Radius.circular(20),
                 bottomRight: Radius.circular(6),
               ),
-              border: Border.all(
-                color: colorScheme.primary.withValues(alpha: 0.15),
-              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
             child: SelectableText(
               msg.text,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
-                color: colorScheme.onPrimaryContainer,
+                color: Colors.white,
                 height: 1.4,
               ),
             ),
@@ -459,18 +449,19 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 30,
-            height: 30,
+            width: 32,
+            height: 32,
             margin: const EdgeInsets.only(top: 2),
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: colorScheme.primary.withValues(alpha: 0.15),
+              color: AppTheme.primaryTint,
               shape: BoxShape.circle,
+              border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.2)),
             ),
-            child: Icon(
+            child: const Icon(
               Icons.psychology_rounded,
-              size: 17,
-              color: colorScheme.primary,
+              size: 18,
+              color: AppTheme.primaryColor,
             ),
           ),
           const SizedBox(width: 10),
@@ -478,25 +469,14 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
+                TactileCard(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(6),
-                      topRight: Radius.circular(20),
-                      bottomLeft: Radius.circular(20),
-                      bottomRight: Radius.circular(20),
-                    ),
-                    border: Border.all(
-                      color: colorScheme.outline.withValues(alpha: 0.12),
-                    ),
-                  ),
+                  borderRadius: AppTheme.radiusLg,
                   child: SelectableText(
                     msg.text,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
-                      color: colorScheme.onSurface,
+                      color: AppTheme.textPrimary,
                       height: 1.45,
                     ),
                   ),
@@ -509,7 +489,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
                     spacing: 8,
                     runSpacing: 6,
                     children: msg.actions.map((act) {
-                      return _buildActionButton(act, colorScheme);
+                      return _buildActionButton(act);
                     }).toList(),
                   ),
                 ],
@@ -525,7 +505,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
                         visualDensity: VisualDensity.compact,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                        color: AppTheme.textTertiary,
                         onPressed: () => _copyToClipboard(msg.text),
                       ),
                       const SizedBox(width: 4),
@@ -537,16 +517,16 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           visualDensity: VisualDensity.compact,
                         ),
-                        icon: Icon(
+                        icon: const Icon(
                           Icons.flag_outlined,
                           size: 13,
-                          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
+                          color: AppTheme.textTertiary,
                         ),
-                        label: Text(
+                        label: const Text(
                           'Report this answer',
                           style: TextStyle(
                             fontSize: 11,
-                            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
+                            color: AppTheme.textTertiary,
                           ),
                         ),
                       ),
@@ -561,7 +541,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
     );
   }
 
-  Widget _buildActionButton(CoachAction action, ColorScheme colorScheme) {
+  Widget _buildActionButton(CoachAction action) {
     final isPrimary = action.type == CoachActionType.startPractice ||
         action.type == CoachActionType.practiceMistakes;
 
@@ -569,6 +549,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
       return FilledButton.icon(
         onPressed: () => _handleAction(action),
         style: FilledButton.styleFrom(
+          backgroundColor: AppTheme.primaryColor,
           visualDensity: VisualDensity.compact,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           shape: RoundedRectangleBorder(
@@ -591,6 +572,8 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
     return OutlinedButton.icon(
       onPressed: () => _handleAction(action),
       style: OutlinedButton.styleFrom(
+        foregroundColor: AppTheme.primaryColor,
+        side: const BorderSide(color: AppTheme.primaryColor),
         visualDensity: VisualDensity.compact,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         shape: RoundedRectangleBorder(
@@ -612,7 +595,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
     );
   }
 
-  Widget _buildThinkingIndicator(ColorScheme colorScheme) {
+  Widget _buildThinkingIndicator() {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -621,23 +604,25 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-              color: colorScheme.primary.withValues(alpha: 0.15),
+              color: AppTheme.primaryTint,
               shape: BoxShape.circle,
             ),
-            child: Icon(
+            child: const Icon(
               Icons.psychology_rounded,
-              size: 15,
-              color: colorScheme.primary,
+              size: 16,
+              color: AppTheme.primaryColor,
             ),
           ),
           const SizedBox(width: 10),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+              color: AppTheme.surfaceCard,
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppTheme.borderLight),
+              boxShadow: AppTheme.cardShadow,
             ),
-            child: Row(
+            child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 SizedBox(
@@ -645,15 +630,15 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
                   height: 14,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: colorScheme.primary,
+                    color: AppTheme.primaryColor,
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Text(
                   'Analyzing practice data...',
                   style: TextStyle(
                     fontSize: 12,
-                    color: colorScheme.onSurfaceVariant,
+                    color: AppTheme.textSecondary,
                   ),
                 ),
               ],
@@ -664,7 +649,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
     );
   }
 
-  Widget _buildSuggestionsRow(List<String> suggestions, ColorScheme colorScheme) {
+  Widget _buildSuggestionsRow(List<String> suggestions) {
     if (suggestions.isEmpty) return const SizedBox.shrink();
 
     return Container(
@@ -679,15 +664,15 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
               child: ActionChip(
                 label: Text(
                   q,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textPrimary,
                   ),
                 ),
-                backgroundColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
-                side: BorderSide(
-                  color: colorScheme.outline.withValues(alpha: 0.15),
+                backgroundColor: AppTheme.surfaceCard,
+                side: const BorderSide(
+                  color: AppTheme.borderLight,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
@@ -701,23 +686,17 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
     );
   }
 
-  Widget _buildModernComposer(ColorScheme colorScheme) {
+  Widget _buildModernComposer() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
       child: Container(
         decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+          color: AppTheme.surfaceCard,
           borderRadius: BorderRadius.circular(28),
           border: Border.all(
-            color: colorScheme.outline.withValues(alpha: 0.2),
+            color: AppTheme.borderLight,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          boxShadow: AppTheme.cardShadow,
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: Row(
@@ -732,10 +711,10 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
                 textInputAction: TextInputAction.newline,
                 minLines: 1,
                 maxLines: 5,
-                style: const TextStyle(fontSize: 14),
+                style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary),
                 decoration: const InputDecoration(
                   hintText: 'Ask your coach anything about your practice',
-                  hintStyle: TextStyle(fontSize: 13.5),
+                  hintStyle: TextStyle(fontSize: 13.5, color: AppTheme.textTertiary),
                   border: InputBorder.none,
                   isDense: true,
                   contentPadding: EdgeInsets.symmetric(vertical: 10),
@@ -753,11 +732,11 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
                   icon: const Icon(Icons.arrow_upward_rounded, size: 20),
                   style: IconButton.styleFrom(
                     backgroundColor: _hasText
-                        ? colorScheme.primary
-                        : colorScheme.onSurface.withValues(alpha: 0.12),
+                        ? AppTheme.primaryColor
+                        : AppTheme.surfaceSecondary,
                     foregroundColor: _hasText
-                        ? colorScheme.onPrimary
-                        : colorScheme.onSurface.withValues(alpha: 0.38),
+                        ? Colors.white
+                        : AppTheme.textTertiary,
                     padding: const EdgeInsets.all(8),
                     minimumSize: const Size(36, 36),
                   ),

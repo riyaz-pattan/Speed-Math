@@ -208,6 +208,8 @@ void main() {
         case Topic.simplification:
         case Topic.averages:
         case Topic.missingNumber:
+        case Topic.numberSeries:
+        case Topic.approximation:
           expect(q.correctAnswer > 0, isTrue);
           break;
 

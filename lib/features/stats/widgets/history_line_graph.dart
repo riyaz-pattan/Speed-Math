@@ -1,7 +1,9 @@
 import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import '../../../app/theme.dart';
 import '../../../core/widgets/app_segmented_control.dart';
+import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
 import '../../../data/models/session.dart';
 import '../models/graph_models.dart';
 import '../services/graph_data_processor.dart';
@@ -35,20 +37,12 @@ class _HistoryLineGraphState extends State<HistoryLineGraph> {
       range: _selectedRange,
     );
 
-    return Card(
-      elevation: 0,
-      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: colorScheme.outline.withValues(alpha: 0.15),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return TactileCard(
+      borderRadius: AppTheme.radiusLg,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
             // Controls: Measure Switch & Range Switch
             _buildControls(colorScheme),
             const SizedBox(height: 20),
@@ -68,7 +62,6 @@ class _HistoryLineGraphState extends State<HistoryLineGraph> {
             ],
           ],
         ),
-      ),
     );
   }
 

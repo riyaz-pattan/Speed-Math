@@ -5,11 +5,11 @@ import '../pattern_constants.dart';
 import '../question.dart';
 import '../question_generator.dart';
 
-/// Question generator for Averages.
+/// Question generator for practical Averages.
 ///
-/// Easy: "Average of a, b, c = ?" (3 two-digit numbers, sum divisible by 3)
-/// Medium: "Average of a, b, c, d, e = ?" (5 numbers of 2 to 3 digits, sum divisible by 5)
-/// Hard: "Average of 5 numbers is A. Four of them are w, x, y, z. Find the fifth."
+/// Features:
+/// - Real-world practical question templates (groups, joining/leaving, weighted averages, series).
+/// - Guarantees strictly whole positive answers.
 class AveragesGenerator extends QuestionGenerator {
   @override
   Topic get topic => Topic.averages;
@@ -52,109 +52,215 @@ class AveragesGenerator extends QuestionGenerator {
   }
 
   Question _generateEasy(Random random, {String? targetPattern}) {
-    final isClose = targetPattern == PatternConstants.avgECloseSpread
-        ? true
-        : (targetPattern == PatternConstants.avgEWideSpread
-            ? false
-            : random.nextBool());
+    // 3 templates:
+    // 1: Average of 4 or 5 given numbers
+    // 2: "The average of 5 numbers is X, what is their sum?"
+    // 3: Average of first N natural, even, or odd numbers
+    final template = targetPattern == PatternConstants.avgEGroupSum
+        ? 2
+        : (targetPattern == PatternConstants.avgEConsec
+            ? 3
+            : (1 + random.nextInt(3)));
 
-    final maxSpread = isClose ? 12 : 28;
-    final avg = 25 + random.nextInt(60); // 25..84
+    if (template == 2) {
+      // "The average of N numbers is X, what is their sum?"
+      final count = 4 + random.nextInt(3); // 4..6
+      final avg = 15 + random.nextInt(35); // 15..49
+      final sum = count * avg;
+      return Question(
+        topic: Topic.averages,
+        difficulty: Difficulty.easy,
+        displayText: 'The average of $count numbers is $avg. What is their sum?',
+        operands: [count, avg, sum, 2],
+        correctAnswer: sum,
+      );
+    } else if (template == 3) {
+      // First N numbers
+      final sub = random.nextInt(3);
+      if (sub == 0) {
+        // First N natural numbers (N must be odd so (N+1)/2 is integer)
+        final n = (5 + random.nextInt(15)) * 2 + 1; // odd
+        final ans = (n + 1) ~/ 2;
+        return Question(
+          topic: Topic.averages,
+          difficulty: Difficulty.easy,
+          displayText: 'Find the average of the first $n natural numbers.',
+          operands: [n, ans, 3],
+          correctAnswer: ans,
+        );
+      } else if (sub == 1) {
+        // First N even numbers: avg is N + 1
+        final n = 6 + random.nextInt(20);
+        final ans = n + 1;
+        return Question(
+          topic: Topic.averages,
+          difficulty: Difficulty.easy,
+          displayText: 'Find the average of the first $n even numbers.',
+          operands: [n, ans, 3],
+          correctAnswer: ans,
+        );
+      } else {
+        // First N odd numbers: avg is N
+        final n = 7 + random.nextInt(20);
+        final ans = n;
+        return Question(
+          topic: Topic.averages,
+          difficulty: Difficulty.easy,
+          displayText: 'Find the average of the first $n odd numbers.',
+          operands: [n, ans, 3],
+          correctAnswer: ans,
+        );
+      }
+    } else {
+      // 4 or 5 numbers
+      final count = random.nextBool() ? 4 : 5;
+      final avg = 20 + random.nextInt(50);
+      final nums = <int>[];
+      int sum = 0;
+      for (int i = 0; i < count - 1; i++) {
+        final d = (random.nextInt(12) + 1) * (random.nextBool() ? 1 : -1);
+        final v = max(10, avg + d);
+        nums.add(v);
+        sum += v;
+      }
+      final last = (count * avg) - sum;
+      nums.add(last > 0 ? last : avg);
+      final realSum = nums.reduce((a, b) => a + b);
+      // Adjust last if needed
+      final rem = realSum % count;
+      if (rem != 0) {
+        nums[count - 1] += (count - rem);
+      }
+      final finalAvg = nums.reduce((a, b) => a + b) ~/ count;
 
-    int d1 = (random.nextInt(maxSpread) + 1) * (random.nextBool() ? 1 : -1);
-    int d2 = (random.nextInt(maxSpread) + 1) * (random.nextBool() ? 1 : -1);
-    int d3 = -(d1 + d2);
-
-    int a = (avg + d1).clamp(10, 99);
-    int b = (avg + d2).clamp(10, 99);
-    int c = (avg + d3).clamp(10, 99);
-
-    // Adjust c to guarantee exact divisibility
-    final sum = a + b + c;
-    final rem = sum % 3;
-    if (rem != 0) {
-      c += (3 - rem);
-      if (c > 99) c -= 3;
+      return Question(
+        topic: Topic.averages,
+        difficulty: Difficulty.easy,
+        displayText: 'Average of ${nums.join(', ')} = ?',
+        operands: [...nums, 1],
+        correctAnswer: finalAvg,
+      );
     }
-
-    final realAvg = (a + b + c) ~/ 3;
-
-    return Question(
-      topic: Topic.averages,
-      difficulty: Difficulty.easy,
-      displayText: 'Average of $a, $b, $c = ?',
-      operands: [a, b, c],
-      correctAnswer: realAvg,
-    );
   }
 
   Question _generateMedium(Random random, {String? targetPattern}) {
-    final has3Digits = targetPattern == PatternConstants.avgMMixedDigits
-        ? true
-        : (targetPattern == PatternConstants.avgMTwoDigit
-            ? false
-            : random.nextBool());
+    // 3 templates:
+    // 1: Person joins or leaves group and average changes
+    // 2: One number removed or replaced from group
+    // 3: 3 numbers avg is A, two given, find third
+    final template = targetPattern == PatternConstants.avgMJoinLeave
+        ? 1
+        : (targetPattern == PatternConstants.avgMOneRemoved
+            ? 2
+            : (1 + random.nextInt(3)));
 
-    final avg = has3Digits ? (70 + random.nextInt(120)) : (30 + random.nextInt(45));
+    if (template == 1) {
+      // Member joins: e.g. 4 friends avg age 24. 5th aged 29 joins. What is new average?
+      final count = 4 + random.nextInt(2); // 4 or 5
+      final oldAvg = 20 + random.nextInt(25);
+      final joinDiff = (count + 1) * (1 + random.nextInt(3)); // ensures new avg is whole!
+      final newMemberAge = oldAvg + joinDiff;
+      final newAvg = oldAvg + (joinDiff ~/ (count + 1));
 
-    final deltas = <int>[];
-    int sumDeltas = 0;
-    for (int i = 0; i < 4; i++) {
-      final spread = has3Digits ? 35 : 18;
-      final d = (random.nextInt(spread) + 1) * (random.nextBool() ? 1 : -1);
-      deltas.add(d);
-      sumDeltas += d;
+      return Question(
+        topic: Topic.averages,
+        difficulty: Difficulty.medium,
+        displayText:
+            'The average age of $count friends is $oldAvg. A new friend aged $newMemberAge joins. What is the new average?',
+        operands: [count, oldAvg, newMemberAge, newAvg, 2],
+        correctAnswer: newAvg,
+      );
+    } else if (template == 2) {
+      // One number removed: e.g. Average of 5 numbers is 20. One removed, average becomes 18. Find removed.
+      final totalCount = 5;
+      final oldAvg = 20 + random.nextInt(30);
+      final newAvg = oldAvg - (1 + random.nextInt(3));
+      final removed = (totalCount * oldAvg) - ((totalCount - 1) * newAvg);
+
+      return Question(
+        topic: Topic.averages,
+        difficulty: Difficulty.medium,
+        displayText:
+            'The average of $totalCount numbers is $oldAvg. When one number is removed, the average becomes $newAvg. Find the removed number.',
+        operands: [totalCount, oldAvg, newAvg, removed, 3],
+        correctAnswer: removed,
+      );
+    } else {
+      // Average of 3 numbers is A. Two of them are X and Y. Find third.
+      final avg = 25 + random.nextInt(40);
+      final total = avg * 3;
+      final x = avg - (2 + random.nextInt(15));
+      final y = avg + (1 + random.nextInt(12));
+      final z = total - x - y;
+
+      return Question(
+        topic: Topic.averages,
+        difficulty: Difficulty.medium,
+        displayText:
+            'The average of 3 numbers is $avg. Two of them are $x and $y. Find the third.',
+        operands: [avg, x, y, z, 1],
+        correctAnswer: z,
+      );
     }
-    deltas.add(-sumDeltas);
-
-    final nums = deltas.map((d) => (avg + d).clamp(20, 295)).toList();
-    final totalSum = nums.reduce((v, e) => v + e);
-    final rem = totalSum % 5;
-    if (rem != 0) {
-      nums[4] += (5 - rem);
-    }
-
-    final realAvg = nums.reduce((v, e) => v + e) ~/ 5;
-
-    return Question(
-      topic: Topic.averages,
-      difficulty: Difficulty.medium,
-      displayText:
-          'Average of ${nums[0]}, ${nums[1]}, ${nums[2]}, ${nums[3]}, ${nums[4]} = ?',
-      operands: nums,
-      correctAnswer: realAvg,
-    );
   }
 
   Question _generateHard(Random random, {String? targetPattern}) {
-    final avg = 25 + random.nextInt(95); // 25..119
-    final targetTotal = avg * 5;
+    // 3 templates:
+    // 1: Weighted average of two groups
+    // 2: Member replaced causing average change
+    // 3: Average of multiples or series
+    final template = targetPattern == PatternConstants.avgHWeighted
+        ? 1
+        : (targetPattern == PatternConstants.avgHMemberReplaced
+            ? 2
+            : (1 + random.nextInt(3)));
 
-    final given = <int>[];
-    int currentSum = 0;
-    for (int i = 0; i < 4; i++) {
-      final spread = 20;
-      final offset = (random.nextInt(spread) + 1) * (random.nextBool() ? 1 : -1);
-      final n = max(5, avg + offset);
-      given.add(n);
-      currentSum += n;
+    if (template == 1) {
+      // Weighted average: e.g. 20 students avg 60, 30 students avg 70 -> all 50
+      final count1 = 20;
+      final count2 = 30;
+      final avg1 = 50 + (random.nextInt(6) * 5); // 50, 55, 60, 65, 70, 75
+      final avg2 = avg1 + 10;
+      final totalScore = (count1 * avg1) + (count2 * avg2);
+      final combinedAvg = totalScore ~/ (count1 + count2);
+
+      return Question(
+        topic: Topic.averages,
+        difficulty: Difficulty.hard,
+        displayText:
+            'The average marks of $count1 students is $avg1 and of $count2 students is $avg2. Find the average of all ${count1 + count2} students.',
+        operands: [count1, avg1, count2, avg2, combinedAvg, 2],
+        correctAnswer: combinedAvg,
+      );
+    } else if (template == 2) {
+      // Average weight increases/decreases when person replaced
+      final count = 8;
+      final change = 1 + random.nextInt(3); // increases by change
+      final oldPersonWeight = 45 + random.nextInt(25);
+      final newPersonWeight = oldPersonWeight + (count * change);
+
+      return Question(
+        topic: Topic.averages,
+        difficulty: Difficulty.hard,
+        displayText:
+            'The average weight of $count people increases by $change kg when a person weighing $oldPersonWeight kg is replaced by a new person. Find the weight of the new person.',
+        operands: [count, change, oldPersonWeight, newPersonWeight, 3],
+        correctAnswer: newPersonWeight,
+      );
+    } else {
+      // Average of multiples: e.g. Average of first 9 multiples of 7
+      // multiples of K: K * 1, K * 2 ... K * M -> avg is K * (M + 1) / 2
+      final k = 3 + random.nextInt(10);
+      final m = (3 + random.nextInt(5)) * 2 + 1; // odd count (7, 9, 11)
+      final ans = k * (m + 1) ~/ 2;
+
+      return Question(
+        topic: Topic.averages,
+        difficulty: Difficulty.hard,
+        displayText: 'Find the average of the first $m multiples of $k.',
+        operands: [m, k, ans, 1],
+        correctAnswer: ans,
+      );
     }
-
-    int fifth = targetTotal - currentSum;
-    if (fifth <= 0) {
-      final diff = (10 - fifth);
-      given[0] = max(5, given[0] - diff);
-      currentSum = given.reduce((v, e) => v + e);
-      fifth = targetTotal - currentSum;
-    }
-
-    return Question(
-      topic: Topic.averages,
-      difficulty: Difficulty.hard,
-      displayText:
-          'Average of 5 numbers is $avg. Four of them are ${given[0]}, ${given[1]}, ${given[2]}, ${given[3]}. Find the fifth.',
-      operands: [avg, given[0], given[1], given[2], given[3], fifth],
-      correctAnswer: fifth,
-    );
   }
 }

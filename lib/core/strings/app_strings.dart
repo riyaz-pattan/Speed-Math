@@ -64,6 +64,8 @@ abstract final class AppStrings {
   static const String simplification = 'Simplification';
   static const String averages = 'Averages';
   static const String missingNumber = 'Missing Number';
+  static const String numberSeries = 'Number Series';
+  static const String approximation = 'Approximation';
   static const String topic = 'Topic';
 
   // Practice Modes & Setup

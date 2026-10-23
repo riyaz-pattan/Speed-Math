@@ -104,6 +104,16 @@ abstract final class AppConstants {
       Difficulty.medium: 9000,  // ? × 23 = 391, ? / 14 = 12
       Difficulty.hard: 14000,   // (? + 18) × 7 = 245
     },
+    Topic.numberSeries: {
+      Difficulty.easy: 6000,    // constant diff, ×2/×3, consecutive squares/cubes
+      Difficulty.medium: 12000, // growing diff, Fibonacci, ×n ± k, primes
+      Difficulty.hard: 25000,   // interleaved, growing multipliers, alternating ops
+    },
+    Topic.approximation: {
+      Difficulty.easy: 6000,    // two operations with near numbers
+      Difficulty.medium: 11000, // near %, square or sqrt of near-perfect
+      Difficulty.hard: 18000,   // 4-5 mixed terms up to 100000
+    },
   };
 
   /// Returns the target time in milliseconds for the given topic and difficulty.
@@ -129,5 +139,5 @@ abstract final class AppConstants {
   static const double minAccuracyForBestTimes = 0.8;
 
   /// Current app version matching pubspec.yaml.
-  static const String appVersion = '1.7.0';
+  static const String appVersion = '1.9.0';
 }

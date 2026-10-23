@@ -419,6 +419,32 @@ class DebugSampleDataService {
         addedAt: now.subtract(const Duration(days: 3)),
         dueCounter: 0,
       ),
+      MistakeEntry(
+        topic: Topic.numberSeries,
+        difficulty: Difficulty.easy,
+        questionText: '4, 8, 16, ?, 64',
+        operands: const [4, 8, 16, 32, 64, 2],
+        correctAnswer: 32,
+        stage: 0,
+        correctStreak: 0,
+        wrongCount: 1,
+        source: MistakeSource.wrong,
+        addedAt: now.subtract(const Duration(hours: 4)),
+        dueCounter: 0,
+      ),
+      MistakeEntry(
+        topic: Topic.approximation,
+        difficulty: Difficulty.easy,
+        questionText: '24.1 × 5.9 ≈ ?',
+        operands: const [24, 6, 144, 1],
+        correctAnswer: 144,
+        stage: 1,
+        correctStreak: 1,
+        wrongCount: 1,
+        source: MistakeSource.slow,
+        addedAt: now.subtract(const Duration(days: 2)),
+        dueCounter: 0,
+      ),
     ];
 
     final batch = db.batch();
@@ -711,6 +737,24 @@ class DebugSampleDataService {
       accuracyEma: 0.86,
       avgTimeMsEma: 3400.0,
       lastPracticedAt: now.subtract(const Duration(hours: 8)),
+    ));
+    await repoSkill.saveRating(SkillRating(
+      topic: Topic.numberSeries,
+      difficulty: Difficulty.easy,
+      mastery: 0.79,
+      attemptsCount: 20,
+      accuracyEma: 0.84,
+      avgTimeMsEma: 5100.0,
+      lastPracticedAt: now.subtract(const Duration(hours: 10)),
+    ));
+    await repoSkill.saveRating(SkillRating(
+      topic: Topic.approximation,
+      difficulty: Difficulty.easy,
+      mastery: 0.81,
+      attemptsCount: 24,
+      accuracyEma: 0.88,
+      avgTimeMsEma: 4500.0,
+      lastPracticedAt: now.subtract(const Duration(hours: 5)),
     ));
   }
 

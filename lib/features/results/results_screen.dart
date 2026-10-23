@@ -1,16 +1,23 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/enums/enums.dart';
 import '../../core/services/haptic_service.dart';
 import '../../core/strings/app_strings.dart';
 import '../../core/widgets/question_text_widget.dart';
+import 'package:speed_math_with_ai/core/widgets/screen_header.dart';
+import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
 import '../../data/models/attempt.dart';
+import '../../data/repositories/session_repository.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../domain/questions/session_random.dart';
 import '../../domain/scoring/session_summary.dart';
+import '../../domain/scoring/xp_calculator.dart';
 import '../practice_session/models/practice_models.dart';
+import 'widgets/confetti_burst.dart';
 
 /// Redesigned results screen featuring score hero card with soft gradient,
 /// accuracy circular ring, highlighted badges, tidy stats grid, mistake reviews,
@@ -63,6 +70,8 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final settings = ref.watch(settingsRepositoryProvider);
+    final summary = resultData.summary;
     final isCompleted = resultData.savedSession?.completed ?? false;
     final isNotDrill = resultData.config.kind != SessionKind.drill ||
         resultData.config.mode == PracticeMode.smart ||
@@ -71,94 +80,126 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
         ? AppTheme.mixedColor
         : AppTheme.getTopicColor(resultData.config.topic);
 
+    final isPerfectRound = summary.totalQuestions > 0 &&
+        summary.correctCount == summary.totalQuestions &&
+        summary.wrongCount == 0 &&
+        summary.skippedCount == 0;
+    final showConfetti = (resultData.isNewBestScore || (isCompleted && isPerfectRound)) &&
+        settings.gameEffectsEnabled;
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) context.go('/home');
       },
       child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.close_rounded),
-            onPressed: () => context.go('/home'),
-          ),
-          title: Text(
-            isCompleted ? AppStrings.sessionComplete : 'Session Ended',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
-        body: SafeArea(
-          child: Column(
-            children: [
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  children: [
-                    // Subtle banner when session ended early
-                    if (!isCompleted)
-                      _buildEndedEarlyBanner(context, colorScheme),
-
-                    // Highlighted Badges (New Best Score, New Top-3 Time) — only for drill, only completed
-                    if (!isNotDrill &&
-                        isCompleted &&
-                        (resultData.isNewBestScore || resultData.isNewTop3Time))
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          alignment: WrapAlignment.center,
+        backgroundColor: AppTheme.canvasBackground,
+        body: Column(
+          children: [
+            ScreenHeader(
+              title: isCompleted ? AppStrings.sessionComplete : 'Session Ended',
+              leading: HeaderIconButton(
+                icon: Icons.close_rounded,
+                onPressed: () => context.go('/home'),
+              ),
+            ),
+            Expanded(
+              child: Stack(
+                children: [
+                  Column(
+                    children: [
+                      Expanded(
+                        child: ListView(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 16,
+                          ),
                           children: [
-                            if (resultData.isNewBestScore)
-                              _buildBadge(
-                                icon: Icons.emoji_events_rounded,
-                                label: AppStrings.newBestScore,
-                                color: const Color(0xFFF59E0B),
-                              ),
-                            if (resultData.isNewTop3Time)
-                              _buildBadge(
-                                icon: Icons.bolt_rounded,
-                                label: AppStrings.newTop3Time,
-                                color: const Color(0xFF06B6D4),
-                              ),
-                          ],
+                            // Subtle banner when session ended early
+                            if (!isCompleted)
+                              _buildEndedEarlyBanner(context, colorScheme),
+
+                        // Highlighted Badges (New Best Score, New Top-3 Time) — only for drill, only completed
+                        if (!isNotDrill &&
+                            isCompleted &&
+                            (resultData.isNewBestScore || resultData.isNewTop3Time))
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: Wrap(
+                              spacing: 10,
+                              runSpacing: 10,
+                              alignment: WrapAlignment.center,
+                              children: [
+                                if (resultData.isNewBestScore)
+                                  _buildBadge(
+                                    icon: Icons.emoji_events_rounded,
+                                    label: AppStrings.newBestScore,
+                                    color: const Color(0xFFF59E0B),
+                                  ),
+                                if (resultData.isNewTop3Time)
+                                  _buildBadge(
+                                    icon: Icons.bolt_rounded,
+                                    label: AppStrings.newTop3Time,
+                                    color: const Color(0xFF06B6D4),
+                                  ),
+                              ],
+                            ),
+                          ),
+
+                        // Large Score Hero Card with soft gradient, Stars & Accuracy Ring
+                        _buildScoreHeroCard(
+                          context,
+                          colorScheme,
+                          topicColor,
+                          settings.gameEffectsEnabled,
                         ),
-                      ),
+                        const SizedBox(height: 16),
 
-                    // Large Score Hero Card with soft gradient & Accuracy Ring
-                    _buildScoreHeroCard(context, colorScheme, topicColor),
-                    const SizedBox(height: 20),
+                        // XP and Level Progress Card
+                        _buildXpLevelCard(
+                          context,
+                          colorScheme,
+                          settings.gameEffectsEnabled,
+                        ),
+                        const SizedBox(height: 20),
 
-                    // Tidy Stats Grid
-                    _buildStatsGrid(context, colorScheme),
-                    const SizedBox(height: 20),
+                        // Tidy Stats Grid
+                        _buildStatsGrid(context, colorScheme),
+                        const SizedBox(height: 20),
 
-                    // Dynamic Coach Insight Card
-                    if (resultData.coachInsight != null) ...[
-                      _buildCoachInsightCard(context, colorScheme),
-                      const SizedBox(height: 24),
-                    ],
+                        // Dynamic Coach Insight Card
+                        if (resultData.coachInsight != null) ...[
+                          _buildCoachInsightCard(context, colorScheme),
+                          const SizedBox(height: 24),
+                        ],
 
-                    // Per-Topic Breakdown for Mixed or Mistake Practice
-                    if (isNotDrill) ...[
-                      _buildTopicBreakdownSection(context, colorScheme),
-                      const SizedBox(height: 24),
-                    ],
+                        // Per-Topic Breakdown for Mixed or Mistake Practice
+                        if (isNotDrill) ...[
+                          _buildTopicBreakdownSection(context, colorScheme),
+                          const SizedBox(height: 24),
+                        ],
 
-                    // Review Mistakes Section
-                    _buildMistakesSection(context, colorScheme),
-                    const SizedBox(height: 16),
-                  ],
-                ),
+                        // Review Mistakes Section
+                        _buildMistakesSection(context, colorScheme),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
+
+                  // Bottom Action Buttons: ONE big "Play Again" + two secondary buttons side-by-side
+                  _buildBottomActions(context, colorScheme),
+                ],
               ),
 
-              // Bottom Action Buttons: ONE big "Play Again" + two secondary buttons side-by-side
-              _buildBottomActions(context, colorScheme),
+              // Lightweight Confetti burst on new best score or perfect round
+              if (showConfetti) const ConfettiBurst(),
             ],
           ),
         ),
-      ),
-    );
+      ],
+    ),
+  ),
+);
   }
 
   Widget _buildEndedEarlyBanner(BuildContext context, ColorScheme colorScheme) {
@@ -244,8 +285,18 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
     BuildContext context,
     ColorScheme colorScheme,
     Color topicColor,
+    bool gameEffectsEnabled,
   ) {
     final summary = resultData.summary;
+    final targetTimeMs = AppConstants.getTargetTimeMs(
+      resultData.config.topic,
+      resultData.config.difficulty,
+    ).toDouble();
+    final stars = XpCalculator.calculateStars(
+      accuracy: summary.accuracy,
+      avgTimeMs: summary.avgTimeMsPerCorrect,
+      targetTimeMs: targetTimeMs,
+    );
 
     return Container(
       width: double.infinity,
@@ -284,13 +335,17 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
+
+          // 1 to 3 Stars
+          _buildStarsRow(stars, gameEffectsEnabled),
+          const SizedBox(height: 14),
 
           // Score and Accuracy Ring row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              // Final Score Block
+              // Final Score Block with smooth count-up
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -304,16 +359,32 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    summary.totalScore.toStringAsFixed(0),
-                    style: const TextStyle(
-                      fontSize: 52,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      height: 1.1,
-                      letterSpacing: -1.0,
-                    ),
-                  ),
+                  gameEffectsEnabled
+                      ? TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0, end: summary.totalScore),
+                          duration: const Duration(milliseconds: 500),
+                          curve: Curves.easeOutCubic,
+                          builder: (context, val, _) => Text(
+                            val.toStringAsFixed(0),
+                            style: const TextStyle(
+                              fontSize: 52,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              height: 1.1,
+                              letterSpacing: -1.0,
+                            ),
+                          ),
+                        )
+                      : Text(
+                          summary.totalScore.toStringAsFixed(0),
+                          style: const TextStyle(
+                            fontSize: 52,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            height: 1.1,
+                            letterSpacing: -1.0,
+                          ),
+                        ),
                 ],
               ),
 
@@ -342,6 +413,158 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStarsRow(int stars, bool gameEffectsEnabled) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(3, (index) {
+        final isFilled = index < stars;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 5),
+          child: gameEffectsEnabled
+              ? TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  duration: Duration(milliseconds: 280 + index * 120),
+                  curve: Curves.easeOutBack,
+                  builder: (context, scale, _) => Transform.scale(
+                    scale: scale,
+                    child: Icon(
+                      isFilled ? Icons.star_rounded : Icons.star_outline_rounded,
+                      color: isFilled
+                          ? const Color(0xFFFFD700)
+                          : Colors.white.withValues(alpha: 0.35),
+                      size: 32,
+                    ),
+                  ),
+                )
+              : Icon(
+                  isFilled ? Icons.star_rounded : Icons.star_outline_rounded,
+                  color: isFilled
+                      ? const Color(0xFFFFD700)
+                      : Colors.white.withValues(alpha: 0.35),
+                  size: 32,
+                ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildXpLevelCard(
+    BuildContext context,
+    ColorScheme colorScheme,
+    bool gameEffectsEnabled,
+  ) {
+    final totalXpAsync = ref.watch(totalXpProvider);
+    final totalXp = totalXpAsync.valueOrNull ?? 0;
+    final earnedXp = resultData.summary.totalScore.round();
+    final prevXp = max(0, totalXp - earnedXp);
+    final prevLevel = XpCalculator.levelFromXp(prevXp);
+    final curLevel = XpCalculator.levelFromXp(totalXp);
+    final curTitle = XpCalculator.titleForLevel(curLevel);
+    final progress = XpCalculator.progressToNextLevel(totalXp);
+    final didLevelUp = curLevel > prevLevel;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.additionColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '+$earnedXp XP',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.additionColor,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Level $curLevel • $curTitle',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Text(
+                '${XpCalculator.currentLevelEarnedXp(totalXp)} / ${XpCalculator.currentLevelRequiredXp(totalXp)} XP',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: gameEffectsEnabled
+                ? TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0.0, end: progress),
+                    duration: const Duration(milliseconds: 700),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, val, _) => LinearProgressIndicator(
+                      value: val,
+                      minHeight: 7,
+                      backgroundColor: colorScheme.surfaceContainerHighest,
+                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.amber),
+                    ),
+                  )
+                : LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 7,
+                    backgroundColor: colorScheme.surfaceContainerHighest,
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.amber),
+                  ),
+          ),
+          if (didLevelUp) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.celebration_rounded, color: Colors.amber, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Level Up! You reached Level $curLevel: $curTitle',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.amber,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -654,16 +877,11 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
           final avgTimeMs = total > 0 ? (totalTime / total.toDouble()) : 0.0;
           final topicColor = AppTheme.getTopicColor(topic);
 
-          return Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(
-                color: topicColor.withValues(alpha: 0.25),
-              ),
-            ),
-            child: Padding(
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: TactileCard(
+              borderRadius: AppTheme.radiusMd,
+              borderColor: topicColor.withValues(alpha: 0.25),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
@@ -703,10 +921,10 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
                   const SizedBox(width: 14),
                   Text(
                     _formatAvgTime(avgTimeMs),
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textSecondary,
                     ),
                   ),
                 ],

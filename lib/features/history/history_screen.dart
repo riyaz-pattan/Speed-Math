@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
 import '../../core/enums/enums.dart';
 import '../../core/strings/app_strings.dart';
+import 'package:speed_math_with_ai/core/widgets/empty_state_view.dart';
+import 'package:speed_math_with_ai/core/widgets/screen_header.dart';
+import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
 import '../../data/models/session.dart';
 import '../../data/repositories/session_repository.dart';
 import '../../data/repositories/settings_repository.dart';
@@ -137,18 +140,23 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          AppStrings.history,
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Filter chips
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+      backgroundColor: AppTheme.canvasBackground,
+      body: Column(
+        children: [
+          ScreenHeader(
+            title: AppStrings.history,
+            subtitle: 'Timeline of your practice rounds',
+            leading: HeaderIconButton(
+              icon: Icons.arrow_back_rounded,
+              onPressed: () => context.pop(),
+            ),
+          ),
+          Expanded(
+            child: Column(
+              children: [
+                // Filter chips
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -293,41 +301,24 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           ],
         ),
       ),
-    );
+    ],
+  ),
+);
   }
 
   Widget _buildEmptyState(ColorScheme colorScheme) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.history_rounded,
-              size: 48,
-              color: colorScheme.outline.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'No practice history found',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              _isMixedFilter
-                  ? 'No mixed practice or mistakes practice sessions recorded yet.'
-                  : _selectedTopicFilter != null
-                      ? 'No practice sessions recorded for ${_selectedTopicFilter!.displayName} yet.'
-                      : AppStrings.emptyHistoryMessage,
-              style: TextStyle(
-                fontSize: 13,
-                color: colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+    return EmptyStateView(
+      icon: Icons.history_rounded,
+      title: 'No practice history found',
+      message: _isMixedFilter
+          ? 'No mixed practice or mistakes practice sessions recorded yet.'
+          : _selectedTopicFilter != null
+              ? 'No practice sessions recorded for ${_selectedTopicFilter!.displayName} yet.'
+              : AppStrings.emptyHistoryMessage,
+      actionLabel: 'Practice Now',
+      onAction: () => context.go(
+        '/practice',
+        extra: _isMixedFilter ? null : _selectedTopicFilter,
       ),
     );
   }
@@ -357,141 +348,130 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         ? 'Adaptive'
         : session.difficulty.displayName;
 
-    return Material(
-      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: () => context.push('/history/details', extra: session),
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: colorScheme.outline.withValues(alpha: 0.12),
+    return TactileCard(
+      onTap: () => context.push('/history/details', extra: session),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      borderRadius: AppTheme.radiusMd,
+      child: Row(
+        children: [
+          // Topic Icon Container
+          Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: sessionColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              session.topic.symbol,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: sessionColor,
+              ),
             ),
           ),
-          child: Row(
-            children: [
-              // Topic Icon Container
-              Container(
-                width: 42,
-                height: 42,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: sessionColor.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  session.topic.symbol,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: sessionColor,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
+          const SizedBox(width: 12),
 
-              // Title & Subtitle
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          // Title & Subtitle
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            title,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                    Flexible(
+                      child: Text(
+                        title,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.textPrimary,
                         ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            difficultyText,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                        if (!session.completed) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Text(
-                              'Ended early',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.orange,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '$modeLabel • ${_formatDate(session.startedAt)}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceSecondary,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        difficultyText,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ),
+                    if (!session.completed) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.warningColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'Ended early',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.warningColor,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
-              ),
+                const SizedBox(height: 3),
+                Text(
+                  '$modeLabel • ${_formatDate(session.startedAt)}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textTertiary,
+                  ),
+                ),
+              ],
+            ),
+          ),
 
-              // Score & Accuracy
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '${session.score.toStringAsFixed(0)} pts',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '$accuracyPercent% acc',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+          // Score & Accuracy
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${session.score.toStringAsFixed(0)} pts',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.primaryColor,
+                ),
               ),
-              const SizedBox(width: 4),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 20,
-                color: colorScheme.onSurfaceVariant,
+              const SizedBox(height: 2),
+              Text(
+                '$accuracyPercent% acc',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textSecondary,
+                ),
               ),
             ],
           ),
-        ),
+          const SizedBox(width: 4),
+          const Icon(
+            Icons.chevron_right_rounded,
+            size: 20,
+            color: AppTheme.textTertiary,
+          ),
+        ],
       ),
     );
   }

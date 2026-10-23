@@ -1,21 +1,17 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
+import '../constants/question_font_constants.dart';
 
-/// Renders math question text with proper visual formatting across all topics.
-///
-/// Features:
-/// - Stacked fractions (e.g. "3/8 of 640") are drawn with a horizontal fraction bar,
-///   never relying on missing font glyphs or awkward slash text.
-/// - Exponents, squares, and cubes are drawn with a raised power ([WidgetSpan]),
-///   both as standalone expressions ("17²", "2^5") and inside expressions ("23² − 144 ÷ 12 + 7 × 9").
-/// - Square roots and cube roots are drawn with a [CustomPainter] radical symbol
-///   (check mark hook and overbar, with a small index 3 for cube roots).
-/// - Long questions wrap onto multiple lines and remain fully readable at 360px width
-///   and 1.3x text scale in both light and dark themes.
-/// - Standard operations (+, −, ×, ÷), brackets, %, and ? use verified Poppins font glyphs.
+/// Renders math question text with proper visual formatting, responsive font sizing,
+/// and measured line-fitting across all topics without throwing layout exceptions.
 class QuestionTextWidget extends StatelessWidget {
   final String text;
   final TextStyle? style;
   final TextAlign textAlign;
+
+  /// Global tracking for the Question Gallery diagnostic screen.
+  static bool trackFallbacks = false;
+  static final Set<String> fallbackQuestions = <String>{};
 
   const QuestionTextWidget({
     super.key,
@@ -23,6 +19,14 @@ class QuestionTextWidget extends StatelessWidget {
     this.style,
     this.textAlign = TextAlign.center,
   });
+
+  /// Determines whether [text] is a word problem sentence or a math expression.
+  static bool isSentence(String text) {
+    final stripped = text
+        .replaceAll(RegExp(r'\b(of|approx|ans|find|sum)\b', caseSensitive: false), '')
+        .replaceAll(RegExp(r'[0-9\+\-\−\×\*\÷\/\^\²\³\√\∛\≈\=\?\:\,\.\(\)\%_\s]'), '');
+    return RegExp(r'[a-zA-Z]{2,}').hasMatch(stripped);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,133 +36,523 @@ class QuestionTextWidget extends StatelessWidget {
     final effectiveStyle = defaultStyle.merge(style).copyWith(color: resolvedColor);
     final trimmed = text.trim();
 
-    // 1. Cube roots: starts with '∛' or '³√' or '3√'
-    if (trimmed.startsWith('∛') || trimmed.startsWith('³√') || trimmed.startsWith('3√')) {
-      final radicand = trimmed.replaceFirst(RegExp(r'^(∛|³√|3√)\s*'), '');
-      return _RadicalTextWidget(
-        radicand: radicand,
-        isCubeRoot: true,
-        style: effectiveStyle,
+    try {
+      // 1. Explicit font size specified (e.g. compact review list or history row)
+      if (style?.fontSize != null) {
+        final tokens = _parseTokens(trimmed);
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          child: _buildTokenRow(tokens, effectiveStyle, style!.fontSize!, textAlign),
+        );
+      }
+
+      // 2. Dynamic measured layout
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final maxWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
+              ? constraints.maxWidth
+              : MediaQuery.sizeOf(context).width - 24;
+
+          if (isSentence(trimmed)) {
+            return _buildSentenceWidget(trimmed, effectiveStyle, maxWidth, textAlign);
+          } else {
+            return _buildExpressionWidget(trimmed, effectiveStyle, maxWidth, textAlign);
+          }
+        },
+      );
+    } catch (e, stack) {
+      debugPrint('QuestionTextWidget fallback used for "$text": $e\n$stack');
+      if (trackFallbacks) {
+        fallbackQuestions.add(trimmed);
+      }
+      return _buildFallback(trimmed, effectiveStyle);
+    }
+  }
+
+  Widget _buildExpressionWidget(
+    String text,
+    TextStyle style,
+    double maxWidth,
+    TextAlign align,
+  ) {
+    final tokens = _parseTokens(text);
+
+    // Step A: Try single line fit from 54sp down to 30sp
+    double oneLineSize = QuestionFontConstants.expressionPreferredSize;
+    bool fitsOnOneLine = false;
+
+    for (double size = QuestionFontConstants.expressionPreferredSize;
+        size >= QuestionFontConstants.expressionOneLineMinSize;
+        size -= 2.0) {
+      final width = _measureTokensWidth(tokens, style, size);
+      if (width <= maxWidth) {
+        oneLineSize = size;
+        fitsOnOneLine = true;
+        break;
+      }
+    }
+
+    if (fitsOnOneLine) {
+      return FittedBox(
+        fit: BoxFit.scaleDown,
+        child: _buildTokenRow(tokens, style, oneLineSize, align),
       );
     }
 
-    // 2. Square roots: starts with '√'
-    if (trimmed.startsWith('√')) {
-      final radicand = trimmed.substring(1).trim();
-      return _RadicalTextWidget(
-        radicand: radicand,
-        isCubeRoot: false,
-        style: effectiveStyle,
+    // Step B: Break into 2 balanced lines at top-level operator or comma
+    final breakPair = _findBestBreakPoint(text);
+    if (breakPair == null) {
+      return FittedBox(
+        fit: BoxFit.scaleDown,
+        child: _buildTokenRow(
+          tokens,
+          style,
+          QuestionFontConstants.expressionOneLineMinSize,
+          align,
+        ),
       );
     }
 
-    // 3. Expressions containing fractions, powers, or standard text
-    final spans = _buildExpressionSpans(trimmed, effectiveStyle);
+    final (line1, line2) = breakPair;
+    final tokens1 = _parseTokens(line1);
+    final tokens2 = _parseTokens(line2);
 
+    double twoLinesSize = QuestionFontConstants.expressionTwoLinesMinSize;
+
+    for (double size = QuestionFontConstants.expressionTwoLinesMaxSize;
+        size >= QuestionFontConstants.expressionTwoLinesMinSize;
+        size -= 1.0) {
+      final w1 = _measureTokensWidth(tokens1, style, size);
+      final w2 = _measureTokensWidth(tokens2, style, size);
+
+      if (w1 <= maxWidth && w2 <= maxWidth) {
+        twoLinesSize = size;
+        break;
+      }
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: _buildTokenRow(tokens1, style, twoLinesSize, align),
+        ),
+        const SizedBox(height: 3),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: _buildTokenRow(tokens2, style, twoLinesSize, align),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSentenceWidget(
+    String text,
+    TextStyle style,
+    double maxWidth,
+    TextAlign align,
+  ) {
+    double sentenceSize = QuestionFontConstants.sentenceMinSize;
+    final plainText = text.replaceAll('²', '^2').replaceAll('³', '^3');
+
+    for (double size = QuestionFontConstants.sentenceMaxSize;
+        size >= QuestionFontConstants.sentenceMinSize;
+        size -= 1.0) {
+      final painter = TextPainter(
+        text: TextSpan(
+          text: plainText,
+          style: style.copyWith(fontSize: size),
+        ),
+        textDirection: TextDirection.ltr,
+        maxLines: QuestionFontConstants.sentenceMaxLines,
+      )..layout(maxWidth: maxWidth);
+
+      if (!painter.didExceedMaxLines) {
+        sentenceSize = size;
+        break;
+      }
+    }
+
+    final tokens = _parseTokens(text);
     return Text.rich(
       TextSpan(
-        style: effectiveStyle,
-        children: spans,
+        style: style.copyWith(fontSize: sentenceSize),
+        children: tokens.map((t) => t.buildSpan(style, sentenceSize)).toList(),
       ),
-      textAlign: textAlign,
+      textAlign: align,
+      maxLines: QuestionFontConstants.sentenceMaxLines,
       softWrap: true,
     );
   }
 
-  static List<InlineSpan> _buildExpressionSpans(String text, TextStyle style) {
-    // Matches:
-    // 1. Fractions: e.g. "3/8" (digits touching slash)
-    // 2. Caret exponents: e.g. "23^2" or "2^5"
-    // 3. Superscript exponents: e.g. "23²" or "14³"
-    final regex = RegExp(r'(\d+/\d+)|(\d+\^\d+)|(\d+[²³])');
-    final matches = regex.allMatches(text).toList();
+  Widget _buildFallback(String rawText, TextStyle style) {
+    final clean = rawText
+        .replaceAll('²', '^2')
+        .replaceAll('³', '^3')
+        .replaceAll('∛', 'cbrt(')
+        .replaceAll('³√', 'cbrt(')
+        .replaceAll('√', 'sqrt(');
+    final safeText = clean.contains('(') && !clean.contains(')') ? '$clean)' : clean;
 
-    if (matches.isEmpty) {
-      return [TextSpan(text: text, style: style)];
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(
+        safeText,
+        style: style.copyWith(
+          fontSize: 34,
+          fontWeight: FontWeight.bold,
+        ),
+        maxLines: 1,
+        textAlign: textAlign,
+      ),
+    );
+  }
+
+  static double _measureTokensWidth(
+    List<_Token> tokens,
+    TextStyle style,
+    double fontSize,
+  ) {
+    double total = 0.0;
+    for (final t in tokens) {
+      total += t.measureWidth(style, fontSize);
+    }
+    return total;
+  }
+
+  static Widget _buildTokenRow(
+    List<_Token> tokens,
+    TextStyle style,
+    double fontSize,
+    TextAlign align,
+  ) {
+    final widgets = tokens.map((t) => t.buildWidget(style, fontSize)).toList();
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: widgets,
+    );
+  }
+
+  static (String, String)? _findBestBreakPoint(String text) {
+    if (text.length <= 12) return null;
+
+    final candidates = <int>[];
+    int bracketDepth = 0;
+
+    for (int i = 0; i < text.length; i++) {
+      final char = text[i];
+      if (char == '(') {
+        bracketDepth++;
+      } else if (char == ')') {
+        bracketDepth = max(0, bracketDepth - 1);
+      } else if (bracketDepth == 0) {
+        if (char == ',') {
+          candidates.add(i);
+        } else if (char == '+' ||
+            char == '−' ||
+            char == '-' ||
+            char == '×' ||
+            char == '*' ||
+            char == '÷' ||
+            char == '≈' ||
+            char == '=') {
+          if (i > 0 && i < text.length - 1) {
+            candidates.add(i);
+          }
+        }
+      }
     }
 
-    final spans = <InlineSpan>[];
+    if (candidates.isEmpty) return null;
+
+    final middle = text.length / 2.0;
+    candidates.sort((a, b) => (a - middle).abs().compareTo((b - middle).abs()));
+    final bestIndex = candidates.first;
+    final char = text[bestIndex];
+
+    if (char == ',') {
+      return (text.substring(0, bestIndex + 1).trim(), text.substring(bestIndex + 1).trim());
+    } else {
+      return (text.substring(0, bestIndex).trim(), text.substring(bestIndex).trim());
+    }
+  }
+
+  static List<_Token> _parseTokens(String text) {
+    final regex = RegExp(
+      r'((?<=\b|\()(\d+)[_\s](\d+/\d+))|(\d+/\d+)|(\d+\^\d+)|(\d+[²³])|(³√\d+|∛\d+|√\d+)',
+    );
+    final matches = regex.allMatches(text).toList();
+    if (matches.isEmpty) {
+      return [_TextToken(text)];
+    }
+
+    final tokens = <_Token>[];
     int lastEnd = 0;
 
     for (final match in matches) {
       if (match.start > lastEnd) {
-        spans.add(TextSpan(
-          text: text.substring(lastEnd, match.start),
-          style: style,
-        ));
+        tokens.add(_TextToken(text.substring(lastEnd, match.start)));
       }
 
-      final matchStr = match.group(0)!;
-
       if (match.group(1) != null) {
-        // Stacked fraction
-        final parts = matchStr.split('/');
-        spans.add(
-          WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
-            child: _StackedFractionWidget(
-              numerator: parts[0],
-              denominator: parts[1],
-              style: style,
-            ),
-          ),
-        );
-      } else if (match.group(2) != null) {
-        // Caret exponent (base^power)
-        final parts = matchStr.split('^');
-        spans.addAll(_createPowerSpan(parts[0], parts[1], style));
-      } else if (match.group(3) != null) {
-        // Superscript exponent (base² or base³)
-        final base = matchStr.substring(0, matchStr.length - 1);
-        final power = matchStr.endsWith('²') ? '2' : '3';
-        spans.addAll(_createPowerSpan(base, power, style));
+        // Mixed fraction
+        final whole = match.group(2)!;
+        final fracParts = match.group(3)!.split('/');
+        tokens.add(_FractionToken(
+          whole: whole,
+          numerator: fracParts[0],
+          denominator: fracParts[1],
+        ));
+      } else if (match.group(4) != null) {
+        // Standard fraction
+        final fracParts = match.group(4)!.split('/');
+        tokens.add(_FractionToken(
+          numerator: fracParts[0],
+          denominator: fracParts[1],
+        ));
+      } else if (match.group(5) != null) {
+        // Caret exponent
+        final parts = match.group(5)!.split('^');
+        tokens.add(_PowerToken(parts[0], parts[1]));
+      } else if (match.group(6) != null) {
+        // Superscript exponent
+        final str = match.group(6)!;
+        final base = str.substring(0, str.length - 1);
+        final power = str.endsWith('²') ? '2' : '3';
+        tokens.add(_PowerToken(base, power));
+      } else if (match.group(7) != null) {
+        // Radical
+        final str = match.group(7)!;
+        final isCube = str.startsWith('³√') || str.startsWith('∛');
+        final rad = str.replaceFirst(RegExp(r'^(³√|∛|√)'), '');
+        tokens.add(_RadicalToken(radicand: rad, isCubeRoot: isCube));
       }
 
       lastEnd = match.end;
     }
 
     if (lastEnd < text.length) {
-      spans.add(TextSpan(
-        text: text.substring(lastEnd),
-        style: style,
-      ));
+      tokens.add(_TextToken(text.substring(lastEnd)));
     }
 
-    return spans;
+    return tokens;
+  }
+}
+
+/// Base token interface for measured text layout.
+sealed class _Token {
+  double measureWidth(TextStyle baseStyle, double fontSize);
+  Widget buildWidget(TextStyle baseStyle, double fontSize);
+  InlineSpan buildSpan(TextStyle baseStyle, double fontSize);
+}
+
+class _TextToken extends _Token {
+  final String text;
+  _TextToken(this.text);
+
+  @override
+  double measureWidth(TextStyle baseStyle, double fontSize) {
+    if (text.isEmpty) return 0.0;
+    final tp = TextPainter(
+      text: TextSpan(text: text, style: baseStyle.copyWith(fontSize: fontSize)),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+    return tp.width;
   }
 
-  static List<InlineSpan> _createPowerSpan(
-    String base,
-    String power,
-    TextStyle style,
-  ) {
-    final baseFontSize = style.fontSize ?? 24.0;
-    final expFontSize = (baseFontSize * 0.58).clamp(9.0, 36.0);
-    final liftOffset = -baseFontSize * 0.38;
+  @override
+  Widget buildWidget(TextStyle baseStyle, double fontSize) {
+    return Text(
+      text,
+      style: baseStyle.copyWith(fontSize: fontSize),
+    );
+  }
 
-    return [
-      TextSpan(text: base, style: style),
-      WidgetSpan(
-        alignment: PlaceholderAlignment.middle,
-        child: Transform.translate(
-          offset: Offset(0, liftOffset),
+  @override
+  InlineSpan buildSpan(TextStyle baseStyle, double fontSize) {
+    return TextSpan(
+      text: text,
+      style: baseStyle.copyWith(fontSize: fontSize),
+    );
+  }
+}
+
+class _PowerToken extends _Token {
+  final String base;
+  final String power;
+  _PowerToken(this.base, this.power);
+
+  @override
+  double measureWidth(TextStyle baseStyle, double fontSize) {
+    final expFontSize = (fontSize * 0.58).clamp(9.0, 36.0);
+    final baseTp = TextPainter(
+      text: TextSpan(text: base, style: baseStyle.copyWith(fontSize: fontSize)),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+    final expTp = TextPainter(
+      text: TextSpan(
+        text: power,
+        style: baseStyle.copyWith(fontSize: expFontSize, fontWeight: FontWeight.bold),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+    return baseTp.width + expTp.width + 1.0;
+  }
+
+  @override
+  Widget buildWidget(TextStyle baseStyle, double fontSize) {
+    final expFontSize = (fontSize * 0.58).clamp(9.0, 36.0);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        Text(
+          base,
+          style: baseStyle.copyWith(fontSize: fontSize),
+        ),
+        Transform.translate(
+          offset: Offset(1, -fontSize * 0.36),
           child: Text(
             power,
-            style: style.copyWith(
+            style: baseStyle.copyWith(
               fontSize: expFontSize,
               fontWeight: FontWeight.bold,
             ),
           ),
         ),
-      ),
-    ];
+      ],
+    );
+  }
+
+  @override
+  InlineSpan buildSpan(TextStyle baseStyle, double fontSize) {
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.middle,
+      child: buildWidget(baseStyle, fontSize),
+    );
   }
 }
 
-/// Convenience alias for [QuestionTextWidget].
-typedef QuestionDisplayWidget = QuestionTextWidget;
+class _FractionToken extends _Token {
+  final String? whole;
+  final String numerator;
+  final String denominator;
 
-/// Draws a stacked mathematical fraction (numerator over denominator with a bar).
+  _FractionToken({
+    this.whole,
+    required this.numerator,
+    required this.denominator,
+  });
+
+  @override
+  double measureWidth(TextStyle baseStyle, double fontSize) {
+    final fracFontSize = (fontSize * 0.52).clamp(11.0, 32.0);
+    final numTp = TextPainter(
+      text: TextSpan(
+        text: numerator,
+        style: baseStyle.copyWith(fontSize: fracFontSize, fontWeight: FontWeight.bold),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+    final denTp = TextPainter(
+      text: TextSpan(
+        text: denominator,
+        style: baseStyle.copyWith(fontSize: fracFontSize, fontWeight: FontWeight.bold),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+
+    final fracWidth = max(numTp.width, denTp.width) + 8.0;
+
+    if (whole != null && whole!.isNotEmpty) {
+      final wholeTp = TextPainter(
+        text: TextSpan(text: whole, style: baseStyle.copyWith(fontSize: fontSize)),
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+      )..layout();
+      return wholeTp.width + 4.0 + fracWidth;
+    }
+
+    return fracWidth;
+  }
+
+  @override
+  Widget buildWidget(TextStyle baseStyle, double fontSize) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        if (whole != null && whole!.isNotEmpty) ...[
+          Text(whole!, style: baseStyle.copyWith(fontSize: fontSize)),
+          const SizedBox(width: 4),
+        ],
+        _StackedFractionWidget(
+          numerator: numerator,
+          denominator: denominator,
+          style: baseStyle.copyWith(fontSize: fontSize),
+        ),
+      ],
+    );
+  }
+
+  @override
+  InlineSpan buildSpan(TextStyle baseStyle, double fontSize) {
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.middle,
+      child: buildWidget(baseStyle, fontSize),
+    );
+  }
+}
+
+class _RadicalToken extends _Token {
+  final String radicand;
+  final bool isCubeRoot;
+
+  _RadicalToken({
+    required this.radicand,
+    required this.isCubeRoot,
+  });
+
+  @override
+  double measureWidth(TextStyle baseStyle, double fontSize) {
+    final tickWidth = (fontSize * 0.45).clamp(10.0, 26.0);
+    final radTp = TextPainter(
+      text: TextSpan(text: radicand, style: baseStyle.copyWith(fontSize: fontSize)),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+    return tickWidth + (fontSize * 0.08) + radTp.width + (fontSize * 0.1);
+  }
+
+  @override
+  Widget buildWidget(TextStyle baseStyle, double fontSize) {
+    return _RadicalTextWidget(
+      radicand: radicand,
+      isCubeRoot: isCubeRoot,
+      style: baseStyle.copyWith(fontSize: fontSize),
+    );
+  }
+
+  @override
+  InlineSpan buildSpan(TextStyle baseStyle, double fontSize) {
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.middle,
+      child: buildWidget(baseStyle, fontSize),
+    );
+  }
+}
+
+/// Draws a cleanly stacked fraction with a centered horizontal divider bar.
 class _StackedFractionWidget extends StatelessWidget {
   final String numerator;
   final String denominator;
@@ -172,11 +566,10 @@ class _StackedFractionWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeColor = Theme.of(context).colorScheme.onSurface;
-    final resolvedColor = style.color ?? themeColor;
     final baseFontSize = style.fontSize ?? 24.0;
-    final fracFontSize = (baseFontSize * 0.52).clamp(9.0, 32.0);
-    final barThickness = (baseFontSize * 0.07).clamp(1.2, 2.5);
+    final fracFontSize = (baseFontSize * 0.52).clamp(11.0, 32.0);
+    final barThickness = (baseFontSize * 0.06).clamp(1.5, 3.0);
+    final resolvedColor = style.color ?? const Color(0xFF0F172A);
 
     final fracStyle = style.copyWith(
       fontSize: fracFontSize,
@@ -236,7 +629,7 @@ class _RadicalTextWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fontSize = style.fontSize ?? 24.0;
-    final strokeColor = style.color ?? Theme.of(context).colorScheme.onSurface;
+    final strokeColor = style.color ?? const Color(0xFF0F172A);
 
     final strokeWidth = (fontSize * 0.08).clamp(1.5, 3.5);
     final tickWidth = (fontSize * 0.45).clamp(10.0, 26.0);
@@ -260,7 +653,7 @@ class _RadicalTextWidget extends StatelessWidget {
         ),
         child: Text(
           radicand,
-          style: style,
+          style: style.copyWith(fontSize: fontSize),
         ),
       ),
     );
@@ -294,31 +687,25 @@ class _RadicalPainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round;
 
     final path = Path();
-
-    // 1. Opening hook on left
     final startY = size.height * 0.58;
     final hookX = tickWidth * 0.28;
     final hookY = size.height * 0.52;
     path.moveTo(0, startY);
     path.lineTo(hookX, hookY);
 
-    // 2. Down to bottom notch
     final bottomX = tickWidth * 0.55;
     final bottomY = size.height - (strokeWidth / 2);
     path.lineTo(bottomX, bottomY);
 
-    // 3. Up to top bar
     final topX = tickWidth;
     final topY = topPadding;
     path.lineTo(topX, topY);
 
-    // 4. Overbar extending across the radicand text width
     final overbarEndX = size.width;
     path.lineTo(overbarEndX, topY);
 
     canvas.drawPath(path, paint);
 
-    // If cube root, draw small index '3' inside the radical notch
     if (isCubeRoot) {
       final indexFontSize = (fontSize * 0.38).clamp(8.0, 18.0);
       final textPainter = TextPainter(

@@ -27,28 +27,30 @@ final themeModeProvider =
   return ThemeModeNotifier(settings);
 });
 
-/// Notifier handling live theme updates and persistence.
+/// Notifier handling live theme updates and persistence (always light).
 class ThemeModeNotifier extends StateNotifier<ThemeMode> {
   final SettingsRepository _settings;
 
-  ThemeModeNotifier(this._settings) : super(_settings.themeMode);
+  ThemeModeNotifier(this._settings) : super(ThemeMode.light);
 
   Future<void> setThemeMode(ThemeMode mode) async {
-    state = mode;
+    state = ThemeMode.light;
     await _settings.setThemeMode(mode);
   }
 }
 
-/// Repository for persistent app settings, user preferences, and theme mode.
+/// Repository for persistent app settings and user preferences.
 class SettingsRepository {
   final SharedPreferences _prefs;
 
   SettingsRepository(this._prefs) {
     _migrateSoundSettings();
+    _migrateThemeSettings();
   }
 
   static const _keyThemeMode = 'settings_theme_mode';
   static const _keyAutoAdvance = 'settings_auto_advance';
+  static const _keyGameEffects = 'settings_game_effects';
   static const _keyKeypadStyle = 'settings_keypad_style';
   static const _keyHaptics = 'settings_haptics';
   static const _keyVibrationStrength = 'settings_vibration_strength';
@@ -77,19 +79,19 @@ class SettingsRepository {
     }
   }
 
-  // --- Theme Mode ---
-
-  ThemeMode get themeMode {
-    final name = _prefs.getString(_keyThemeMode);
-    if (name == null) return ThemeMode.system;
-    return ThemeMode.values.firstWhere(
-      (m) => m.name == name,
-      orElse: () => ThemeMode.system,
-    );
+  void _migrateThemeSettings() {
+    // Dark mode has been completely removed. Clean up any stale persisted value.
+    if (_prefs.containsKey(_keyThemeMode)) {
+      _prefs.remove(_keyThemeMode);
+    }
   }
 
-  Future<bool> setThemeMode(ThemeMode mode) =>
-      _prefs.setString(_keyThemeMode, mode.name);
+  // --- Theme Mode ---
+
+  /// Dark mode has been completely removed. Always returns [ThemeMode.light].
+  ThemeMode get themeMode => ThemeMode.light;
+
+  Future<bool> setThemeMode(ThemeMode mode) => _prefs.remove(_keyThemeMode);
 
   // --- Keypad Style ---
 
@@ -113,6 +115,10 @@ class SettingsRepository {
 
   bool get autoAdvance => autoSubmit;
   Future<bool> setAutoAdvance(bool value) => setAutoSubmit(value);
+
+  bool get gameEffectsEnabled => _prefs.getBool(_keyGameEffects) ?? true;
+  Future<bool> setGameEffectsEnabled(bool value) =>
+      _prefs.setBool(_keyGameEffects, value);
 
   bool get hapticsEnabled => _prefs.getBool(_keyHaptics) ?? true;
   Future<bool> setHapticsEnabled(bool value) =>

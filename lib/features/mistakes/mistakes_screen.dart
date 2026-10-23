@@ -6,7 +6,11 @@ import '../../app/theme.dart';
 import '../../core/enums/enums.dart';
 import '../../core/strings/app_strings.dart';
 import '../../core/widgets/app_segmented_control.dart';
+import '../../core/widgets/app_toast.dart';
+import 'package:speed_math_with_ai/core/widgets/empty_state_view.dart';
 import '../../core/widgets/question_text_widget.dart';
+import 'package:speed_math_with_ai/core/widgets/screen_header.dart';
+import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
 import '../../data/repositories/mistake_repository.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../domain/adaptive/mistake_entry.dart';
@@ -14,14 +18,6 @@ import '../../domain/questions/session_random.dart';
 import '../practice_session/models/practice_models.dart';
 
 /// Screen displaying all questions currently stored in the spaced repetition mistake system.
-///
-/// Features:
-/// - Topic filter chips (All + individual topics)
-/// - Grouped by topic with signature topic colors
-/// - Details: question text (via QuestionTextWidget), correct answer, times wrong, label (Wrong/Skipped/Too slow)
-/// - Swipe-to-dismiss with Undo SnackBar
-/// - Choice of 10, 20, or All (up to 50) questions for "Practice these", respecting topic filter
-/// - Friendly empty state
 class MistakesScreen extends ConsumerStatefulWidget {
   const MistakesScreen({super.key});
 
@@ -36,6 +32,13 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
   bool _similarMistakes = false; // Option A (false): Same questions; Option B (true): Similar questions
   bool _loading = true;
   bool _isLaunching = false;
+
+  @override
+  void activate() {
+    super.activate();
+    _isLaunching = false;
+    _loadMistakes();
+  }
 
   @override
   void initState() {
@@ -64,26 +67,28 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
     });
 
     if (mounted) {
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Removed "${entry.questionText}"'),
-          duration: const Duration(seconds: 4),
-          action: SnackBarAction(
-            label: 'Undo',
-            onPressed: () async {
-              await repo.reinsertMistake(entry);
-              await _loadMistakes();
-            },
-          ),
-        ),
+      AppToast.show(
+        context,
+        message: 'Removed "${entry.questionText}"',
+        type: AppToastType.info,
+        actionLabel: 'Undo',
+        onAction: () async {
+          await repo.reinsertMistake(entry);
+          await _loadMistakes();
+        },
       );
     }
   }
 
   Future<void> _startMistakePractice(List<MistakeEntry> candidateList) async {
     if (_isLaunching || candidateList.isEmpty) return;
-    _isLaunching = true;
+    setState(() => _isLaunching = true);
+
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted && _isLaunching) {
+        setState(() => _isLaunching = false);
+      }
+    });
 
     try {
       final settings = ref.read(settingsRepositoryProvider);
@@ -139,43 +144,46 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final filtered = _filteredMistakes;
     final allMistakes = _mistakes ?? [];
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          AppStrings.myMistakes,
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.pop(),
-        ),
+      backgroundColor: AppTheme.canvasBackground,
+      body: Column(
+        children: [
+          ScreenHeader(
+            title: AppStrings.myMistakes,
+            subtitle: 'Spaced repetition mistake drills',
+            leading: HeaderIconButton(
+              icon: Icons.arrow_back_rounded,
+              onPressed: () => context.pop(),
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : allMistakes.isEmpty
+                    ? _buildEmptyState()
+                    : Column(
+                        children: [
+                          _buildTopicFilterBar(allMistakes),
+                          Expanded(
+                            child: filtered.isEmpty
+                                ? _buildEmptyFilteredState()
+                                : _buildMistakesList(filtered),
+                          ),
+                        ],
+                      ),
+          ),
+        ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : allMistakes.isEmpty
-              ? _buildEmptyState(colorScheme)
-              : Column(
-                  children: [
-                    _buildTopicFilterBar(colorScheme, allMistakes),
-                    Expanded(
-                      child: filtered.isEmpty
-                          ? _buildEmptyFilteredState(colorScheme)
-                          : _buildMistakesList(colorScheme, filtered),
-                    ),
-                  ],
-                ),
       bottomNavigationBar: (!_loading && filtered.isNotEmpty)
-          ? _buildBottomBar(colorScheme, filtered)
+          ? _buildBottomBar(filtered)
           : null,
     );
   }
 
-  Widget _buildTopicFilterBar(ColorScheme colorScheme, List<MistakeEntry> allMistakes) {
+  Widget _buildTopicFilterBar(List<MistakeEntry> allMistakes) {
     final topicsWithMistakes = <Topic>{
       for (final m in allMistakes) m.topic,
     }.toList()
@@ -183,11 +191,11 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
+      decoration: const BoxDecoration(
+        color: AppTheme.canvasBackground,
         border: Border(
           bottom: BorderSide(
-            color: colorScheme.outline.withValues(alpha: 0.12),
+            color: AppTheme.borderLight,
           ),
         ),
       ),
@@ -205,20 +213,20 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: _selectedTopicFilter == null
-                        ? FontWeight.w600
+                        ? FontWeight.w700
                         : FontWeight.w500,
                     color: _selectedTopicFilter == null
-                        ? colorScheme.onPrimary
-                        : colorScheme.onSurface,
+                        ? Colors.white
+                        : AppTheme.textPrimary,
                   ),
                 ),
                 selected: _selectedTopicFilter == null,
-                backgroundColor: colorScheme.surface,
-                selectedColor: colorScheme.primary,
+                backgroundColor: AppTheme.surfaceCard,
+                selectedColor: AppTheme.primaryColor,
                 side: BorderSide(
                   color: _selectedTopicFilter == null
-                      ? colorScheme.primary
-                      : colorScheme.outline.withValues(alpha: 0.25),
+                      ? AppTheme.primaryColor
+                      : AppTheme.borderLight,
                 ),
                 onSelected: (_) => setState(() => _selectedTopicFilter = null),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -247,17 +255,17 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.w500,
-                      color: isSelected ? Colors.white : colorScheme.onSurface,
+                          isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: isSelected ? Colors.white : AppTheme.textPrimary,
                     ),
                   ),
                   selected: isSelected,
-                  backgroundColor: colorScheme.surface,
+                  backgroundColor: AppTheme.surfaceCard,
                   selectedColor: topicColor,
                   side: BorderSide(
                     color: isSelected
                         ? topicColor
-                        : colorScheme.outline.withValues(alpha: 0.25),
+                        : AppTheme.borderLight,
                   ),
                   onSelected: (_) => setState(() => _selectedTopicFilter = t),
                   padding:
@@ -274,77 +282,27 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
     );
   }
 
-  Widget _buildEmptyState(ColorScheme colorScheme) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.task_alt_rounded,
-                size: 64,
-                color: Colors.green,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              AppStrings.noMistakesInBank,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              AppStrings.noMistakesInBankSubtitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
+  Widget _buildEmptyState() {
+    return EmptyStateView(
+      icon: Icons.task_alt_rounded,
+      title: 'No mistakes to revise!',
+      message: 'You are all caught up. Keep practicing to build speed.',
+      actionLabel: 'Practice Now',
+      onAction: () => context.go('/practice'),
     );
   }
 
-  Widget _buildEmptyFilteredState(ColorScheme colorScheme) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.check_circle_outline_rounded,
-              size: 48,
-              color: colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'No mistakes in ${_selectedTopicFilter?.displayName ?? "this topic"}',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
-              ),
-            ),
-          ],
-        ),
-      ),
+  Widget _buildEmptyFilteredState() {
+    return EmptyStateView(
+      icon: Icons.check_circle_outline_rounded,
+      title: 'No mistakes found',
+      message: 'No mistakes recorded for ${_selectedTopicFilter?.displayName ?? "this topic"}.',
+      actionLabel: 'Show All',
+      onAction: () => setState(() => _selectedTopicFilter = null),
     );
   }
 
-  Widget _buildMistakesList(ColorScheme colorScheme, List<MistakeEntry> list) {
+  Widget _buildMistakesList(List<MistakeEntry> list) {
     final Map<Topic, List<MistakeEntry>> grouped = {};
     for (final m in list) {
       grouped.putIfAbsent(m.topic, () => []).add(m);
@@ -367,9 +325,11 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(6),
+                    width: 30,
+                    height: 30,
+                    alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: topicColor.withValues(alpha: 0.14),
+                      color: topicColor.withValues(alpha: 0.12),
                       shape: BoxShape.circle,
                     ),
                     child: Text(
@@ -384,25 +344,25 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
                   const SizedBox(width: 8),
                   Text(
                     topic.displayName,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
                     ),
                   ),
                   const SizedBox(width: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHighest,
+                      color: AppTheme.surfaceSecondary,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       '${topicMistakes.length}',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: colorScheme.onSurfaceVariant,
+                        color: AppTheme.textSecondary,
                       ),
                     ),
                   ),
@@ -411,7 +371,7 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
               const SizedBox(height: 10),
 
               // Mistake Cards
-              ...topicMistakes.map((m) => _buildMistakeCard(m, topicColor, colorScheme)),
+              ...topicMistakes.map((m) => _buildMistakeCard(m, topicColor)),
             ],
           ),
         );
@@ -422,12 +382,11 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
   Widget _buildMistakeCard(
     MistakeEntry mistake,
     Color topicColor,
-    ColorScheme colorScheme,
   ) {
     final sourceColor = switch (mistake.source) {
-      MistakeSource.wrong => Colors.red,
-      MistakeSource.skipped => Colors.amber[800] ?? Colors.amber,
-      MistakeSource.slow => Colors.orange,
+      MistakeSource.wrong => AppTheme.errorColor,
+      MistakeSource.skipped => AppTheme.warningColor,
+      MistakeSource.slow => const Color(0xFFEA580C),
     };
 
     return Dismissible(
@@ -438,23 +397,17 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
         padding: const EdgeInsets.only(right: 20),
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: Colors.red.withValues(alpha: 0.85),
-          borderRadius: BorderRadius.circular(16),
+          color: AppTheme.errorColor,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
         ),
         child: const Icon(Icons.delete_outline_rounded, color: Colors.white),
       ),
       onDismissed: (_) => _removeMistake(mistake),
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 8),
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: colorScheme.outline.withValues(alpha: 0.12),
-          ),
-        ),
-        child: Padding(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: TactileCard(
           padding: const EdgeInsets.all(14),
+          borderRadius: AppTheme.radiusMd,
           child: Row(
             children: [
               // Expression using shared QuestionTextWidget
@@ -465,8 +418,9 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
                     QuestionTextWidget(
                       text: mistake.questionText,
                       style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -474,7 +428,7 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
                       '= ${mistake.correctAnswer}',
                       style: TextStyle(
                         fontSize: 15,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
                         color: topicColor,
                       ),
                     ),
@@ -499,7 +453,7 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
                       mistake.source.displayName,
                       style: TextStyle(
                         fontSize: 11,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
                         color: sourceColor,
                       ),
                     ),
@@ -507,10 +461,10 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
                   const SizedBox(height: 4),
                   Text(
                     '${mistake.wrongCount}x wrong',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: colorScheme.onSurfaceVariant,
+                      color: AppTheme.textSecondary,
                     ),
                   ),
                 ],
@@ -522,7 +476,7 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
     );
   }
 
-  Widget _buildBottomBar(ColorScheme colorScheme, List<MistakeEntry> filtered) {
+  Widget _buildBottomBar(List<MistakeEntry> filtered) {
     final available = filtered.length;
     final allLimit = min(available, 50);
 
@@ -537,20 +491,14 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
 
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
+      decoration: const BoxDecoration(
+        color: AppTheme.surfaceCard,
         border: Border(
           top: BorderSide(
-            color: colorScheme.outline.withValues(alpha: 0.12),
+            color: AppTheme.borderLight,
           ),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
+        boxShadow: AppTheme.stickyShadow,
       ),
       child: SafeArea(
         child: Column(
@@ -578,12 +526,12 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
             // Question count selector
             Row(
               children: [
-                Text(
+                const Text(
                   'Questions:',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurfaceVariant,
+                    color: AppTheme.textSecondary,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -614,6 +562,7 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                 ),
                 style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -633,7 +582,6 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
     bool? isSelected,
   }) {
     final selected = isSelected ?? (_selectedCountChoice == value);
-    final colorScheme = Theme.of(context).colorScheme;
 
     return InkWell(
       key: ValueKey('count_chip_$value'),
@@ -647,10 +595,10 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: selected
-              ? colorScheme.primary
+              ? AppTheme.primaryColor
               : (enabled
-                  ? colorScheme.surfaceContainerHighest
-                  : colorScheme.surfaceContainerHighest.withValues(alpha: 0.4)),
+                  ? AppTheme.surfaceSecondary
+                  : AppTheme.surfaceSecondary.withValues(alpha: 0.4)),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Text(
@@ -659,8 +607,8 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
             fontSize: 12,
             fontWeight: FontWeight.bold,
             color: selected
-                ? colorScheme.onPrimary
-                : (enabled ? colorScheme.onSurface : colorScheme.onSurfaceVariant),
+                ? Colors.white
+                : (enabled ? AppTheme.textPrimary : AppTheme.textTertiary),
           ),
         ),
       ),

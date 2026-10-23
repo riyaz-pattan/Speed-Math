@@ -67,6 +67,19 @@ abstract final class TextNormalizer {
     'missing': 'missing',
     'unknown': 'missing',
 
+    // Number Series
+    'series': 'series',
+    'sequence': 'series',
+    'progression': 'series',
+
+    // Approximation
+    'approx': 'approximation',
+    'approximate': 'approximation',
+    'approximating': 'approximation',
+    'approximations': 'approximation',
+    'estimate': 'approximation',
+    'estimation': 'approximation',
+
     // Common query typos & abbreviations
     'wher': 'where',
     'whr': 'where',
@@ -133,6 +146,10 @@ abstract final class TextNormalizer {
     text = text.replaceAll('missing numbers', 'missing number');
     text = text.replaceAll('missing num', 'missing number');
     text = text.replaceAll('find x', 'missing number');
+    text = text.replaceAll('number series', 'number series');
+    text = text.replaceAll('number pattern', 'number series');
+    text = text.replaceAll('number patterns', 'number series');
+    text = text.replaceAll('next number', 'number series');
 
     // Remove punctuation keeping only letters, digits, and spaces
     final buffer = StringBuffer();

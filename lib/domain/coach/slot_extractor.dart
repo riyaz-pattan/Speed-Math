@@ -39,6 +39,12 @@ abstract final class SlotExtractor {
     if (text.contains('missing number') || text.contains('missing numbers')) {
       return Topic.missingNumber;
     }
+    if (text.contains('number series') ||
+        text.contains('number pattern') ||
+        text.contains('number patterns') ||
+        text.contains('next number')) {
+      return Topic.numberSeries;
+    }
 
     final words = text.split(' ');
     for (final word in words) {
@@ -81,6 +87,15 @@ abstract final class SlotExtractor {
         case 'missing':
         case 'unknown':
           return Topic.missingNumber;
+        case 'series':
+        case 'sequence':
+        case 'progression':
+          return Topic.numberSeries;
+        case 'approximation':
+        case 'approx':
+        case 'estimate':
+        case 'estimation':
+          return Topic.approximation;
       }
     }
     return null;

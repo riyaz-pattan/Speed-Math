@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../app/theme.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/enums/enums.dart';
 import '../../core/services/haptic_service.dart';
 import '../../core/services/sound_service.dart';
 import '../../core/strings/app_strings.dart';
 import '../../core/widgets/app_segmented_control.dart';
+import '../../core/widgets/app_toast.dart';
+import '../../core/widgets/screen_header.dart';
+import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../practice_session/widgets/keypad.dart';
 
@@ -20,8 +24,16 @@ class SettingsScreen extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text(AppStrings.resetDataConfirmTitle),
-        content: const Text(AppStrings.resetDataConfirmMessage),
+        backgroundColor: AppTheme.surfaceCard,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          AppStrings.resetDataConfirmTitle,
+          style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+        ),
+        content: const Text(
+          AppStrings.resetDataConfirmMessage,
+          style: TextStyle(color: AppTheme.textSecondary),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -29,8 +41,8 @@ class SettingsScreen extends ConsumerWidget {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Theme.of(context).colorScheme.onError,
+              backgroundColor: AppTheme.errorColor,
+              foregroundColor: Colors.white,
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text(AppStrings.resetData),
@@ -45,8 +57,10 @@ class SettingsScreen extends ConsumerWidget {
       ref.read(dataRevisionProvider.notifier).state++;
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.resetDataSuccess)),
+        AppToast.show(
+          context,
+          message: AppStrings.resetDataSuccess,
+          type: AppToastType.success,
         );
       }
     }
@@ -54,285 +68,294 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final settings = ref.watch(settingsRepositoryProvider);
-    final currentThemeMode = ref.watch(themeModeProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          AppStrings.settings,
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          children: [
-            // Appearance / Theme Section
-            _buildSectionHeader('Appearance', colorScheme),
-            const SizedBox(height: 8),
-            _buildThemeSelector(context, ref, currentThemeMode, colorScheme),
-            const SizedBox(height: 24),
+      backgroundColor: AppTheme.canvasBackground,
+      body: Column(
+        children: [
+          const ScreenHeader(
+            title: AppStrings.settings,
+            subtitle: 'App preferences and tactile feedback',
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              children: [
+                // Keypad Style Section with live preview
+                _buildSectionHeader(AppStrings.keypadStyle),
+                const SizedBox(height: 4),
+                const Text(
+                  AppStrings.keypadStyleDescription,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildKeypadStyleSelector(context, ref, settings),
+                const SizedBox(height: 24),
 
-            // Keypad Style Section with live preview
-            _buildSectionHeader(AppStrings.keypadStyle, colorScheme),
-            const SizedBox(height: 4),
-            Text(
-              AppStrings.keypadStyleDescription,
-              style: TextStyle(
-                fontSize: 12,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _buildKeypadStyleSelector(context, ref, settings, colorScheme),
-            const SizedBox(height: 24),
-
-            // Practice Experience Section
-            _buildSectionHeader('Practice Experience', colorScheme),
-            const SizedBox(height: 8),
-            _buildCard([
-              SwitchListTile(
-                title: const Text(
-                  AppStrings.autoSubmit,
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-                subtitle: const Text(
-                  AppStrings.autoSubmitDescription,
-                  style: TextStyle(fontSize: 12),
-                ),
-                value: settings.autoSubmit,
-                onChanged: (val) async {
-                  await settings.setAutoSubmit(val);
-                  ref.invalidate(settingsRepositoryProvider);
-                },
-              ),
-              const Divider(height: 1),
-              SwitchListTile(
-                title: const Text(
-                  AppStrings.haptics,
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-                subtitle: const Text(
-                  AppStrings.hapticsDescription,
-                  style: TextStyle(fontSize: 12),
-                ),
-                value: settings.hapticsEnabled,
-                onChanged: (val) async {
-                  if (val) {
-                    ref.read(hapticServiceProvider).sample(strength: settings.vibrationStrength);
-                  }
-                  await settings.setHapticsEnabled(val);
-                  ref.invalidate(settingsRepositoryProvider);
-                },
-              ),
-              if (settings.hapticsEnabled) ...[
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Vibration strength',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      AppSegmentedControl<VibrationStrength>(
-                        selectedValue: settings.vibrationStrength,
-                        items: const [
-                          AppSegmentedItem(
-                            value: VibrationStrength.light,
-                            label: 'Light',
+                // Practice Experience Section
+                _buildSectionHeader('Practice Experience'),
+                const SizedBox(height: 8),
+                _buildCard([
+                  SwitchListTile(
+                    title: const Text(
+                      'Game effects',
+                      style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+                    ),
+                    subtitle: const Text(
+                      'Streaks, milestones, speed tags and celebrations',
+                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                    ),
+                    value: settings.gameEffectsEnabled,
+                    activeThumbColor: AppTheme.primaryColor,
+                    onChanged: (val) async {
+                      await settings.setGameEffectsEnabled(val);
+                      ref.invalidate(settingsRepositoryProvider);
+                    },
+                  ),
+                  const Divider(height: 1, color: AppTheme.borderLight),
+                  SwitchListTile(
+                    title: const Text(
+                      AppStrings.autoSubmit,
+                      style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+                    ),
+                    subtitle: const Text(
+                      AppStrings.autoSubmitDescription,
+                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                    ),
+                    value: settings.autoSubmit,
+                    activeThumbColor: AppTheme.primaryColor,
+                    onChanged: (val) async {
+                      await settings.setAutoSubmit(val);
+                      ref.invalidate(settingsRepositoryProvider);
+                    },
+                  ),
+                  const Divider(height: 1, color: AppTheme.borderLight),
+                  SwitchListTile(
+                    title: const Text(
+                      AppStrings.haptics,
+                      style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+                    ),
+                    subtitle: const Text(
+                      AppStrings.hapticsDescription,
+                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                    ),
+                    value: settings.hapticsEnabled,
+                    activeThumbColor: AppTheme.primaryColor,
+                    onChanged: (val) async {
+                      if (val) {
+                        ref.read(hapticServiceProvider).sample(strength: settings.vibrationStrength);
+                      }
+                      await settings.setHapticsEnabled(val);
+                      ref.invalidate(settingsRepositoryProvider);
+                    },
+                  ),
+                  if (settings.hapticsEnabled) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Vibration strength',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textSecondary,
+                            ),
                           ),
-                          AppSegmentedItem(
-                            value: VibrationStrength.medium,
-                            label: 'Medium',
-                          ),
-                          AppSegmentedItem(
-                            value: VibrationStrength.strong,
-                            label: 'Strong',
+                          const SizedBox(height: 8),
+                          AppSegmentedControl<VibrationStrength>(
+                            selectedValue: settings.vibrationStrength,
+                            items: const [
+                              AppSegmentedItem(
+                                value: VibrationStrength.light,
+                                label: 'Light',
+                              ),
+                              AppSegmentedItem(
+                                value: VibrationStrength.medium,
+                                label: 'Medium',
+                              ),
+                              AppSegmentedItem(
+                                value: VibrationStrength.strong,
+                                label: 'Strong',
+                              ),
+                            ],
+                            onValueChanged: (strength) async {
+                              await settings.setVibrationStrength(strength);
+                              ref.invalidate(settingsRepositoryProvider);
+                              ref.read(hapticServiceProvider).sample(strength: strength);
+                            },
                           ),
                         ],
-                        onValueChanged: (strength) async {
-                          await settings.setVibrationStrength(strength);
-                          ref.invalidate(settingsRepositoryProvider);
-                          ref.read(hapticServiceProvider).sample(strength: strength);
-                        },
                       ),
-                    ],
-                  ),
-                ),
-              ],
-              const Divider(height: 1),
-              SwitchListTile(
-                title: const Text(
-                  AppStrings.correctSound,
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-                subtitle: const Text(
-                  AppStrings.correctSoundDescription,
-                  style: TextStyle(fontSize: 12),
-                ),
-                value: settings.correctSoundEnabled,
-                onChanged: (val) async {
-                  if (val) {
-                    ref.read(soundServiceProvider).playCorrect();
-                  }
-                  await settings.setCorrectSoundEnabled(val);
-                  ref.invalidate(settingsRepositoryProvider);
-                },
-              ),
-              AnimatedCrossFade(
-                duration: const Duration(milliseconds: 200),
-                crossFadeState: settings.correctSoundEnabled
-                    ? CrossFadeState.showFirst
-                    : CrossFadeState.showSecond,
-                firstChild: _InlineSoundVolumeSlider(
-                  label: AppStrings.correctSoundVolume,
-                  volume: settings.correctSoundVolume,
-                  onChangedEnd: (val) async {
-                    await settings.setCorrectSoundVolume(val);
-                    await ref.read(soundServiceProvider).setCorrectVolume(val);
-                    ref.read(soundServiceProvider).playCorrect();
-                    ref.invalidate(settingsRepositoryProvider);
-                  },
-                ),
-                secondChild: const SizedBox.shrink(),
-              ),
-              const Divider(height: 1),
-              SwitchListTile(
-                title: const Text(
-                  AppStrings.wrongSound,
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-                subtitle: const Text(
-                  AppStrings.wrongSoundDescription,
-                  style: TextStyle(fontSize: 12),
-                ),
-                value: settings.wrongSoundEnabled,
-                onChanged: (val) async {
-                  if (val) {
-                    ref.read(soundServiceProvider).playWrong();
-                  }
-                  await settings.setWrongSoundEnabled(val);
-                  ref.invalidate(settingsRepositoryProvider);
-                },
-              ),
-              AnimatedCrossFade(
-                duration: const Duration(milliseconds: 200),
-                crossFadeState: settings.wrongSoundEnabled
-                    ? CrossFadeState.showFirst
-                    : CrossFadeState.showSecond,
-                firstChild: _InlineSoundVolumeSlider(
-                  label: AppStrings.wrongSoundVolume,
-                  volume: settings.wrongSoundVolume,
-                  onChangedEnd: (val) async {
-                    await settings.setWrongSoundVolume(val);
-                    await ref.read(soundServiceProvider).setWrongVolume(val);
-                    ref.read(soundServiceProvider).playWrong();
-                    ref.invalidate(settingsRepositoryProvider);
-                  },
-                ),
-                secondChild: const SizedBox.shrink(),
-              ),
-            ], colorScheme),
-            const SizedBox(height: 24),
-
-            // Data Management Section
-            _buildSectionHeader('Data Management', colorScheme),
-            const SizedBox(height: 8),
-            _buildCard([
-              ListTile(
-                leading: Icon(
-                  Icons.delete_outline_rounded,
-                  color: colorScheme.error,
-                ),
-                title: Text(
-                  AppStrings.resetData,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.error,
-                  ),
-                ),
-                subtitle: const Text(
-                  'Permanently delete all practice sessions and statistics',
-                  style: TextStyle(fontSize: 12),
-                ),
-                onTap: () => _showResetConfirmDialog(context, ref),
-              ),
-            ], colorScheme),
-            const SizedBox(height: 24),
-
-            // About Section
-            _buildSectionHeader(AppStrings.about, colorScheme),
-            const SizedBox(height: 8),
-            _buildCard([
-              ListTile(
-                title: const Text(
-                  AppStrings.appName,
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: const Text(
-                  'Works fully offline. Your data stays on your phone.',
-                  style: TextStyle(fontSize: 12),
-                ),
-                trailing: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onLongPress: () => context.push('/settings/data-check'),
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Text(
-                      'v${AppConstants.appVersion}',
+                  ],
+                  const Divider(height: 1, color: AppTheme.borderLight),
+                  SwitchListTile(
+                    title: const Text(
+                      AppStrings.correctSound,
+                      style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+                    ),
+                    subtitle: const Text(
+                      AppStrings.correctSoundDescription,
+                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                    ),
+                    value: settings.correctSoundEnabled,
+                    activeThumbColor: AppTheme.primaryColor,
+                    onChanged: (val) async {
+                      if (val) {
+                        ref.read(soundServiceProvider).playCorrect();
+                      }
+                      await settings.setCorrectSoundEnabled(val);
+                      ref.invalidate(settingsRepositoryProvider);
+                    },
+                  ),
+                  AnimatedCrossFade(
+                    duration: const Duration(milliseconds: 200),
+                    crossFadeState: settings.correctSoundEnabled
+                        ? CrossFadeState.showFirst
+                        : CrossFadeState.showSecond,
+                    firstChild: _InlineSoundVolumeSlider(
+                      label: AppStrings.correctSoundVolume,
+                      volume: settings.correctSoundVolume,
+                      onChangedEnd: (val) async {
+                        await settings.setCorrectSoundVolume(val);
+                        await ref.read(soundServiceProvider).setCorrectVolume(val);
+                        ref.read(soundServiceProvider).playCorrect();
+                        ref.invalidate(settingsRepositoryProvider);
+                      },
+                    ),
+                    secondChild: const SizedBox.shrink(),
+                  ),
+                  const Divider(height: 1, color: AppTheme.borderLight),
+                  SwitchListTile(
+                    title: const Text(
+                      AppStrings.wrongSound,
+                      style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+                    ),
+                    subtitle: const Text(
+                      AppStrings.wrongSoundDescription,
+                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                    ),
+                    value: settings.wrongSoundEnabled,
+                    activeThumbColor: AppTheme.primaryColor,
+                    onChanged: (val) async {
+                      if (val) {
+                        ref.read(soundServiceProvider).playWrong();
+                      }
+                      await settings.setWrongSoundEnabled(val);
+                      ref.invalidate(settingsRepositoryProvider);
+                    },
+                  ),
+                  AnimatedCrossFade(
+                    duration: const Duration(milliseconds: 200),
+                    crossFadeState: settings.wrongSoundEnabled
+                        ? CrossFadeState.showFirst
+                        : CrossFadeState.showSecond,
+                    firstChild: _InlineSoundVolumeSlider(
+                      label: AppStrings.wrongSoundVolume,
+                      volume: settings.wrongSoundVolume,
+                      onChangedEnd: (val) async {
+                        await settings.setWrongSoundVolume(val);
+                        await ref.read(soundServiceProvider).setWrongVolume(val);
+                        ref.read(soundServiceProvider).playWrong();
+                        ref.invalidate(settingsRepositoryProvider);
+                      },
+                    ),
+                    secondChild: const SizedBox.shrink(),
+                  ),
+                ]),
+                const SizedBox(height: 24),
+
+                // Data Management Section
+                _buildSectionHeader('Data Management'),
+                const SizedBox(height: 8),
+                _buildCard([
+                  ListTile(
+                    leading: const Icon(
+                      Icons.delete_outline_rounded,
+                      color: AppTheme.errorColor,
+                    ),
+                    title: const Text(
+                      AppStrings.resetData,
                       style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.errorColor,
+                      ),
+                    ),
+                    subtitle: const Text(
+                      'Permanently delete all practice sessions and statistics',
+                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                    ),
+                    onTap: () => _showResetConfirmDialog(context, ref),
+                  ),
+                ]),
+                const SizedBox(height: 24),
+
+                // About Section
+                _buildSectionHeader(AppStrings.about),
+                const SizedBox(height: 8),
+                _buildCard([
+                  ListTile(
+                    title: const Text(
+                      AppStrings.appName,
+                      style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+                    ),
+                    subtitle: const Text(
+                      'Works fully offline. Your data stays on your phone.',
+                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                    ),
+                    trailing: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onLongPress: () => context.push('/settings/data-check'),
+                      child: Container(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceSecondary,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Text(
+                          'v${AppConstants.appVersion}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
-            ], colorScheme),
-            const SizedBox(height: 24),
-          ],
-        ),
+                ]),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title, ColorScheme colorScheme) {
+  Widget _buildSectionHeader(String title) {
     return Text(
       title,
-      style: TextStyle(
+      style: const TextStyle(
         fontSize: 13,
-        fontWeight: FontWeight.bold,
-        color: colorScheme.primary,
+        fontWeight: FontWeight.w700,
+        color: AppTheme.primaryColor,
         letterSpacing: 0.5,
       ),
     );
   }
 
-  Widget _buildCard(List<Widget> children, ColorScheme colorScheme) {
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: colorScheme.outline.withValues(alpha: 0.15),
-        ),
-      ),
-      clipBehavior: Clip.antiAlias,
+  Widget _buildCard(List<Widget> children) {
+    return TactileCard(
+      padding: EdgeInsets.zero,
+      borderRadius: AppTheme.radiusLg,
       child: Column(children: children),
     );
   }
@@ -341,7 +364,6 @@ class SettingsScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     SettingsRepository settings,
-    ColorScheme colorScheme,
   ) {
     return Column(
       children: [
@@ -393,37 +415,6 @@ class SettingsScreen extends ConsumerWidget {
       ],
     );
   }
-
-  Widget _buildThemeSelector(
-    BuildContext context,
-    WidgetRef ref,
-    ThemeMode currentMode,
-    ColorScheme colorScheme,
-  ) {
-    return AppSegmentedControl<ThemeMode>(
-      selectedValue: currentMode,
-      items: const [
-        AppSegmentedItem(
-          value: ThemeMode.system,
-          icon: Icons.brightness_auto_rounded,
-          label: 'System',
-        ),
-        AppSegmentedItem(
-          value: ThemeMode.light,
-          icon: Icons.light_mode_rounded,
-          label: 'Light',
-        ),
-        AppSegmentedItem(
-          value: ThemeMode.dark,
-          icon: Icons.dark_mode_rounded,
-          label: 'Dark',
-        ),
-      ],
-      onValueChanged: (newMode) {
-        ref.read(themeModeProvider.notifier).setThemeMode(newMode);
-      },
-    );
-  }
 }
 
 class _InlineSoundVolumeSlider extends StatefulWidget {
@@ -461,7 +452,6 @@ class _InlineSoundVolumeSliderState extends State<_InlineSoundVolumeSlider> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final percent = (_current * 100).round();
 
     return Padding(
@@ -474,18 +464,18 @@ class _InlineSoundVolumeSliderState extends State<_InlineSoundVolumeSlider> {
             children: [
               Text(
                 widget.label,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textSecondary,
                 ),
               ),
               Text(
                 '$percent%',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.primaryColor,
                 ),
               ),
             ],
@@ -493,6 +483,9 @@ class _InlineSoundVolumeSliderState extends State<_InlineSoundVolumeSlider> {
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
               trackHeight: 3.0,
+              activeTrackColor: AppTheme.primaryColor,
+              inactiveTrackColor: AppTheme.surfaceSecondary,
+              thumbColor: AppTheme.primaryColor,
               thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7.0),
               overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
             ),

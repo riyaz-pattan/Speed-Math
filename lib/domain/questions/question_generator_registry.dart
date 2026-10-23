@@ -1,5 +1,6 @@
 import '../../core/enums/enums.dart';
 import 'generators/addition_generator.dart';
+import 'package:speed_math_with_ai/domain/questions/generators/approximation_generator.dart';
 import 'generators/averages_generator.dart';
 import 'generators/cube_roots_generator.dart';
 import 'generators/cubes_generator.dart';
@@ -8,6 +9,7 @@ import 'generators/exponents_generator.dart';
 import 'generators/fractions_generator.dart';
 import 'generators/missing_number_generator.dart';
 import 'generators/multiplication_generator.dart';
+import 'package:speed_math_with_ai/domain/questions/generators/number_series_generator.dart';
 import 'generators/percentages_generator.dart';
 import 'generators/simplification_generator.dart';
 import 'generators/square_roots_generator.dart';
@@ -36,6 +38,8 @@ class QuestionGeneratorRegistry {
     Topic.simplification: SimplificationGenerator(),
     Topic.averages: AveragesGenerator(),
     Topic.missingNumber: MissingNumberGenerator(),
+    Topic.numberSeries: NumberSeriesGenerator(),
+    Topic.approximation: ApproximationGenerator(),
   };
 
   /// Returns the generator for the given [topic].

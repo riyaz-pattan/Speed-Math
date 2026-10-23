@@ -6,6 +6,10 @@ import '../../app/theme.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/enums/enums.dart';
 import '../../core/strings/app_strings.dart';
+import 'package:speed_math_with_ai/core/widgets/app_toast.dart';
+import 'package:speed_math_with_ai/core/widgets/empty_state_view.dart';
+import 'package:speed_math_with_ai/core/widgets/screen_header.dart';
+import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
 import '../../data/models/session.dart';
 import '../../data/repositories/attempt_repository.dart';
 import '../../data/repositories/session_repository.dart';
@@ -214,8 +218,10 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                     modeValue: _selectedModeValue,
                   );
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Generated $count realistic sample sessions!')),
+                    AppToast.show(
+                      context,
+                      message: 'Generated $count realistic sample sessions!',
+                      type: AppToastType.success,
                     );
                     _loadStats();
                   }
@@ -228,8 +234,10 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                   Navigator.pop(ctx);
                   await DebugSampleDataService.clearAllSampleData();
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Cleared all database data.')),
+                    AppToast.show(
+                      context,
+                      message: 'Cleared all database data.',
+                      type: AppToastType.info,
                     );
                     _loadStats();
                   }
@@ -264,35 +272,39 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: GestureDetector(
-          onLongPress: _showDebugMenu,
-          child: const Text(
-            AppStrings.stats,
-            style: TextStyle(fontWeight: FontWeight.bold),
+      backgroundColor: AppTheme.canvasBackground,
+      body: Column(
+        children: [
+          ScreenHeader(
+            title: AppStrings.stats,
+            subtitle: 'Performance metrics & growth',
+            actions: [
+              HeaderIconButton(
+                icon: Icons.history_rounded,
+                tooltip: 'History',
+                onPressed: () => context.push('/history'),
+              ),
+              if (kDebugMode)
+                HeaderIconButton(
+                  icon: Icons.bug_report_rounded,
+                  tooltip: 'Debug Data',
+                  onPressed: _showDebugMenu,
+                ),
+            ],
           ),
-        ),
-        actions: [
-          TextButton.icon(
-            onPressed: () => context.push('/history'),
-            icon: const Icon(Icons.history_rounded, size: 20),
-            label: const Text('History'),
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _loadStats,
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            children: [
-              // Top filter controls
-              _buildFilterSelectors(colorScheme),
-              const SizedBox(height: 14),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _loadStats,
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                children: [
+                  // Top filter controls
+                  _buildFilterSelectors(colorScheme),
+                  const SizedBox(height: 16),
 
-              // Skill Level Card for selected topic
-              _buildSkillLevelCard(colorScheme),
-              const SizedBox(height: 16),
+                  // Skill Level Card for selected topic
+                  _buildSkillLevelCard(colorScheme),
+                  const SizedBox(height: 16),
 
               if (_isLoading)
                 const SizedBox(
@@ -348,7 +360,9 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
           ),
         ),
       ),
-    );
+    ],
+  ),
+);
   }
 
   Widget _buildFilterSelectors(ColorScheme colorScheme) {
@@ -513,13 +527,8 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     const engine = SkillEngine();
     final hasAnyData = _topicSkillRatings.values.any((r) => r.attemptsCount >= 5);
 
-    return Container(
+    return TactileCard(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.15)),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -532,13 +541,14 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
                 ),
               ),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: topicColor.withValues(alpha: 0.15),
+                  color: topicColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -624,29 +634,13 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
 
   Widget _buildSummaryCards(ColorScheme colorScheme) {
     if (_historySessions.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.15)),
-        ),
-        child: Column(
-          children: [
-            Icon(Icons.emoji_events_outlined, size: 48, color: colorScheme.outline.withValues(alpha: 0.6)),
-            const SizedBox(height: 12),
-            const Text(
-              'No practice data yet for this setup',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Practice with this topic, difficulty, and mode to see high scores and best times.',
-              style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+      return EmptyStateView(
+        icon: Icons.emoji_events_outlined,
+        title: 'No practice data yet',
+        message:
+            'Practice with ${_selectedTopic.displayName} (${_selectedDifficulty.displayName}) to unlock high scores and progress trends.',
+        actionLabel: 'Practice Now',
+        onAction: () => context.go('/practice', extra: _selectedTopic),
       );
     }
 
@@ -678,7 +672,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                     : '—',
                 subtitle: 'Last 10 sessions',
                 icon: Icons.history_toggle_off_rounded,
-                iconColor: colorScheme.primary,
+                iconColor: AppTheme.primaryColor,
                 colorScheme: colorScheme,
               ),
             ),
@@ -700,13 +694,8 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     required Color iconColor,
     required ColorScheme colorScheme,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.15)),
-      ),
+    return TactileCard(
+      padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -717,10 +706,10 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
               Expanded(
                 child: Text(
                   title,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurfaceVariant,
+                    color: AppTheme.textSecondary,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -730,13 +719,20 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
           const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.textPrimary,
+            ),
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppTheme.textMuted,
+              ),
             ),
           ],
         ],
@@ -747,13 +743,8 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
   Widget _buildTopTimesCard(ColorScheme colorScheme) {
     final isQuestionMode = _selectedMode == PracticeMode.questions;
 
-    return Container(
+    return TactileCard(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.15)),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -761,16 +752,23 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
             children: [
               Icon(Icons.speed_rounded, size: 20, color: Colors.cyan.shade700),
               const SizedBox(width: 8),
-              Text(
+              const Text(
                 AppStrings.bestTimes,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
               ),
               const Spacer(),
               Text(
                 isQuestionMode
                     ? 'Total time (≥80% acc)'
                     : 'Avg / correct (≥80% acc)',
-                style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppTheme.textSecondary,
+                ),
               ),
             ],
           ),

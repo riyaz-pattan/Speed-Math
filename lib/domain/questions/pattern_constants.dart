@@ -157,6 +157,45 @@ class PatternConstants {
   static const String misHLinear = 'mis_h_linear';
   static const String misHBrackets = 'mis_h_brackets';
 
+  // --- NUMBER SERIES PATTERNS ---
+  static const String numEConstantDiff = 'num_e_constant_diff';
+  static const String numEGeomSmall = 'num_e_geom_small';
+  static const String numEConsecSquares = 'num_e_consec_squares';
+  static const String numEConsecCubes = 'num_e_consec_cubes';
+  static const String numEOddEven = 'num_e_odd_even';
+  static const String numMGrowingDiff = 'num_m_growing_diff';
+  static const String numMFibonacci = 'num_m_fibonacci';
+  static const String numMMulAddSub = 'num_m_mul_add_sub';
+  static const String numMSquareOffset = 'num_m_square_offset';
+  static const String numMPrimes = 'num_m_primes';
+  static const String numHInterleaved = 'num_h_interleaved';
+  static const String numHGrowingMul = 'num_h_growing_mul';
+  static const String numHSquareCubeDiff = 'num_h_square_cube_diff';
+  static const String numHAlternatingOps = 'num_h_alternating_ops';
+
+  // --- APPROXIMATION PATTERNS ---
+  static const String approxEProduct = 'approx_e_product';
+  static const String approxETwoOps = 'approx_e_two_ops';
+  static const String approxMPercent = 'approx_m_percent';
+  static const String approxMSquareRoot = 'approx_m_square_root';
+  static const String approxMThreeOps = 'approx_m_three_ops';
+  static const String approxHCompoundPercent = 'approx_h_compound_percent';
+  static const String approxHPowersDiv = 'approx_h_powers_div';
+
+  // --- UPGRADED FRACTIONS PATTERNS ---
+  static const String fracESameDenom = 'frac_e_same_denom';
+  static const String fracMMixed = 'frac_m_mixed';
+  static const String fracMFractionOfFraction = 'frac_m_frac_of_frac';
+  static const String fracHMixedSimp = 'frac_h_mixed_simp';
+
+  // --- UPGRADED AVERAGES PATTERNS ---
+  static const String avgEGroupSum = 'avg_e_group_sum';
+  static const String avgEConsec = 'avg_e_consec';
+  static const String avgMJoinLeave = 'avg_m_join_leave';
+  static const String avgMOneRemoved = 'avg_m_one_removed';
+  static const String avgHWeighted = 'avg_h_weighted';
+  static const String avgHMemberReplaced = 'avg_h_member_replaced';
+
   /// Returns all available patterns for a specific [topic] and [difficulty].
   static List<String> patternsFor(Topic topic, Difficulty difficulty) {
     switch (topic) {
@@ -273,11 +312,17 @@ class PatternConstants {
       case Topic.fractions:
         switch (difficulty) {
           case Difficulty.easy:
-            return [fracESmallDenom, fracEMidDenom];
+            return [fracESmallDenom, fracEMidDenom, fracESameDenom];
           case Difficulty.medium:
-            return [fracMBandSmall, fracMBandMid, fracMBandLarge];
+            return [
+              fracMBandSmall,
+              fracMBandMid,
+              fracMBandLarge,
+              fracMMixed,
+              fracMFractionOfFraction,
+            ];
           case Difficulty.hard:
-            return [fracHAddition, fracHSubtraction];
+            return [fracHAddition, fracHSubtraction, fracHMixedSimp];
           case Difficulty.mixed:
             return [];
         }
@@ -295,11 +340,11 @@ class PatternConstants {
       case Topic.averages:
         switch (difficulty) {
           case Difficulty.easy:
-            return [avgECloseSpread, avgEWideSpread];
+            return [avgECloseSpread, avgEWideSpread, avgEGroupSum, avgEConsec];
           case Difficulty.medium:
-            return [avgMTwoDigit, avgMMixedDigits];
+            return [avgMTwoDigit, avgMMixedDigits, avgMJoinLeave, avgMOneRemoved];
           case Difficulty.hard:
-            return [avgHFindMissing];
+            return [avgHFindMissing, avgHWeighted, avgHMemberReplaced];
           case Difficulty.mixed:
             return [];
         }
@@ -311,6 +356,45 @@ class PatternConstants {
             return [misMMultiplication, misMDivision, misMSubtraction];
           case Difficulty.hard:
             return [misHLinear, misHBrackets];
+          case Difficulty.mixed:
+            return [];
+        }
+      case Topic.numberSeries:
+        switch (difficulty) {
+          case Difficulty.easy:
+            return [
+              numEConstantDiff,
+              numEGeomSmall,
+              numEConsecSquares,
+              numEConsecCubes,
+              numEOddEven,
+            ];
+          case Difficulty.medium:
+            return [
+              numMGrowingDiff,
+              numMFibonacci,
+              numMMulAddSub,
+              numMSquareOffset,
+              numMPrimes,
+            ];
+          case Difficulty.hard:
+            return [
+              numHInterleaved,
+              numHGrowingMul,
+              numHSquareCubeDiff,
+              numHAlternatingOps,
+            ];
+          case Difficulty.mixed:
+            return [];
+        }
+      case Topic.approximation:
+        switch (difficulty) {
+          case Difficulty.easy:
+            return [approxEProduct, approxETwoOps];
+          case Difficulty.medium:
+            return [approxMPercent, approxMSquareRoot, approxMThreeOps];
+          case Difficulty.hard:
+            return [approxHCompoundPercent, approxHPowersDiv];
           case Difficulty.mixed:
             return [];
         }
@@ -435,11 +519,15 @@ class PatternConstants {
     // Fractions
     fracESmallDenom: 'Fractions with small denominator (2 to 4)',
     fracEMidDenom: 'Fractions with denominator (5, 6, 8, 10)',
+    fracESameDenom: 'Fractions with the same denominator',
     fracMBandSmall: 'Fractions with denominator 2 to 5',
     fracMBandMid: 'Fractions with denominator 6 to 8',
     fracMBandLarge: 'Fractions with denominator 9 to 12',
+    fracMMixed: 'Mixed fractions arithmetic',
+    fracMFractionOfFraction: 'Fraction of a fraction (a/b of c/d of N)',
     fracHAddition: 'Adding two fraction values (a/b of N + c/d of M)',
     fracHSubtraction: 'Subtracting fraction values (a/b of N − c/d of M)',
+    fracHMixedSimp: 'Mixed fraction multi-term simplification',
 
     // Simplification
     simpEAddMul: 'a + b × c expressions',
@@ -453,9 +541,15 @@ class PatternConstants {
     // Averages
     avgECloseSpread: 'Average of 3 numbers with close spread',
     avgEWideSpread: 'Average of 3 numbers with wider spread',
+    avgEGroupSum: 'Total sum from given group average',
+    avgEConsec: 'Average of consecutive numbers series',
     avgMTwoDigit: 'Average of 5 two-digit numbers',
     avgMMixedDigits: 'Average of 5 two- and three-digit numbers',
+    avgMJoinLeave: 'Average change when a member joins or leaves',
+    avgMOneRemoved: 'Find removed or replaced number from average',
     avgHFindMissing: 'Find the missing 5th number from the average',
+    avgHWeighted: 'Weighted average of two groups',
+    avgHMemberReplaced: 'Member replaced causing average change',
 
     // Missing Number
     misEAddition: 'Missing addend (? + a = b)',
@@ -466,6 +560,31 @@ class PatternConstants {
     misMSubtraction: 'Missing subtrahend (a − ? = b)',
     misHLinear: 'Linear equation (? × a ± b = c)',
     misHBrackets: 'Equation with brackets ((? ± a) × b = c)',
+
+    // Number Series
+    numEConstantDiff: 'Constant difference progression (arithmetic)',
+    numEGeomSmall: 'Constant multiplier series (×2 or ×3)',
+    numEConsecSquares: 'Consecutive squares series (n²)',
+    numEConsecCubes: 'Consecutive cubes series (n³)',
+    numEOddEven: 'Consecutive odd or even numbers',
+    numMGrowingDiff: 'Growing differences (+3, +5, +7...)',
+    numMFibonacci: 'Fibonacci-style addition progression',
+    numMMulAddSub: 'Multiply then add/subtract (×n ± k)',
+    numMSquareOffset: 'Square offset series (n² ± k)',
+    numMPrimes: 'Consecutive prime numbers series',
+    numHInterleaved: 'Two interleaved alternating rules series',
+    numHGrowingMul: 'Growing multiplier progression (×1, ×2, ×3...)',
+    numHSquareCubeDiff: 'Differences that are squares or cubes',
+    numHAlternatingOps: 'Alternating operations series (+a, ×b...)',
+
+    // Approximation
+    approxEProduct: 'Near-number friendly multiplication',
+    approxETwoOps: 'Two operations with friendly rounding (a + b × c)',
+    approxMPercent: 'Near-percentage estimation',
+    approxMSquareRoot: 'Square root of near-perfect square',
+    approxMThreeOps: 'Three operations with friendly rounding',
+    approxHCompoundPercent: 'Multi-term estimation with percentage and division',
+    approxHPowersDiv: 'Multi-term with squares, division, and products',
   };
 
   /// Pure function that recomputes the pattern from topic, difficulty, and operands.
@@ -653,15 +772,21 @@ class PatternConstants {
         }
 
       case Topic.fractions:
-        final b = operands.length > 1 ? operands[1] : 2;
+        final fType = operands.isNotEmpty ? operands.last : 1;
         switch (difficulty) {
           case Difficulty.easy:
+            if (fType == 3) return fracESameDenom;
+            final b = operands.length > 1 ? operands[1] : 2;
             return b <= 4 ? fracESmallDenom : fracEMidDenom;
           case Difficulty.medium:
+            if (fType == 4) return fracMMixed;
+            if (fType == 5) return fracMFractionOfFraction;
+            final b = operands.length > 1 ? operands[1] : 2;
             if (b <= 5) return fracMBandSmall;
             if (b <= 8) return fracMBandMid;
             return fracMBandLarge;
           case Difficulty.hard:
+            if (fType == 6) return fracHMixedSimp;
             final isMinus = operands.length > 6 && operands[6] == 1;
             return isMinus ? fracHSubtraction : fracHAddition;
           case Difficulty.mixed:
@@ -684,8 +809,11 @@ class PatternConstants {
         }
 
       case Topic.averages:
+        final aType = operands.isNotEmpty ? operands.last : 1;
         switch (difficulty) {
           case Difficulty.easy:
+            if (aType == 2) return avgEGroupSum;
+            if (aType == 3) return avgEConsec;
             if (operands.length >= 3) {
               final spread = (operands[0] - operands[1]).abs() +
                   (operands[1] - operands[2]).abs();
@@ -693,9 +821,13 @@ class PatternConstants {
             }
             return avgECloseSpread;
           case Difficulty.medium:
+            if (aType == 2) return avgMJoinLeave;
+            if (aType == 3) return avgMOneRemoved;
             final has3Digit = operands.any((n) => n >= 100);
             return has3Digit ? avgMMixedDigits : avgMTwoDigit;
           case Difficulty.hard:
+            if (aType == 2) return avgHWeighted;
+            if (aType == 3) return avgHMemberReplaced;
             return avgHFindMissing;
           case Difficulty.mixed:
             return avgECloseSpread;
@@ -716,6 +848,45 @@ class PatternConstants {
             return op == 1 ? misHLinear : misHBrackets;
           case Difficulty.mixed:
             return misEAddition;
+        }
+
+      case Topic.numberSeries:
+        final ruleId = operands.isNotEmpty ? operands.last : 1;
+        switch (difficulty) {
+          case Difficulty.easy:
+            if (ruleId == 1) return numEConstantDiff;
+            if (ruleId == 2) return numEGeomSmall;
+            if (ruleId == 3) return numEConsecSquares;
+            if (ruleId == 4) return numEConsecCubes;
+            return numEOddEven;
+          case Difficulty.medium:
+            if (ruleId == 1) return numMGrowingDiff;
+            if (ruleId == 2) return numMFibonacci;
+            if (ruleId == 3) return numMMulAddSub;
+            if (ruleId == 4) return numMSquareOffset;
+            return numMPrimes;
+          case Difficulty.hard:
+            if (ruleId == 1) return numHInterleaved;
+            if (ruleId == 2) return numHGrowingMul;
+            if (ruleId == 3) return numHSquareCubeDiff;
+            return numHAlternatingOps;
+          case Difficulty.mixed:
+            return numEConstantDiff;
+        }
+
+      case Topic.approximation:
+        final typeId = operands.isNotEmpty ? operands.last : 1;
+        switch (difficulty) {
+          case Difficulty.easy:
+            return typeId == 1 ? approxEProduct : approxETwoOps;
+          case Difficulty.medium:
+            if (typeId == 1) return approxMPercent;
+            if (typeId == 2) return approxMSquareRoot;
+            return approxMThreeOps;
+          case Difficulty.hard:
+            return typeId == 1 ? approxHCompoundPercent : approxHPowersDiv;
+          case Difficulty.mixed:
+            return approxEProduct;
         }
 
       case Topic.mixed:
