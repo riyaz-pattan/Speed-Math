@@ -718,12 +718,15 @@ class ReportScreen extends ConsumerWidget {
                     style: TextStyle(fontWeight: FontWeight.bold, color: topicColor),
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    '${area.topic.displayName} (${area.difficulty.displayName})',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
+                  Flexible(
+                    child: Text(
+                      '${area.topic.displayName} (${area.difficulty.displayName})',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -802,15 +805,18 @@ class ReportScreen extends ConsumerWidget {
                         style: TextStyle(fontWeight: FontWeight.bold, color: topicColor),
                       ),
                       const SizedBox(width: 6),
-                      Text(
-                        '${area.topic.displayName} (${area.difficulty.displayName})',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.textPrimary,
+                      Expanded(
+                        child: Text(
+                          '${area.topic.displayName} (${area.difficulty.displayName})',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textPrimary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(

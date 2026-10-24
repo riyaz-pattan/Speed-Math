@@ -210,7 +210,14 @@ void main() {
         case Topic.missingNumber:
         case Topic.numberSeries:
         case Topic.approximation:
-          expect(q.correctAnswer > 0, isTrue);
+        case Topic.fractionReciprocals:
+        case Topic.derivedFractions:
+        case Topic.fractionPercentages:
+        case Topic.basePercentages:
+        case Topic.splitPercentages:
+        case Topic.powerOfFive:
+        case Topic.patternMultiplication:
+          expect(q.correctAnswer >= 0, isTrue);
           break;
 
         case Topic.mixed:

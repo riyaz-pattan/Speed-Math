@@ -49,6 +49,7 @@ class _TactileCardState extends State<TactileCard> {
         child: Material(
           color: Colors.transparent,
           borderRadius: BorderRadius.circular(widget.borderRadius),
+          clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: widget.onTap,
             borderRadius: BorderRadius.circular(widget.borderRadius),

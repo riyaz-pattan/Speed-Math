@@ -15,6 +15,8 @@ import 'package:speed_math_with_ai/features/practice_setup/practice_setup_screen
 import 'package:speed_math_with_ai/features/mistakes/mistakes_screen.dart';
 import 'package:speed_math_with_ai/features/report/report_screen.dart';
 import 'package:speed_math_with_ai/features/results/results_screen.dart';
+import 'package:speed_math_with_ai/features/learn/learn_screen.dart';
+import 'package:speed_math_with_ai/features/learn/lesson_screen.dart';
 import 'package:speed_math_with_ai/features/settings/data_check_screen.dart';
 import 'package:speed_math_with_ai/features/settings/settings_screen.dart';
 import 'package:speed_math_with_ai/features/stats/stats_screen.dart';
@@ -101,6 +103,20 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/coach',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const CoachScreen(),
+      ),
+      GoRoute(
+        path: '/learn',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const LearnScreen(),
+      ),
+      GoRoute(
+        path: '/learn/:lessonId',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final lessonId = state.pathParameters['lessonId']!;
+          final operands = state.extra is List<int> ? state.extra as List<int> : null;
+          return LessonScreen(lessonId: lessonId, initialOperands: operands);
+        },
       ),
     ],
   );

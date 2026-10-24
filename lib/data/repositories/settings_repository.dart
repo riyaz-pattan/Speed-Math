@@ -65,6 +65,7 @@ class SettingsRepository {
   static const _keyLastMode = 'practice_last_mode';
   static const _keyLastTimerDuration = 'practice_last_timer_duration';
   static const _keyLastQuestionCount = 'practice_last_question_count';
+  static const _keyFractionInputHintSeen = 'settings_fraction_input_hint_seen';
 
   void _migrateSoundSettings() {
     if (_prefs.containsKey(_keySound)) {
@@ -163,6 +164,14 @@ class SettingsRepository {
     await setCorrectSoundEnabled(value);
     return setWrongSoundEnabled(value);
   }
+
+  // --- Fraction Input One-Time Hint ---
+
+  bool get hasSeenFractionInputHint =>
+      _prefs.getBool(_keyFractionInputHintSeen) ?? false;
+
+  Future<bool> setFractionInputHintSeen() =>
+      _prefs.setBool(_keyFractionInputHintSeen, true);
 
   // --- Practice Setup History ---
 
@@ -347,6 +356,7 @@ class SettingsRepository {
     await db.delete(DatabaseHelper.tableMistakeBank);
     await db.delete(DatabaseHelper.tableCoachMessages);
     await db.delete(DatabaseHelper.tableCoachReports);
+    await db.delete(DatabaseHelper.tableLessonProgress);
     await _prefs.remove('smart_question_counter');
     await _prefs.remove('speed_math_todays_plan_date');
     await _prefs.remove('speed_math_todays_plan_blocks');

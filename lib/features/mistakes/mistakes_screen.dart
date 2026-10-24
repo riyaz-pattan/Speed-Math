@@ -144,6 +144,10 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int>(dataRevisionProvider, (_, __) {
+      _loadMistakes();
+    });
+
     final filtered = _filteredMistakes;
     final allMistakes = _mistakes ?? [];
 
@@ -332,12 +336,16 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
                       color: topicColor.withValues(alpha: 0.12),
                       shape: BoxShape.circle,
                     ),
-                    child: Text(
-                      topic.symbol,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: topicColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        topic.symbol,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: topicColor,
+                        ),
                       ),
                     ),
                   ),
@@ -425,7 +433,7 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '= ${mistake.correctAnswer}',
+                      '= ${mistake.targetAnswerText}',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -524,29 +532,32 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
             const SizedBox(height: 12),
 
             // Question count selector
-            Row(
-              children: [
-                const Text(
-                  'Questions:',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textSecondary,
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  const Text(
+                    'Questions:',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textSecondary,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                if (available <= 10) ...[
-                  _buildCountChip(available, '$available questions', true, isSelected: true),
-                ] else ...[
-                  _buildCountChip(10, '10', true),
-                  if (available >= 20) ...[
+                  const SizedBox(width: 12),
+                  if (available <= 10) ...[
+                    _buildCountChip(available, '$available questions', true, isSelected: true),
+                  ] else ...[
+                    _buildCountChip(10, '10', true),
+                    if (available >= 20) ...[
+                      const SizedBox(width: 8),
+                      _buildCountChip(20, '20', true),
+                    ],
                     const SizedBox(width: 8),
-                    _buildCountChip(20, '20', true),
+                    _buildCountChip(50, 'All ($allLimit)', true),
                   ],
-                  const SizedBox(width: 8),
-                  _buildCountChip(50, 'All ($allLimit)', true),
                 ],
-              ],
+              ),
             ),
             const SizedBox(height: 12),
 

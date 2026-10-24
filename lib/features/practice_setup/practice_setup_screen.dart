@@ -13,6 +13,7 @@ import '../../data/repositories/mistake_repository.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../data/repositories/skill_repository.dart';
 import '../../domain/adaptive/skill_rating.dart';
+import '../learn/engine/lesson_registry.dart';
 import '../../domain/questions/session_random.dart';
 import '../practice_session/models/practice_models.dart';
 
@@ -348,6 +349,10 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
                   _buildMistakesCard(colorScheme),
                   const SizedBox(height: 16),
                 ],
+
+                // 7. Shortcut Tricks
+                _buildShortcutTricksRow(),
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -364,15 +369,20 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: theme.colorScheme.onSurface,
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        if (subtitle != null)
+        if (subtitle != null) ...[
+          const SizedBox(width: 8),
           Text(
             subtitle,
             style: TextStyle(
@@ -381,6 +391,7 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
+        ],
       ],
     );
   }
@@ -445,39 +456,46 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // "All topics" chip at the top
-        FilterChip(
-          showCheckmark: false,
-          label: const Text('All topics'),
-          selected: isAllSelected,
-          backgroundColor: colorScheme.surface,
-          selectedColor: colorScheme.primary,
-          labelStyle: TextStyle(
-            fontSize: 13,
-            fontWeight: isAllSelected ? FontWeight.w600 : FontWeight.w500,
-            color: isAllSelected ? colorScheme.onPrimary : colorScheme.onSurface,
-          ),
-          side: BorderSide(
-            color: isAllSelected
-                ? colorScheme.primary
-                : colorScheme.outline.withValues(alpha: 0.25),
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          onSelected: (_) => _toggleAllTopics(),
+        // "Select all topics" / "All topics selected" toggle button
+        Row(
+          children: [
+            FilterChip(
+              showCheckmark: false,
+              avatar: isAllSelected
+                  ? const Icon(Icons.done_all_rounded, size: 16, color: Colors.white)
+                  : const Icon(Icons.done_all_rounded, size: 16),
+              label: Text(isAllSelected ? 'All topics selected' : 'Select all topics'),
+              selected: isAllSelected,
+              backgroundColor: colorScheme.surface,
+              selectedColor: colorScheme.primary,
+              labelStyle: TextStyle(
+                fontSize: 12.5,
+                fontWeight: isAllSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isAllSelected ? colorScheme.onPrimary : colorScheme.onSurface,
+              ),
+              side: BorderSide(
+                color: isAllSelected
+                    ? colorScheme.primary
+                    : colorScheme.outline.withValues(alpha: 0.25),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              onSelected: (_) => _toggleAllTopics(),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
 
         // Subgroups
         ...TopicGroup.values.map((group) {
           return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.only(left: 2, bottom: 6),
+                  padding: const EdgeInsets.only(left: 2, bottom: 8),
                   child: Text(
                     group.displayName,
                     style: TextStyle(
@@ -488,44 +506,98 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
                     ),
                   ),
                 ),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: group.topics.map((topic) {
-                    final isSelected = _selectedTopics.contains(topic);
-                    final topicColor = AppTheme.getTopicColor(topic);
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final width = constraints.maxWidth;
+                    final int columns;
+                    if (width >= 480) {
+                      columns = 4;
+                    } else if (width >= 280) {
+                      columns = 3;
+                    } else {
+                      columns = 2;
+                    }
+                    const spacing = 8.0;
+                    final itemWidth = ((width - (spacing * (columns - 1)) - 0.5) / columns).floorToDouble();
 
-                    return FilterChip(
-                      showCheckmark: false,
-                      avatar: Text(
-                        topic.symbol,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected ? Colors.white : topicColor,
-                        ),
-                      ),
-                      label: Text(topic.displayName),
-                      selected: isSelected,
-                      backgroundColor: colorScheme.surface,
-                      selectedColor: topicColor,
-                      labelStyle: TextStyle(
-                        fontSize: 13,
-                        fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.w500,
-                        color: isSelected ? Colors.white : colorScheme.onSurface,
-                      ),
-                      side: BorderSide(
-                        color: isSelected
-                            ? topicColor
-                            : colorScheme.outline.withValues(alpha: 0.25),
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      onSelected: (_) => _toggleTopic(topic),
+                    return Wrap(
+                      spacing: spacing,
+                      runSpacing: spacing,
+                      children: group.topics.map((topic) {
+                        final isSelected = _selectedTopics.contains(topic);
+                        final topicColor = AppTheme.getTopicColor(topic);
+
+                        return SizedBox(
+                          width: itemWidth,
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () => _toggleTopic(topic),
+                              borderRadius: BorderRadius.circular(12),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 160),
+                                curve: Curves.easeOutCubic,
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                                constraints: const BoxConstraints(minHeight: 74),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? topicColor.withValues(alpha: 0.10)
+                                      : colorScheme.surface,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? topicColor
+                                        : colorScheme.outline.withValues(alpha: 0.22),
+                                    width: isSelected ? 1.6 : 1.0,
+                                  ),
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: isSelected ? topicColor : topicColor.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          topic.symbol,
+                                          maxLines: 1,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: isSelected ? Colors.white : topicColor,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Text(
+                                      topic.displayName,
+                                      textAlign: TextAlign.center,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                        color: isSelected
+                                            ? colorScheme.onSurface
+                                            : colorScheme.onSurfaceVariant,
+                                        height: 1.15,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     );
-                  }).toList(),
+                  },
                 ),
               ],
             ),
@@ -908,6 +980,67 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildShortcutTricksRow() {
+    // Gather lessons relevant to selected topics (up to 3)
+    final relevant = _selectedTopics
+        .expand((t) => LessonRegistry.forTopic(t))
+        .toSet()
+        .take(3)
+        .toList();
+
+    // Fallback: first 3 lessons if no relevant ones
+    final lessons = relevant.isEmpty ? LessonRegistry.all.take(3).toList() : relevant;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(width: 4, height: 16,
+                decoration: BoxDecoration(color: AppTheme.primaryColor, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(width: 8),
+            const Text('Shortcut Tricks',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => context.push('/learn'),
+              child: const Text('See all →',
+                  style: TextStyle(fontSize: 12, color: AppTheme.primaryColor, fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: lessons.map((meta) {
+            return GestureDetector(
+              onTap: () => context.push('/learn/${meta.id}'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryTint,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.25)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(meta.icon, size: 14, color: AppTheme.primaryColor),
+                    const SizedBox(width: 6),
+                    Text(meta.title,
+                        style: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.primaryColor)),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 }

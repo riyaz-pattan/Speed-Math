@@ -2,16 +2,23 @@ import '../../core/enums/enums.dart';
 import 'generators/addition_generator.dart';
 import 'package:speed_math_with_ai/domain/questions/generators/approximation_generator.dart';
 import 'generators/averages_generator.dart';
+import 'generators/base_percentages_generator.dart';
 import 'generators/cube_roots_generator.dart';
 import 'generators/cubes_generator.dart';
+import 'generators/derived_fractions_generator.dart';
 import 'generators/division_generator.dart';
 import 'generators/exponents_generator.dart';
+import 'generators/fraction_percentages_generator.dart';
+import 'generators/fraction_reciprocals_generator.dart';
 import 'generators/fractions_generator.dart';
 import 'generators/missing_number_generator.dart';
 import 'generators/multiplication_generator.dart';
 import 'package:speed_math_with_ai/domain/questions/generators/number_series_generator.dart';
+import 'generators/pattern_multiplication_generator.dart';
 import 'generators/percentages_generator.dart';
+import 'generators/power_of_five_generator.dart';
 import 'generators/simplification_generator.dart';
+import 'generators/split_percentages_generator.dart';
 import 'generators/square_roots_generator.dart';
 import 'generators/squares_generator.dart';
 import 'generators/subtraction_generator.dart';
@@ -40,6 +47,13 @@ class QuestionGeneratorRegistry {
     Topic.missingNumber: MissingNumberGenerator(),
     Topic.numberSeries: NumberSeriesGenerator(),
     Topic.approximation: ApproximationGenerator(),
+    Topic.fractionReciprocals: FractionReciprocalsGenerator(),
+    Topic.derivedFractions: DerivedFractionsGenerator(),
+    Topic.fractionPercentages: FractionPercentagesGenerator(),
+    Topic.basePercentages: BasePercentagesGenerator(),
+    Topic.splitPercentages: SplitPercentagesGenerator(),
+    Topic.powerOfFive: PowerOfFiveGenerator(),
+    Topic.patternMultiplication: PatternMultiplicationGenerator(),
   };
 
   /// Returns the generator for the given [topic].

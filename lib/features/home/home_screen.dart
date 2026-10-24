@@ -114,6 +114,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   // Home Performance Report Summary Card
                   const HomeReportCard(),
 
+                  const SizedBox(height: 16),
+
+                  // Learn Shortcuts card
+                  _LearnShortcutsCard(),
+
                   const SizedBox(height: 24),
 
                   // Practice Topics Section Title
@@ -369,13 +374,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   color: topicColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(14),
                 ),
+                padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Center(
-                  child: Text(
-                    session.topic.symbol,
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      color: topicColor,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      session.topic.symbol,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: topicColor,
+                      ),
                     ),
                   ),
                 ),
@@ -517,6 +526,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       (Topic.numberSeries, 'Find the missing sequence term'),
     ];
 
+    const mentalShortcutsTopics = [
+      (Topic.fractionReciprocals, 'Convert % to unit fractions quickly'),
+      (Topic.derivedFractions, 'Convert % to any fraction quickly'),
+      (Topic.fractionPercentages, 'Apply fraction % shortcuts'),
+      (Topic.basePercentages, 'Calculate 100%+ percentages fast'),
+      (Topic.splitPercentages, 'Decompose % into easy parts'),
+      (Topic.powerOfFive, 'Multiply & divide by 5, 25, 125'),
+      (Topic.patternMultiplication, 'Fast multiplication by 11, 99'),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -531,6 +550,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         _buildTopicGroupHeader('Applied Maths', appliedMathsTopics.length),
         const SizedBox(height: 10),
         ...appliedMathsTopics.map((item) => _buildTopicCard(item.$1, item.$2)),
+        const SizedBox(height: 16),
+        _buildTopicGroupHeader('Mental Shortcuts', mentalShortcutsTopics.length),
+        const SizedBox(height: 10),
+        ...mentalShortcutsTopics.map((item) => _buildTopicCard(item.$1, item.$2)),
       ],
     );
   }
@@ -587,13 +610,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 color: topicColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(14),
               ),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Center(
-                child: Text(
-                  topic.symbol,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    color: topicColor,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    topic.symbol,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: topicColor,
+                    ),
                   ),
                 ),
               ),
@@ -638,6 +665,73 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 color: topicColor,
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "Learn Shortcuts" card shown on the Home screen.
+class _LearnShortcutsCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push('/learn'),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primaryColor.withValues(alpha: 0.28),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.auto_stories_rounded, color: Colors.white, size: 22),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Learn Shortcuts',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    '8 animated lessons · mental math tricks',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 22),
           ],
         ),
       ),

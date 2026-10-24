@@ -23,6 +23,10 @@ class Question {
   /// The specific pattern / question type (e.g. 'add_e_one_carry').
   final String? pattern;
 
+  /// Optional string answer for fraction-type questions (e.g. '1/8').
+  /// When non-null, the answer is compared as a string rather than an integer.
+  final String? stringAnswer;
+
   const Question({
     required this.topic,
     required this.difficulty,
@@ -30,7 +34,15 @@ class Question {
     required this.operands,
     required this.correctAnswer,
     this.pattern,
+    this.stringAnswer,
   });
+
+  /// The canonical answer string: fraction string if available, else the integer.
+  String get targetAnswer => stringAnswer ?? correctAnswer.toString();
+
+  /// Whether this question expects a fraction string answer (e.g. '1/8').
+  bool get isFractionAnswer =>
+      stringAnswer != null && stringAnswer!.contains('/');
 
   /// The first operand (for database storage as operand_a).
   String get operandA => operands.isNotEmpty ? operands[0].toString() : '';
@@ -46,13 +58,15 @@ class Question {
       other is Question &&
           runtimeType == other.runtimeType &&
           displayText == other.displayText &&
-          correctAnswer == other.correctAnswer;
+          correctAnswer == other.correctAnswer &&
+          stringAnswer == other.stringAnswer;
 
   @override
-  int get hashCode => displayText.hashCode ^ correctAnswer.hashCode;
+  int get hashCode =>
+      displayText.hashCode ^ correctAnswer.hashCode ^ stringAnswer.hashCode;
 
   @override
   String toString() =>
-      'Question($displayText = $correctAnswer, topic: ${topic.name}, '
+      'Question($displayText = $targetAnswer, topic: ${topic.name}, '
       'difficulty: ${difficulty.name})';
 }

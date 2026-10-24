@@ -114,6 +114,41 @@ abstract final class AppConstants {
       Difficulty.medium: 11000, // near %, square or sqrt of near-perfect
       Difficulty.hard: 18000,   // 4-5 mixed terms up to 100000
     },
+    Topic.fractionReciprocals: {
+      Difficulty.easy: 5000,    // simple unit fractions (1/2, 1/4, 1/5)
+      Difficulty.medium: 8000,  // recurring decimals (1/3, 1/6, 1/8)
+      Difficulty.hard: 12000,   // harder primes (1/7, 1/13, 1/16)
+    },
+    Topic.derivedFractions: {
+      Difficulty.easy: 6000,    // simple multiples (3/4, 4/5, 7/10)
+      Difficulty.medium: 10000, // eighths and sixths (3/8, 5/6)
+      Difficulty.hard: 15000,   // sevenths and twelfths
+    },
+    Topic.fractionPercentages: {
+      Difficulty.easy: 5000,    // 25%, 50%, 75% of clean numbers
+      Difficulty.medium: 9000,  // 12.5%, 37.5%, 16.67%
+      Difficulty.hard: 15000,   // 14.28%, 8.33%, 6.25%
+    },
+    Topic.basePercentages: {
+      Difficulty.easy: 5000,    // 120%, 125%, 150% of round numbers
+      Difficulty.medium: 9000,  // 112.5%, 137.5%, 133.33%
+      Difficulty.hard: 15000,   // 114.28%, 141.67%, 187.5%
+    },
+    Topic.splitPercentages: {
+      Difficulty.easy: 5000,    // 15%, 35%, 55% of multiples of 20
+      Difficulty.medium: 9000,  // two-digit % of round hundreds
+      Difficulty.hard: 14000,   // non-round % of larger bases
+    },
+    Topic.powerOfFive: {
+      Difficulty.easy: 4000,    // × 5 or ÷ 5 of 2-digit
+      Difficulty.medium: 6000,  // × 25 or ÷ 25
+      Difficulty.hard: 10000,   // × 125 or ÷ 125
+    },
+    Topic.patternMultiplication: {
+      Difficulty.easy: 4000,    // 2-digit × 11 no carry, single × 99
+      Difficulty.medium: 7000,  // 2-digit × 11 with carry, × 99
+      Difficulty.hard: 12000,   // 3-digit × 11, × 101, × 99
+    },
   };
 
   /// Returns the target time in milliseconds for the given topic and difficulty.
@@ -132,12 +167,12 @@ abstract final class AppConstants {
   static const List<int> questionModeOptions = [10, 20, 30, 50];
 
   /// Default question count for Question Mode.
-  static const int defaultQuestionCount = 20;
+  static const int defaultQuestionCount = 10;
 
   // --- Performance & Thresholds ---
   /// Minimum accuracy (0.0 to 1.0) required for a session to qualify for best times (80%).
   static const double minAccuracyForBestTimes = 0.8;
 
   /// Current app version matching pubspec.yaml.
-  static const String appVersion = '1.9.0';
+  static const String appVersion = '1.10.0';
 }

@@ -16,9 +16,16 @@ enum Topic {
   simplification(symbol: '( )'),
   averages(symbol: 'x̄'),
   missingNumber(symbol: '?'),
-  numberSeries(symbol: '...'),
+  numberSeries(symbol: '2,4,6'),
   approximation(symbol: '≈'),
-  mixed(symbol: '±');
+  mixed(symbol: '±'),
+  fractionReciprocals(symbol: '1/x'),
+  derivedFractions(symbol: 'a/b'),
+  fractionPercentages(symbol: 'f%'),
+  basePercentages(symbol: '100+'),
+  splitPercentages(symbol: '%+'),
+  powerOfFive(symbol: '×5'),
+  patternMultiplication(symbol: '×11');
 
   const Topic({required this.symbol});
 
@@ -42,6 +49,13 @@ enum Topic {
     Topic.numberSeries => AppStrings.numberSeries,
     Topic.approximation => AppStrings.approximation,
     Topic.mixed => AppStrings.mixedTopics,
+    Topic.fractionReciprocals => AppStrings.fractionReciprocals,
+    Topic.derivedFractions => AppStrings.derivedFractions,
+    Topic.fractionPercentages => AppStrings.fractionPercentages,
+    Topic.basePercentages => AppStrings.basePercentages,
+    Topic.splitPercentages => AppStrings.splitPercentages,
+    Topic.powerOfFive => AppStrings.powerOfFive,
+    Topic.patternMultiplication => AppStrings.patternMultiplication,
   };
 
   /// The standard math drill topics (excludes mixed/smart topics).
@@ -53,12 +67,14 @@ enum Topic {
 enum TopicGroup {
   arithmetic,
   powersAndRoots,
-  appliedMaths;
+  appliedMaths,
+  mentalShortcuts;
 
   String get displayName => switch (this) {
     TopicGroup.arithmetic => 'Arithmetic',
     TopicGroup.powersAndRoots => 'Powers & Roots',
     TopicGroup.appliedMaths => 'Applied Maths',
+    TopicGroup.mentalShortcuts => 'Mental Shortcuts',
   };
 
   List<Topic> get topics => switch (this) {
@@ -83,6 +99,15 @@ enum TopicGroup {
       Topic.averages,
       Topic.missingNumber,
       Topic.numberSeries,
+    ],
+    TopicGroup.mentalShortcuts => const [
+      Topic.fractionReciprocals,
+      Topic.derivedFractions,
+      Topic.fractionPercentages,
+      Topic.basePercentages,
+      Topic.splitPercentages,
+      Topic.powerOfFive,
+      Topic.patternMultiplication,
     ],
   };
 }

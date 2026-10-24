@@ -36,6 +36,16 @@ class Attempt {
     this.pattern,
   });
 
+  /// Returns the target answer as a string, formatted as a fraction if applicable.
+  String get targetAnswerText {
+    if ((topic == Topic.fractionReciprocals || topic == Topic.derivedFractions) &&
+        operandA.isNotEmpty &&
+        operandB.isNotEmpty) {
+      return '$operandA/$operandB';
+    }
+    return correctAnswer.toString();
+  }
+
   /// Converts this [Attempt] instance into a database map.
   Map<String, dynamic> toMap() {
     final map = <String, dynamic>{

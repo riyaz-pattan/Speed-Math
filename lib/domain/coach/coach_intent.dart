@@ -20,7 +20,8 @@ enum CoachIntent {
   goodbye('goodbye'),
   smalltalk('smalltalk'),
   outOfScope('out_of_scope'),
-  unknown('unknown');
+  unknown('unknown'),
+  learn('learn');
 
   const CoachIntent(this.key);
   final String key;

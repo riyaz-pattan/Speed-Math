@@ -66,6 +66,13 @@ abstract final class AppStrings {
   static const String missingNumber = 'Missing Number';
   static const String numberSeries = 'Number Series';
   static const String approximation = 'Approximation';
+  static const String fractionReciprocals = 'Fraction Reciprocals';
+  static const String derivedFractions = 'Derived Fractions';
+  static const String fractionPercentages = 'Fraction Percentages';
+  static const String basePercentages = 'Base 100+ %';
+  static const String splitPercentages = 'Split Percentages';
+  static const String powerOfFive = 'Fast 5, 25, 125';
+  static const String patternMultiplication = '× 11, 99';
   static const String topic = 'Topic';
 
   // Practice Modes & Setup
@@ -203,4 +210,9 @@ abstract final class AppStrings {
       'skills for competitive exams. Practice daily and watch your speed grow!';
   static const String privacyNote =
       'This app works 100% offline. No data is collected or sent anywhere.';
+
+  // Fraction input hint
+  static const String fractionInputHint =
+      'Tip: type the numerator, tap /, then denominator (e.g. 1/8)';
+  static const String fractionInputGotIt = 'Got it';
 }

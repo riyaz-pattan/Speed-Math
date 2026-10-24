@@ -10,7 +10,7 @@ import '../repositories/skill_repository.dart';
 /// and connection lifecycle for Speed Math with AI.
 class DatabaseHelper {
   static const String databaseName = 'speed_math.db';
-  static const int databaseVersion = 7;
+  static const int databaseVersion = 8;
 
   static const String tableSessions = 'sessions';
   static const String tableAttempts = 'attempts';
@@ -18,6 +18,7 @@ class DatabaseHelper {
   static const String tableCoachMessages = 'coach_messages';
   static const String tableCoachReports = 'coach_reports';
   static const String tablePatternSkills = 'pattern_skills';
+  static const String tableLessonProgress = 'lesson_progress';
 
   // Singleton instance
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -121,6 +122,9 @@ class DatabaseHelper {
 
     // Create pattern_skills table
     await _createPatternSkillsTable(db);
+
+    // Create lesson_progress table
+    await _createLessonProgressTable(db);
   }
 
   /// Creates coach_messages and coach_reports tables.
@@ -216,6 +220,22 @@ class DatabaseHelper {
     );
   }
 
+  /// Creates the lesson_progress table for tracking per-lesson learning state.
+  static Future<void> _createLessonProgressTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS $tableLessonProgress (
+        lesson_id TEXT PRIMARY KEY,
+        status TEXT NOT NULL DEFAULT 'none',
+        stars INTEGER NOT NULL DEFAULT 0,
+        view_count INTEGER NOT NULL DEFAULT 0,
+        practice_correct INTEGER NOT NULL DEFAULT 0,
+        practice_total INTEGER NOT NULL DEFAULT 0,
+        last_completed_at TEXT,
+        xp_awarded INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+  }
+
   /// Handles schema migrations across versions.
   Future<void> onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2 && newVersion >= 2) {
@@ -248,6 +268,9 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE $tableAttempts ADD COLUMN pattern TEXT;');
       await _createPatternSkillsTable(db);
       await _backfillPatternsAndSkills(db);
+    }
+    if (oldVersion < 8) {
+      await _createLessonProgressTable(db);
     }
   }
 

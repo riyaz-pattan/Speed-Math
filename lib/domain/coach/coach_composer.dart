@@ -84,6 +84,8 @@ class CoachComposer {
         return _composeOutOfScope(slots);
       case CoachIntent.unknown:
         return _composeUnknown(slots);
+      case CoachIntent.learn:
+        return _composeLearn(slots);
       default:
         break;
     }
@@ -1001,5 +1003,10 @@ class CoachComposer {
   String _formatPercent(double ratio) {
     final pct = ratio <= 1.0 ? (ratio * 100.0) : ratio;
     return '${pct.toStringAsFixed(0)}%';
+  }
+
+  CoachReply _composeLearn(CoachSlots slots) {
+    final text = _getVariant('learn', {});
+    return CoachReply(text: text, intent: CoachIntent.learn, slots: slots);
   }
 }

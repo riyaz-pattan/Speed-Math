@@ -52,14 +52,31 @@ class MistakeEntry {
     this.dueCounter = 0,
   });
 
+  /// The canonical target answer as a display string (e.g. "1/8" or "42").
+  String get targetAnswerText {
+    if ((topic == Topic.fractionReciprocals ||
+            topic == Topic.derivedFractions) &&
+        operands.length >= 2) {
+      return '${operands[0]}/${operands[1]}';
+    }
+    return correctAnswer.toString();
+  }
+
   /// Converts this mistake entry to an executable [Question].
   Question toQuestion() {
+    final String? strAns = (topic == Topic.fractionReciprocals ||
+            topic == Topic.derivedFractions) &&
+        operands.length >= 2
+        ? '${operands[0]}/${operands[1]}'
+        : null;
+
     return Question(
       topic: topic,
       difficulty: difficulty,
       displayText: questionText,
       operands: operands,
       correctAnswer: correctAnswer,
+      stringAnswer: strAns,
     );
   }
 

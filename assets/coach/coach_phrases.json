@@ -51,7 +51,7 @@
     "You have answered {answered} of 10 questions needed to unlock your full report. Complete a few more drills to see your overall stats!",
     "I need just a little more data: you are at {answered} of 10 answered questions. Practice any topic to unlock your Speed Score and insights.",
     "Early training stage: {answered} of 10 questions answered so far. Finish another practice session and I will have your performance numbers ready.",
-    "You have completed {answered} of 10 questions. Keep going—after 10 answers, your full speed and accuracy breakdown will appear here."
+    "You have completed {answered} of 10 questions. Keep going\u2014after 10 answers, your full speed and accuracy breakdown will appear here."
   ],
   "report_summary": [
     "Here is your latest summary. Speed Score: {score} ({label}). This week you completed {sessions} sessions and answered {questions} questions with {accuracy} accuracy.",
@@ -69,7 +69,7 @@
     "No glaring weak spots found! Your accuracy and pace are solid across all your practiced topics.",
     "You do not have any critical weak areas right now. All your practiced levels show steady confidence.",
     "Your accuracy is consistently strong across your active topics. Keep varying your drills to stay sharp.",
-    "Great news—no weak areas flagged in your recent drills. Consider stepping up to Hard difficulty!"
+    "Great news\u2014no weak areas flagged in your recent drills. Consider stepping up to Hard difficulty!"
   ],
   "strong_areas_found": [
     "Your strongest calculation area is {top_strong}! You have achieved {accuracy} accuracy with a fast average of {time} per answer.",
@@ -79,7 +79,7 @@
   ],
   "no_strong_areas": [
     "You need at least 5 answers in a topic bucket to qualify as a confirmed strength. Keep practicing!",
-    "No confirmed strengths yet—once you log 5 consistent answers in a bucket, your top skills will appear here.",
+    "No confirmed strengths yet\u2014once you log 5 consistent answers in a bucket, your top skills will appear here.",
     "Still building your core skills. Complete a few more sessions in the same topic to establish your strongest areas.",
     "Keep practicing! After a couple more drills, I will highlight the calculations you solve fastest."
   ],
@@ -90,7 +90,7 @@
     "Put your energy into {bucket}. Improving from {time} per answer will make your calculations noticeably faster."
   ],
   "focus_neglected": [
-    "You have not practiced {topic} in {days} days. Regular recall prevents rustiness—let's do a quick refresher.",
+    "You have not practiced {topic} in {days} days. Regular recall prevents rustiness\u2014let's do a quick refresher.",
     "It has been {days} days since your last {topic} session. A fast 2-minute drill will bring your speed right back.",
     "Time for a {topic} tune-up: it has been {days} days since you last practiced it. Keep all 9 topics fresh in memory.",
     "{topic} has been quiet for {days} days. Running a quick session today will protect your hard-earned pace."
@@ -123,7 +123,7 @@
     "Your average time rose by {speed_diff} this week to {time}. Focus on smooth, steady answers rather than rushing.",
     "Pace slowed slightly by {speed_diff} this week ({time} average). Slowing down a bit to ensure clean answers is normal.",
     "You are averaging {time} per answer, about {speed_diff} slower than last week. Prioritize accuracy and speed will follow.",
-    "Your weekly average time is {time} (up {speed_diff}). Don't stress—steady daily practice will bring it back down."
+    "Your weekly average time is {time} (up {speed_diff}). Don't stress\u2014steady daily practice will bring it back down."
   ],
   "progress_steady": [
     "Your calculation speed is steady at {time} per correct answer, matching your pace from the previous week.",
@@ -176,7 +176,7 @@
   "tip_intro": [
     "Here is a mental math shortcut for {topic}: {title}.\n\n{text}\n\nExample: {example}",
     "Try this calculation technique for {topic}: {title}.\n\n{text}\n\nExample: {example}",
-    "Mental math tip ({topic}) — {title}:\n\n{text}\n\nExample: {example}",
+    "Mental math tip ({topic}) \u2014 {title}:\n\n{text}\n\nExample: {example}",
     "Shortcut for {topic}: {title}.\n\n{text}\n\nExample: {example}"
   ],
   "motivation_with_data": [
@@ -186,7 +186,7 @@
     "Don't be discouraged! You have put in {minutes} minutes of mental effort across {total} questions. Every session rewires your recall to be quicker."
   ],
   "motivation_no_data": [
-    "Every fast mental calculator started right where you are now. The secret isn't genius—it is just doing 10 questions a day. Try one easy drill to get rolling!",
+    "Every fast mental calculator started right where you are now. The secret isn't genius\u2014it is just doing 10 questions a day. Try one easy drill to get rolling!",
     "Speed comes from familiarity, not rushing. Start with Easy difficulty, take all the time you need, and watch how quickly your brain catches the patterns.",
     "It is completely normal to feel slow at the start. Mental math is a muscle: 5 minutes a day builds lasting confidence. Let's do a friendly 10-question set!",
     "Don't worry about the clock at first. Focus on getting clean answers, and speed will follow automatically within a week of daily practice."
@@ -195,12 +195,18 @@
     "Ready to practice {topic} on {difficulty} ({target})? Tap Start when you are set:",
     "I have set up {topic} on {difficulty} with {target}. Tap Start to begin:",
     "Here is your drill: {topic} ({difficulty}), {target}. Whenever you are ready, tap Start:",
-    "Configured: {topic} • {difficulty} • {target}. Tap below to launch your session:"
+    "Configured: {topic} \u2022 {difficulty} \u2022 {target}. Tap below to launch your session:"
   ],
   "activity": [
-    "Here is your practice activity:\n• Today: {questions_today} questions across {sessions_today} sessions ({minutes_today} min)\n• Last 7 days: {questions_week} questions in {sessions_week} sessions ({minutes_week} min)\n• All time: {questions_total} questions ({minutes_total} total practice minutes).",
-    "Your training volume so far:\n• Today: {questions_today} questions answered in {minutes_today} minutes ({sessions_today} sessions)\n• Past week: {questions_week} questions over {minutes_week} minutes\n• All time: {questions_total} questions across {sessions_total} sessions.",
-    "Practice breakdown:\n• Today: {sessions_today} sessions, {questions_today} questions ({minutes_today} min)\n• This week: {sessions_week} sessions, {questions_week} questions ({minutes_week} min)\n• Lifetime: {questions_total} questions answered over {minutes_total} minutes of dedicated training.",
-    "Activity summary:\n• Today: {questions_today} questions ({minutes_today} minutes of practice)\n• Last 7 days: {questions_week} questions across {sessions_week} sessions\n• Total: {questions_total} questions completed all time."
+    "Here is your practice activity:\n\u2022 Today: {questions_today} questions across {sessions_today} sessions ({minutes_today} min)\n\u2022 Last 7 days: {questions_week} questions in {sessions_week} sessions ({minutes_week} min)\n\u2022 All time: {questions_total} questions ({minutes_total} total practice minutes).",
+    "Your training volume so far:\n\u2022 Today: {questions_today} questions answered in {minutes_today} minutes ({sessions_today} sessions)\n\u2022 Past week: {questions_week} questions over {minutes_week} minutes\n\u2022 All time: {questions_total} questions across {sessions_total} sessions.",
+    "Practice breakdown:\n\u2022 Today: {sessions_today} sessions, {questions_today} questions ({minutes_today} min)\n\u2022 This week: {sessions_week} sessions, {questions_week} questions ({minutes_week} min)\n\u2022 Lifetime: {questions_total} questions answered over {minutes_total} minutes of dedicated training.",
+    "Activity summary:\n\u2022 Today: {questions_today} questions ({minutes_today} minutes of practice)\n\u2022 Last 7 days: {questions_week} questions across {sessions_week} sessions\n\u2022 Total: {questions_total} questions completed all time."
+  ],
+  "learn": [
+    "The Learn section has 8 animated shortcut lessons. Tap \"Learn Shortcuts\" on the home screen to start!",
+    "Want to master mental math tricks? Check out the Learn section \u2014 8 whiteboard lessons with animations.",
+    "Head to Learn Shortcuts on the home screen for step-by-step animated lessons on mental math tricks.",
+    "Great idea! The Learn section teaches tricks like multiplying by 11, 99, and near-100 numbers with animations."
   ]
 }

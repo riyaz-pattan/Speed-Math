@@ -116,34 +116,41 @@ class HomeReportCard extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: scoreColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.bolt_rounded, size: 16, color: scoreColor),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Speed Score: $scoreText',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: scoreColor,
+                  Flexible(
+                    child: Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: scoreColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.bolt_rounded, size: 16, color: scoreColor),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              'Speed Score: $scoreText',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: scoreColor,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
+                      const Text(
                         'Report',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12.5,
                           fontWeight: FontWeight.bold,
                           color: AppTheme.primaryColor,
@@ -186,21 +193,25 @@ class HomeReportCard extends ConsumerWidget {
                         : AppTheme.textSecondary,
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    "Today's plan: ${plan.completedCount} of ${plan.totalCount} done",
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: plan.isAllCompleted
-                          ? AppTheme.accentGreen
-                          : AppTheme.textSecondary,
+                  Expanded(
+                    child: Text(
+                      "Today's plan: ${plan.completedCount} of ${plan.totalCount} done",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: plan.isAllCompleted
+                            ? AppTheme.accentGreen
+                            : AppTheme.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 8),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(6),
                     child: SizedBox(
-                      width: 80,
+                      width: 60,
                       height: 6,
                       child: LinearProgressIndicator(
                         value: plan.totalCount > 0
@@ -225,11 +236,14 @@ class HomeReportCard extends ConsumerWidget {
                     child: FilledButton.tonalIcon(
                       onPressed: () => context.push('/coach'),
                       icon: const Icon(Icons.psychology_rounded, size: 16),
-                      label: const Text(
-                        'Ask Coach',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Ask Coach',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                       style: FilledButton.styleFrom(
@@ -248,11 +262,14 @@ class HomeReportCard extends ConsumerWidget {
                     child: OutlinedButton.icon(
                       onPressed: () => context.push('/report'),
                       icon: const Icon(Icons.insights_rounded, size: 16),
-                      label: const Text(
-                        'View Report',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'View Report',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                       style: OutlinedButton.styleFrom(

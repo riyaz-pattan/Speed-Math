@@ -760,14 +760,19 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                   color: AppTheme.textPrimary,
                 ),
               ),
-              const Spacer(),
-              Text(
-                isQuestionMode
-                    ? 'Total time (≥80% acc)'
-                    : 'Avg / correct (≥80% acc)',
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppTheme.textSecondary,
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  isQuestionMode
+                      ? 'Total time (≥80% acc)'
+                      : 'Avg / correct (≥80% acc)',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppTheme.textSecondary,
+                  ),
+                  textAlign: TextAlign.end,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],

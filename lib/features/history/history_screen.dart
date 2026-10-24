@@ -363,12 +363,16 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               color: sessionColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Text(
-              session.topic.symbol,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: sessionColor,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                session.topic.symbol,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: sessionColor,
+                ),
               ),
             ),
           ),

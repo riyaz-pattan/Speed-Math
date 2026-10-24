@@ -161,13 +161,14 @@ class SessionRepository {
   /// Returns total XP earned across all sessions of all kinds with a single SQL SUM.
   Future<int> getTotalXp() async {
     final db = await _dbHelper.database;
-    final results = await db.rawQuery(
+    final sessionResult = await db.rawQuery(
       'SELECT COALESCE(SUM(score), 0) AS total FROM ${DatabaseHelper.tableSessions}',
     );
-    final total = results.first['total'];
-    if (total is num) {
-      return total.round();
-    }
-    return 0;
+    final lessonResult = await db.rawQuery(
+      'SELECT COALESCE(SUM(xp_awarded), 0) AS total FROM ${DatabaseHelper.tableLessonProgress}',
+    );
+    final sessionXp = ((sessionResult.first['total'] as num?)?.toDouble() ?? 0.0).round();
+    final lessonXp = ((lessonResult.first['total'] as num?)?.toInt() ?? 0);
+    return sessionXp + lessonXp;
   }
 }

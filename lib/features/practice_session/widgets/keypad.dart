@@ -10,6 +10,7 @@ enum KeyAction {
   submit,
   empty,
   minus, // Available for future topic extensions
+  slash, // For fraction answer topics (e.g. 1/8)
 }
 
 /// Data definition for an individual keypad key.
@@ -36,12 +37,17 @@ class KeypadKeyData {
   const KeypadKeyData.minus()
       : action = KeyAction.minus,
         digit = null;
+
+  const KeypadKeyData.slash()
+      : action = KeyAction.slash,
+        digit = null;
 }
 
 /// Returns the 4x3 layout grid for the requested keypad style and submit mode.
 List<List<KeypadKeyData>> getKeypadLayout({
   required KeypadStyle style,
   required bool showSubmit,
+  bool showSlash = false,
 }) {
   final List<List<KeypadKeyData>> digitRows;
   switch (style) {
@@ -94,6 +100,69 @@ List<List<KeypadKeyData>> getKeypadLayout({
   return [...digitRows, bottomRow];
 }
 
+/// Returns a 4-row layout with a slash key for fraction-answer topics.
+List<List<KeypadKeyData>> getFractionKeypadLayout({
+  required KeypadStyle style,
+  required bool showSubmit,
+}) {
+  final List<List<KeypadKeyData>> digitRows;
+  switch (style) {
+    case KeypadStyle.phone:
+      digitRows = [
+        [
+          const KeypadKeyData.digit('1'),
+          const KeypadKeyData.digit('2'),
+          const KeypadKeyData.digit('3'),
+        ],
+        [
+          const KeypadKeyData.digit('4'),
+          const KeypadKeyData.digit('5'),
+          const KeypadKeyData.digit('6'),
+        ],
+        [
+          const KeypadKeyData.digit('7'),
+          const KeypadKeyData.digit('8'),
+          const KeypadKeyData.digit('9'),
+        ],
+      ];
+      break;
+    case KeypadStyle.calculator:
+      digitRows = [
+        [
+          const KeypadKeyData.digit('7'),
+          const KeypadKeyData.digit('8'),
+          const KeypadKeyData.digit('9'),
+        ],
+        [
+          const KeypadKeyData.digit('4'),
+          const KeypadKeyData.digit('5'),
+          const KeypadKeyData.digit('6'),
+        ],
+        [
+          const KeypadKeyData.digit('1'),
+          const KeypadKeyData.digit('2'),
+          const KeypadKeyData.digit('3'),
+        ],
+      ];
+      break;
+  }
+
+  final bottomRow = showSubmit
+      ? [
+          const KeypadKeyData.slash(),
+          const KeypadKeyData.digit('0'),
+          const KeypadKeyData.backspace(),
+          const KeypadKeyData.submit(),
+        ]
+      : [
+          const KeypadKeyData.slash(),
+          const KeypadKeyData.digit('0'),
+          const KeypadKeyData.backspace(),
+        ];
+
+  return [...digitRows, bottomRow];
+}
+
 /// Custom in-app number keypad for fast mental math input.
 ///
 /// Large, thumb-friendly keys that never trigger the device system keyboard.
@@ -102,8 +171,10 @@ class MathKeypad extends StatelessWidget {
   final VoidCallback onBackspacePressed;
   final VoidCallback onSubmitPressed;
   final VoidCallback? onMinusPressed;
+  final VoidCallback? onSlashPressed;
   final KeypadStyle style;
   final bool showSubmit;
+  final bool showSlash;
   final bool hapticsEnabled;
   final VibrationStrength vibrationStrength;
   final HapticService? hapticService;
@@ -115,8 +186,10 @@ class MathKeypad extends StatelessWidget {
     required this.onBackspacePressed,
     required this.onSubmitPressed,
     this.onMinusPressed,
+    this.onSlashPressed,
     this.style = KeypadStyle.phone,
     this.showSubmit = false,
+    this.showSlash = false,
     this.hapticsEnabled = true,
     this.vibrationStrength = VibrationStrength.medium,
     this.hapticService,
@@ -141,7 +214,9 @@ class MathKeypad extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final layout = getKeypadLayout(style: style, showSubmit: showSubmit);
+    final layout = showSlash
+        ? getFractionKeypadLayout(style: style, showSubmit: showSubmit)
+        : getKeypadLayout(style: style, showSubmit: showSubmit);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -218,6 +293,20 @@ class MathKeypad extends StatelessWidget {
           backgroundColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
           foregroundColor: colorScheme.onSurfaceVariant,
           child: const Text('−', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+        );
+
+      case KeyAction.slash:
+        return _KeyButton(
+          onTap: () => _tap(() => onSlashPressed?.call()),
+          backgroundColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          foregroundColor: colorScheme.primary,
+          child: const Text(
+            '/',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         );
 
       case KeyAction.empty:

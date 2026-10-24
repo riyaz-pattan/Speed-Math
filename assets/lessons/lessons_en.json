@@ -1,0 +1,43 @@
+{
+  "_comment": "Lesson metadata strings for Phase 8A. English locale.",
+  "add_in_parts": {
+    "title": "Add in Parts",
+    "why_it_works": "Breaking a number into tens and ones lets you do two simple additions instead of one hard one.",
+    "common_mistake": "Forgetting to add the ones part after adding the tens."
+  },
+  "multiply_by_5_25": {
+    "title": "Multiply by 5 & 25",
+    "why_it_works": "5 = 10÷2 and 25 = 100÷4. Dividing first then multiplying by a round number is faster.",
+    "common_mistake": "Forgetting to multiply by 10 (or 100) after dividing."
+  },
+  "multiply_by_11": {
+    "title": "Multiply by 11",
+    "why_it_works": "11 × n = 10n + n. The middle digit is the sum of the two outer digits.",
+    "common_mistake": "Forgetting to carry when the digit sum is 10 or more."
+  },
+  "multiply_by_99": {
+    "title": "Multiply by 99",
+    "why_it_works": "n × 99 = n × 100 − n. Multiplying by 100 is instant; subtracting n is easy.",
+    "common_mistake": "Subtracting the wrong number — subtract n, not 1."
+  },
+  "near_100_mult": {
+    "title": "Near-100 Multiplication",
+    "why_it_works": "Both numbers are near 100, so their gaps are small and easy to multiply.",
+    "common_mistake": "Forgetting to zero-pad the right part when the gap product is less than 10."
+  },
+  "squares_ending_5": {
+    "title": "Squares Ending in 5",
+    "why_it_works": "Any number ending in 5 squares to 100×k(k+1)+25 — always ending in 25!",
+    "common_mistake": "Using the wrong leading digit — use the part before the 5."
+  },
+  "split_percentages": {
+    "title": "Split Percentages",
+    "why_it_works": "Any percentage can be split into 10%, 5%, and 1% chunks — all easy to compute.",
+    "common_mistake": "Adding parts incorrectly, or miscounting how many 10% chunks fit."
+  },
+  "fraction_pct_friends": {
+    "title": "Fraction–% Friends",
+    "why_it_works": "Knowing key fraction ↔ % pairs by heart cuts computation time to zero.",
+    "common_mistake": "Confusing 1/6 (≈16.7%) with 1/8 (12.5%)."
+  }
+}

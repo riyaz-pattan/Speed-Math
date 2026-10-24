@@ -330,6 +330,20 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  ListTile(
+                    leading: const Icon(Icons.gavel_rounded, size: 20, color: AppTheme.textSecondary),
+                    title: const Text(
+                      'Open source licences',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                    ),
+                    trailing: const Icon(Icons.chevron_right_rounded, size: 18, color: AppTheme.textSecondary),
+                    onTap: () => showLicensePage(
+                      context: context,
+                      applicationName: AppStrings.appName,
+                      applicationVersion: 'v${AppConstants.appVersion}',
+                    ),
+                  ),
                 ]),
                 const SizedBox(height: 24),
               ],
@@ -390,24 +404,39 @@ class SettingsScreen extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            GestureDetector(
-              onTap: () async {
-                await settings.setKeypadStyle(KeypadStyle.phone);
-                ref.invalidate(settingsRepositoryProvider);
-              },
-              child: KeypadPreviewWidget(
-                style: KeypadStyle.phone,
-                isSelected: settings.keypadStyle == KeypadStyle.phone,
+            Expanded(
+              child: Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: GestureDetector(
+                    onTap: () async {
+                      await settings.setKeypadStyle(KeypadStyle.phone);
+                      ref.invalidate(settingsRepositoryProvider);
+                    },
+                    child: KeypadPreviewWidget(
+                      style: KeypadStyle.phone,
+                      isSelected: settings.keypadStyle == KeypadStyle.phone,
+                    ),
+                  ),
+                ),
               ),
             ),
-            GestureDetector(
-              onTap: () async {
-                await settings.setKeypadStyle(KeypadStyle.calculator);
-                ref.invalidate(settingsRepositoryProvider);
-              },
-              child: KeypadPreviewWidget(
-                style: KeypadStyle.calculator,
-                isSelected: settings.keypadStyle == KeypadStyle.calculator,
+            const SizedBox(width: 8),
+            Expanded(
+              child: Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: GestureDetector(
+                    onTap: () async {
+                      await settings.setKeypadStyle(KeypadStyle.calculator);
+                      ref.invalidate(settingsRepositoryProvider);
+                    },
+                    child: KeypadPreviewWidget(
+                      style: KeypadStyle.calculator,
+                      isSelected: settings.keypadStyle == KeypadStyle.calculator,
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
@@ -462,14 +491,18 @@ class _InlineSoundVolumeSliderState extends State<_InlineSoundVolumeSlider> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                widget.label,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textSecondary,
+              Expanded(
+                child: Text(
+                  widget.label,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textSecondary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
                 '$percent%',
                 style: const TextStyle(

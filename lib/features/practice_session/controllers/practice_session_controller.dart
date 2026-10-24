@@ -349,20 +349,37 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
 
     // AUTO-SUBMIT check
     if (state.config.autoSubmit) {
-      final parsed = int.tryParse(newInput);
-      if (parsed != null) {
-        final targetLength =
-            state.currentQuestion.correctAnswer.abs().toString().length;
-        final digitsOnly = newInput.replaceAll('-', '');
+      if (state.currentQuestion.isFractionAnswer) {
+        final target = state.currentQuestion.targetAnswer;
+        if (newInput == target) {
+          _recordCorrectAndAdvance(userAnswer: 0);
+        } else if (newInput.contains('/') && newInput.length >= target.length) {
+          _markWrongTry(userAnswer: 0);
+        }
+      } else {
+        final parsed = int.tryParse(newInput);
+        if (parsed != null) {
+          final targetLength =
+              state.currentQuestion.correctAnswer.abs().toString().length;
+          final digitsOnly = newInput.replaceAll('-', '');
 
-        if (parsed == state.currentQuestion.correctAnswer) {
-          _recordCorrectAndAdvance(userAnswer: parsed);
-        } else if (digitsOnly.length >= targetLength) {
-          // Wrong answer reached target length: mark wrong internally, do NOT advance, keep input!
-          _markWrongTry(userAnswer: parsed);
+          if (parsed == state.currentQuestion.correctAnswer) {
+            _recordCorrectAndAdvance(userAnswer: parsed);
+          } else if (digitsOnly.length >= targetLength) {
+            // Wrong answer reached target length: mark wrong internally, do NOT advance, keep input!
+            _markWrongTry(userAnswer: parsed);
+          }
         }
       }
     }
+  }
+
+  /// Inserts the '/' separator for fraction answers.
+  void inputSlash() {
+    if (state.status != PracticeSessionStatus.running || _isFinishing || _isFinished) return;
+    if (!state.currentQuestion.isFractionAnswer) return;
+    if (state.currentInput.isEmpty || state.currentInput.contains('/')) return;
+    state = state.copyWith(currentInput: '${state.currentInput}/');
   }
 
   /// Toggles or sets negative sign if applicable.
@@ -396,6 +413,17 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
   void submit() {
     if (state.status != PracticeSessionStatus.running || _isFinishing || _isFinished) return;
     if (state.currentInput.isEmpty || state.currentInput == '-') return;
+
+    if (state.currentQuestion.isFractionAnswer) {
+      final input = state.currentInput.trim();
+      if (!input.contains('/')) return; // Incomplete fraction
+      if (input == state.currentQuestion.targetAnswer) {
+        _recordCorrectAndAdvance(userAnswer: 0);
+      } else {
+        _markWrongTry(userAnswer: 0);
+      }
+      return;
+    }
 
     final parsed = int.tryParse(state.currentInput);
     if (parsed == null) return;
@@ -545,9 +573,28 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
       mistakeId: state.currentMistakeId,
     );
 
-    // Update skill rating if eligible
+    // In mistake replay or practice, immediately clear the mistake entry from database
     final isMistakesSession = state.config.mode == PracticeMode.mistakes ||
         state.config.kind == SessionKind.mistakes;
+    if (state.currentQuestionIsReplay && state.currentMistakeId != null) {
+      final targetTimeMs = AppConstants.getTargetTimeMs(
+        state.currentQuestion.topic,
+        state.currentQuestion.difficulty,
+      );
+      _mistakeRepository?.handleReplayResult(
+        mistakeId: state.currentMistakeId!,
+        isCorrect: true,
+        isSkipped: false,
+        timeMs: timeMs,
+        targetTimeMs: targetTimeMs,
+      );
+    } else if (isMistakesSession || isCorrect) {
+      _mistakeRepository?.clearMistakeByQuestionText(
+        state.currentQuestion.displayText,
+      );
+    }
+
+    // Update skill rating if eligible
     final shouldUpdateSkill = (!isMistakesSession || state.config.similarMistakes) &&
         !state.currentQuestionIsReplay &&
         state.currentQuestion.topic != Topic.mixed;
@@ -892,10 +939,14 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
           attempt.question.difficulty,
         );
 
+        final isMistakeSession = state.config.mode == PracticeMode.mistakes ||
+            state.config.kind == SessionKind.mistakes;
+        final isMistakeSuccess = attempt.isCorrect || (!attempt.isSkipped && isMistakeSession);
+
         if (attempt.isReplayedMistake && attempt.mistakeId != null) {
           final cleared = await _mistakeRepository.handleReplayResult(
             mistakeId: attempt.mistakeId!,
-            isCorrect: attempt.isCorrect,
+            isCorrect: isMistakeSuccess,
             isSkipped: attempt.isSkipped,
             timeMs: attempt.timeMs,
             targetTimeMs: targetTimeMs,
@@ -903,20 +954,23 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
           if (cleared) {
             clearedMistakesCount++;
           }
+        } else if (isMistakeSuccess) {
+          final cleared = await _mistakeRepository.clearMistakeByQuestionText(
+            attempt.question.displayText,
+          );
+          if (cleared) {
+            clearedMistakesCount++;
+          }
         } else {
-          final isSlow =
-              attempt.isCorrect && (attempt.timeMs > 2 * targetTimeMs);
-          if (!attempt.isCorrect || attempt.isSkipped || isSlow) {
-            final added = await _mistakeRepository.recordAttempt(
-              question: attempt.question,
-              isCorrect: attempt.isCorrect,
-              isSkipped: attempt.isSkipped,
-              timeMs: attempt.timeMs,
-              targetTimeMs: targetTimeMs,
-            );
-            if (added) {
-              newMistakesSavedCount++;
-            }
+          final added = await _mistakeRepository.recordAttempt(
+            question: attempt.question,
+            isCorrect: attempt.isCorrect,
+            isSkipped: attempt.isSkipped,
+            timeMs: attempt.timeMs,
+            targetTimeMs: targetTimeMs,
+          );
+          if (added) {
+            newMistakesSavedCount++;
           }
         }
       }

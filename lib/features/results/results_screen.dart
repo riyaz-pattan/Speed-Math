@@ -16,6 +16,7 @@ import '../../data/repositories/settings_repository.dart';
 import '../../domain/questions/session_random.dart';
 import '../../domain/scoring/session_summary.dart';
 import '../../domain/scoring/xp_calculator.dart';
+import '../learn/engine/lesson_registry.dart';
 import '../practice_session/models/practice_models.dart';
 import 'widgets/confetti_burst.dart';
 
@@ -808,7 +809,11 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
                           Text(
                             isSkipped
                                 ? 'Skipped'
-                                : 'You: ${attempt.userAnswer ?? "—"}',
+                                : (attempt.question.isFractionAnswer
+                                    ? (attempt.isCorrect
+                                        ? 'You: ${attempt.question.targetAnswer}'
+                                        : 'You: Incorrect')
+                                    : 'You: ${attempt.userAnswer ?? "—"}'),
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -817,7 +822,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            'Answer: ${attempt.question.correctAnswer}',
+                            'Answer: ${attempt.question.targetAnswer}',
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
@@ -829,13 +834,39 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
                     ],
                   ),
                 ),
-                Text(
-                  _formatAvgTime(attempt.timeMs.toDouble()),
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _formatAvgTime(attempt.timeMs.toDouble()),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    // Learn this trick button
+                    Builder(builder: (ctx) {
+                      final lessons = LessonRegistry.forTopic(attempt.question.topic);
+                      if (lessons.isEmpty) return const SizedBox.shrink();
+                      final lesson = lessons.first;
+                      return GestureDetector(
+                        onTap: () => ctx.push('/learn/${lesson.id}'),
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(
+                            'Learn trick →',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.primaryColor,
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
                 ),
               ],
             ),
@@ -1049,9 +1080,12 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () => context.go('/practice'),
                   icon: const Icon(Icons.tune_rounded, size: 18),
-                  label: const Text(
-                    AppStrings.changeSetup,
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  label: const FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      AppStrings.changeSetup,
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
                   ),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -1066,9 +1100,12 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () => context.go('/home'),
                   icon: const Icon(Icons.home_rounded, size: 18),
-                  label: const Text(
-                    AppStrings.home,
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  label: const FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      AppStrings.home,
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
                   ),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),

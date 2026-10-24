@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
-import '../../core/constants/app_constants.dart';
 import '../../core/enums/enums.dart';
 import '../../domain/adaptive/adaptive_constants.dart';
 import '../../domain/adaptive/mistake_entry.dart';
@@ -142,20 +141,17 @@ class MistakeRepository {
     required int timeMs,
     int? targetTimeMs,
   }) async {
-    final targetTime = targetTimeMs ??
-        AppConstants.getTargetTimeMs(question.topic, question.difficulty);
-    final isSlow = isCorrect && (timeMs > 2 * targetTime);
-
-    // If answer was correct and within 2x target time, not a mistake
-    if (isCorrect && !isSlow) return false;
+    // If answer was correct, clear it from mistake bank if present and do not record
+    if (isCorrect) {
+      await clearMistakeByQuestionText(question.displayText);
+      return false;
+    }
 
     final MistakeSource source;
     if (isSkipped) {
       source = MistakeSource.skipped;
-    } else if (!isCorrect) {
-      source = MistakeSource.wrong;
     } else {
-      source = MistakeSource.slow;
+      source = MistakeSource.wrong;
     }
 
     final db = await _dbHelper.database;
@@ -231,37 +227,19 @@ class MistakeRepository {
 
     if (rows.isEmpty) return false;
     final entry = MistakeEntry.fromMap(rows.first);
-    final isSlow = isCorrect && (timeMs > 2 * targetTimeMs);
     final currentCounter = getSmartQuestionCounter();
 
     bool cleared = false;
-    if (isCorrect && !isSlow) {
-      final newStreak = entry.correctStreak + 1;
-      if (newStreak >= AdaptiveConstants.maxConsecutiveCorrect) {
-        // Cleared from bank!
-        await db.delete(
-          DatabaseHelper.tableMistakeBank,
-          where: 'id = ?',
-          whereArgs: [mistakeId],
-        );
-        cleared = true;
-      } else {
-        final newStage = (entry.stage + 1).clamp(0, 2);
-        final nextDue = currentCounter + AdaptiveConstants.stageGaps[newStage];
-        await db.update(
-          DatabaseHelper.tableMistakeBank,
-          {
-            'stage': newStage,
-            'correct_streak': newStreak,
-            'due_counter': nextDue,
-          },
-          where: 'id = ?',
-          whereArgs: [mistakeId],
-        );
-        cleared = false;
-      }
+    if (isCorrect) {
+      // Correct answer immediately clears the mistake from the mistake revision list!
+      await db.delete(
+        DatabaseHelper.tableMistakeBank,
+        where: 'id = ?',
+        whereArgs: [mistakeId],
+      );
+      cleared = true;
     } else {
-      // Wrong, skipped, or slow: reset stage and streak, increment wrong_count
+      // Wrong or skipped: reset stage and streak, increment wrong_count
       final nextDue = currentCounter + AdaptiveConstants.stageGaps[0];
       await db.update(
         DatabaseHelper.tableMistakeBank,
@@ -279,6 +257,21 @@ class MistakeRepository {
 
     _ref?.read(dataRevisionProvider.notifier).state++;
     return cleared;
+  }
+
+  /// Clears any mistake matching [questionText] when answered correctly.
+  Future<bool> clearMistakeByQuestionText(String questionText) async {
+    final db = await _dbHelper.database;
+    final deleted = await db.delete(
+      DatabaseHelper.tableMistakeBank,
+      where: 'question_text = ?',
+      whereArgs: [questionText],
+    );
+    if (deleted > 0) {
+      _ref?.read(dataRevisionProvider.notifier).state++;
+      return true;
+    }
+    return false;
   }
 
   /// Enforces maximum capacity of [AdaptiveConstants.mistakeBankCapacity].

@@ -49,6 +49,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
   int _lastAttemptCount = 0;
   _SpeedTagInfo? _speedTag;
   Timer? _speedTagTimer;
+  bool _fractionHintDismissed = false;
 
   int _computeStreak(List<SessionAttempt> attempts, bool currentHasWrongTry) {
     if (currentHasWrongTry) return 0;
@@ -357,6 +358,82 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                     child: _buildQuestionArea(state, controller, colorScheme, topicColor),
                   ),
 
+                  // Dedicated fraction '/' button above the keypad for easy right-thumb reach
+                  if (state.currentQuestion.isFractionAnswer) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Fraction: numerator / denominator',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+                            ),
+                          ),
+                          Material(
+                            color: state.currentInput.contains('/')
+                                ? topicColor.withValues(alpha: 0.4)
+                                : topicColor,
+                            borderRadius: BorderRadius.circular(14),
+                            elevation: state.currentInput.contains('/') ? 0 : 2,
+                            shadowColor: topicColor.withValues(alpha: 0.35),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(14),
+                              onTap: state.currentInput.contains('/')
+                                  ? null
+                                  : () {
+                                      controller.inputSlash();
+                                      if (settings.hapticsEnabled) {
+                                        ref.read(hapticServiceProvider).keyPress(
+                                          strength: settings.vibrationStrength,
+                                        );
+                                      }
+                                      if (!settings.hasSeenFractionInputHint) {
+                                        settings.setFractionInputHintSeen();
+                                        if (mounted) {
+                                          setState(() => _fractionHintDismissed = true);
+                                        }
+                                      }
+                                    },
+                              child: Container(
+                                height: 42,
+                                padding: const EdgeInsets.symmetric(horizontal: 18),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text(
+                                      '/',
+                                      style: TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Slash ( / )',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white.withValues(
+                                          alpha: state.currentInput.contains('/') ? 0.7 : 1.0,
+                                        ),
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
                   // Thumb-friendly keypad at bottom
                   MathKeypad(
                     onDigitPressed: controller.inputDigit,
@@ -365,6 +442,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                     onMinusPressed: controller.inputMinus,
                     style: settings.keypadStyle,
                     showSubmit: !settings.autoSubmit,
+                    showSlash: false,
                     hapticsEnabled: settings.hapticsEnabled,
                     vibrationStrength: settings.vibrationStrength,
                     hapticService: ref.read(hapticServiceProvider),
@@ -478,67 +556,71 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
 
     return Padding(
       padding: const EdgeInsets.only(top: 4, bottom: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-            decoration: BoxDecoration(
-              color: topicColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: topicColor.withValues(alpha: 0.28),
-                width: 1,
-              ),
-            ),
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: topicColor,
-                letterSpacing: 0.3,
-              ),
-            ),
-          ),
-          if (gameEffectsEnabled && streak > 1) ...[
-            const SizedBox(width: 8),
-            AnimatedScale(
-              scale: 1.0,
-              duration: const Duration(milliseconds: 200),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.deepOrange.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.deepOrange.withValues(alpha: 0.4),
-                    width: 1,
-                  ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+              decoration: BoxDecoration(
+                color: topicColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: topicColor.withValues(alpha: 0.28),
+                  width: 1,
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.local_fire_department_rounded,
-                      size: 14,
-                      color: Colors.deepOrangeAccent,
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: topicColor,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ),
+            if (gameEffectsEnabled && streak > 1) ...[
+              const SizedBox(width: 8),
+              AnimatedScale(
+                scale: 1.0,
+                duration: const Duration(milliseconds: 200),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.deepOrange.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.deepOrange.withValues(alpha: 0.4),
+                      width: 1,
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '$streak in a row',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.local_fire_department_rounded,
+                        size: 14,
                         color: Colors.deepOrangeAccent,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 4),
+                      Text(
+                        '$streak in a row',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.deepOrangeAccent,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -554,32 +636,37 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     final correctCount = state.attempts.where((a) => a.isCorrect).length;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
+            visualDensity: VisualDensity.compact,
             icon: const Icon(Icons.close_rounded),
             tooltip: AppStrings.quit,
             onPressed: _handleQuit,
           ),
 
           // Central badge: countdown or 7 / 20
-          if (isTimerMode)
-            _buildTimerBadge(state.timeRemainingMs, colorScheme)
-          else
-            _buildProgressBadge(
-              current: state.attempts.length + 1,
-              total: state.config.modeValue,
-              colorScheme: colorScheme,
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: isTimerMode
+                  ? _buildTimerBadge(state.timeRemainingMs, colorScheme)
+                  : _buildProgressBadge(
+                      current: state.attempts.length + 1,
+                      total: state.config.modeValue,
+                      colorScheme: colorScheme,
+                    ),
             ),
+          ),
 
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               // Live score points badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.amber.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(14),
@@ -595,7 +682,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                       size: 14,
                       color: Colors.amber,
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 3),
                     TweenAnimationBuilder<double>(
                       tween: Tween(begin: 0, end: liveScore.toDouble()),
                       duration: const Duration(milliseconds: 250),
@@ -611,10 +698,10 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                   ],
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 4),
               // Live correct answers counter badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
                 decoration: BoxDecoration(
                   color: AppTheme.additionColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(14),
@@ -630,7 +717,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                       size: 14,
                       color: AppTheme.additionColor,
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 3),
                     Text(
                       '$correctCount',
                       style: const TextStyle(
@@ -644,6 +731,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
               ),
               const SizedBox(width: 2),
               IconButton(
+                visualDensity: VisualDensity.compact,
                 icon: Icon(
                   state.status == PracticeSessionStatus.paused
                       ? Icons.play_arrow_rounded
@@ -736,6 +824,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     Color topicColor,
   ) {
     final currentTopic = state.currentQuestion.topic;
+    final settings = ref.watch(settingsRepositoryProvider);
     final activeColor = state.config.mode == PracticeMode.smart ||
             state.config.mode == PracticeMode.mistakes
         ? AppTheme.getTopicColor(currentTopic)
@@ -777,15 +866,15 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                         decoration: BoxDecoration(
                           color: activeColor.withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           currentTopic.symbol,
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: activeColor,
                           ),
@@ -852,13 +941,15 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                     ),
                     child: Center(
                       child: state.currentInput.isEmpty
-                          ? const Text(
-                              'Type your answer',
+                          ? Text(
+                              state.currentQuestion.isFractionAnswer
+                                  ? '? / ?'
+                                  : 'Type your answer',
                               style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF94A3B8),
-                                letterSpacing: 0.2,
+                                fontSize: state.currentQuestion.isFractionAnswer ? 22 : 16,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF94A3B8),
+                                letterSpacing: state.currentQuestion.isFractionAnswer ? 2.0 : 0.2,
                               ),
                             )
                           : FittedBox(
@@ -926,6 +1017,68 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                 ],
               ),
             ),
+            if (state.currentQuestion.isFractionAnswer &&
+                !settings.hasSeenFractionInputHint &&
+                !_fractionHintDismissed) ...[
+              const SizedBox(height: 10),
+              Container(
+                constraints: const BoxConstraints(maxWidth: 380),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: activeColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: activeColor.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.lightbulb_outline_rounded,
+                      size: 18,
+                      color: activeColor,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Tip: Type numerator, tap the \'/\' button above keypad, then denominator (e.g. 1/8)',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: activeColor,
+                          height: 1.25,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () {
+                        settings.setFractionInputHintSeen();
+                        if (mounted) {
+                          setState(() => _fractionHintDismissed = true);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: activeColor,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'Got it',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
 
             // Clear, small Skip button near the question

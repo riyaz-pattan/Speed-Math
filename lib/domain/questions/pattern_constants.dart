@@ -196,6 +196,41 @@ class PatternConstants {
   static const String avgHWeighted = 'avg_h_weighted';
   static const String avgHMemberReplaced = 'avg_h_member_replaced';
 
+  // --- FRACTION RECIPROCALS PATTERNS ---
+  static const String frRecEUnit = 'fr_rec_e_unit';
+  static const String frRecMUnit = 'fr_rec_m_unit';
+  static const String frRecHUnit = 'fr_rec_h_unit';
+
+  // --- DERIVED FRACTIONS PATTERNS ---
+  static const String frDerEMultiple = 'fr_der_e_multiple';
+  static const String frDerMMultiple = 'fr_der_m_multiple';
+  static const String frDerHMultiple = 'fr_der_h_multiple';
+
+  // --- FRACTION PERCENTAGES PATTERNS ---
+  static const String frPctESimple = 'fr_pct_e_simple';
+  static const String frPctMModerate = 'fr_pct_m_moderate';
+  static const String frPctHComplex = 'fr_pct_h_complex';
+
+  // --- BASE PERCENTAGES PATTERNS ---
+  static const String basePctESimple = 'base_pct_e_simple';
+  static const String basePctMModerate = 'base_pct_m_moderate';
+  static const String basePctHComplex = 'base_pct_h_complex';
+
+  // --- SPLIT PERCENTAGES PATTERNS ---
+  static const String splitPctEFive = 'split_pct_e_five';
+  static const String splitPctMDouble = 'split_pct_m_double';
+  static const String splitPctHNonRound = 'split_pct_h_nonround';
+
+  // --- POWER OF FIVE PATTERNS ---
+  static const String pow5ETimesFive = 'pow5_e_times5';
+  static const String pow5MTwentyFive = 'pow5_m_times25';
+  static const String pow5HOneTwentyFive = 'pow5_h_times125';
+
+  // --- PATTERN MULTIPLICATION PATTERNS ---
+  static const String patMulEEleven = 'pat_mul_e_eleven';
+  static const String patMulMEleven = 'pat_mul_m_eleven';
+  static const String patMulHNinetyNine = 'pat_mul_h_ninetynine';
+
   /// Returns all available patterns for a specific [topic] and [difficulty].
   static List<String> patternsFor(Topic topic, Difficulty difficulty) {
     switch (topic) {
@@ -400,6 +435,55 @@ class PatternConstants {
         }
       case Topic.mixed:
         return [];
+      case Topic.fractionReciprocals:
+        switch (difficulty) {
+          case Difficulty.easy: return [frRecEUnit];
+          case Difficulty.medium: return [frRecMUnit];
+          case Difficulty.hard: return [frRecHUnit];
+          case Difficulty.mixed: return [];
+        }
+      case Topic.derivedFractions:
+        switch (difficulty) {
+          case Difficulty.easy: return [frDerEMultiple];
+          case Difficulty.medium: return [frDerMMultiple];
+          case Difficulty.hard: return [frDerHMultiple];
+          case Difficulty.mixed: return [];
+        }
+      case Topic.fractionPercentages:
+        switch (difficulty) {
+          case Difficulty.easy: return [frPctESimple];
+          case Difficulty.medium: return [frPctMModerate];
+          case Difficulty.hard: return [frPctHComplex];
+          case Difficulty.mixed: return [];
+        }
+      case Topic.basePercentages:
+        switch (difficulty) {
+          case Difficulty.easy: return [basePctESimple];
+          case Difficulty.medium: return [basePctMModerate];
+          case Difficulty.hard: return [basePctHComplex];
+          case Difficulty.mixed: return [];
+        }
+      case Topic.splitPercentages:
+        switch (difficulty) {
+          case Difficulty.easy: return [splitPctEFive];
+          case Difficulty.medium: return [splitPctMDouble];
+          case Difficulty.hard: return [splitPctHNonRound];
+          case Difficulty.mixed: return [];
+        }
+      case Topic.powerOfFive:
+        switch (difficulty) {
+          case Difficulty.easy: return [pow5ETimesFive];
+          case Difficulty.medium: return [pow5MTwentyFive];
+          case Difficulty.hard: return [pow5HOneTwentyFive];
+          case Difficulty.mixed: return [];
+        }
+      case Topic.patternMultiplication:
+        switch (difficulty) {
+          case Difficulty.easy: return [patMulEEleven];
+          case Difficulty.medium: return [patMulMEleven];
+          case Difficulty.hard: return [patMulHNinetyNine];
+          case Difficulty.mixed: return [];
+        }
     }
   }
 
@@ -891,6 +975,55 @@ class PatternConstants {
 
       case Topic.mixed:
         return 'default';
+      case Topic.fractionReciprocals:
+        switch (difficulty) {
+          case Difficulty.easy: return frRecEUnit;
+          case Difficulty.medium: return frRecMUnit;
+          case Difficulty.hard: return frRecHUnit;
+          case Difficulty.mixed: return frRecEUnit;
+        }
+      case Topic.derivedFractions:
+        switch (difficulty) {
+          case Difficulty.easy: return frDerEMultiple;
+          case Difficulty.medium: return frDerMMultiple;
+          case Difficulty.hard: return frDerHMultiple;
+          case Difficulty.mixed: return frDerEMultiple;
+        }
+      case Topic.fractionPercentages:
+        switch (difficulty) {
+          case Difficulty.easy: return frPctESimple;
+          case Difficulty.medium: return frPctMModerate;
+          case Difficulty.hard: return frPctHComplex;
+          case Difficulty.mixed: return frPctESimple;
+        }
+      case Topic.basePercentages:
+        switch (difficulty) {
+          case Difficulty.easy: return basePctESimple;
+          case Difficulty.medium: return basePctMModerate;
+          case Difficulty.hard: return basePctHComplex;
+          case Difficulty.mixed: return basePctESimple;
+        }
+      case Topic.splitPercentages:
+        switch (difficulty) {
+          case Difficulty.easy: return splitPctEFive;
+          case Difficulty.medium: return splitPctMDouble;
+          case Difficulty.hard: return splitPctHNonRound;
+          case Difficulty.mixed: return splitPctEFive;
+        }
+      case Topic.powerOfFive:
+        switch (difficulty) {
+          case Difficulty.easy: return pow5ETimesFive;
+          case Difficulty.medium: return pow5MTwentyFive;
+          case Difficulty.hard: return pow5HOneTwentyFive;
+          case Difficulty.mixed: return pow5ETimesFive;
+        }
+      case Topic.patternMultiplication:
+        switch (difficulty) {
+          case Difficulty.easy: return patMulEEleven;
+          case Difficulty.medium: return patMulMEleven;
+          case Difficulty.hard: return patMulHNinetyNine;
+          case Difficulty.mixed: return patMulEEleven;
+        }
     }
   }
 

@@ -117,6 +117,13 @@ class AppTheme {
   static const Color numberSeriesColor = Color(0xFF0284C7); // Teal-Blue
   static const Color approximationColor = Color(0xFFB45309); // Amber-Brown
   static const Color mixedColor = Color(0xFF8B5CF6); // Violet for Mixed practice
+  static const Color fractionReciprocalsColor = Color(0xFF7C3AED); // Deep Violet
+  static const Color derivedFractionsColor = Color(0xFFDB2777); // Deep Fuchsia
+  static const Color fractionPercentagesColor = Color(0xFF0891B2); // Cyan-600
+  static const Color basePercentagesColor = Color(0xFFD97706); // Amber-600
+  static const Color splitPercentagesColor = Color(0xFF059669); // Emerald-600
+  static const Color powerOfFiveColor = Color(0xFFEA580C); // Orange-600
+  static const Color patternMultiplicationColor = Color(0xFF2563EB); // Blue-600
 
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [primaryColor, violetAccent],
@@ -143,6 +150,13 @@ class AppTheme {
       Topic.numberSeries => numberSeriesColor,
       Topic.approximation => approximationColor,
       Topic.mixed => mixedColor,
+      Topic.fractionReciprocals => fractionReciprocalsColor,
+      Topic.derivedFractions => derivedFractionsColor,
+      Topic.fractionPercentages => fractionPercentagesColor,
+      Topic.basePercentages => basePercentagesColor,
+      Topic.splitPercentages => splitPercentagesColor,
+      Topic.powerOfFive => powerOfFiveColor,
+      Topic.patternMultiplication => patternMultiplicationColor,
     };
   }
 
@@ -174,6 +188,13 @@ class AppTheme {
       Topic.numberSeries => Icons.timeline_rounded,
       Topic.approximation => Icons.waves_rounded,
       Topic.mixed => Icons.auto_awesome_rounded,
+      Topic.fractionReciprocals => Icons.swap_horiz_rounded,
+      Topic.derivedFractions => Icons.call_split_rounded,
+      Topic.fractionPercentages => Icons.percent_rounded,
+      Topic.basePercentages => Icons.trending_up_rounded,
+      Topic.splitPercentages => Icons.tune_rounded,
+      Topic.powerOfFive => Icons.star_rounded,
+      Topic.patternMultiplication => Icons.grid_4x4_rounded,
     };
   }
 

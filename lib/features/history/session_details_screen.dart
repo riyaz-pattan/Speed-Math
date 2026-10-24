@@ -421,7 +421,9 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                   Padding(
                     padding: const EdgeInsets.only(top: 3),
                     child: Text(
-                      'Answered: ${attempt.userAnswer ?? "—"} (Correct: ${attempt.correctAnswer})',
+                      (attempt.topic == Topic.fractionReciprocals || attempt.topic == Topic.derivedFractions)
+                          ? 'Incorrect (Correct: ${attempt.targetAnswerText})'
+                          : 'Answered: ${attempt.userAnswer ?? "—"} (Correct: ${attempt.targetAnswerText})',
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppTheme.errorColor,
@@ -433,7 +435,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                   Padding(
                     padding: const EdgeInsets.only(top: 3),
                     child: Text(
-                      'Skipped (Correct: ${attempt.correctAnswer})',
+                      'Skipped (Correct: ${attempt.targetAnswerText})',
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppTheme.warningColor,
