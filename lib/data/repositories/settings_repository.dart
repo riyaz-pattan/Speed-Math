@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/constants/habit_constants.dart';
 import '../../core/enums/enums.dart';
 import '../db/database_helper.dart';
 import 'skill_repository.dart';
@@ -66,6 +67,11 @@ class SettingsRepository {
   static const _keyLastTimerDuration = 'practice_last_timer_duration';
   static const _keyLastQuestionCount = 'practice_last_question_count';
   static const _keyFractionInputHintSeen = 'settings_fraction_input_hint_seen';
+  static const _keyDailyGoalMinutes = 'daily_goal_minutes';
+  static const _keyRemindersEnabled = 'reminders_enabled';
+  static const _keyReminderTime = 'reminder_time';
+  static const _keyOnboardingDone = 'onboarding_done';
+  static const _keyLastCelebratedStreak = 'last_celebrated_streak';
 
   void _migrateSoundSettings() {
     if (_prefs.containsKey(_keySound)) {
@@ -344,6 +350,38 @@ class SettingsRepository {
       await setLastDifficulty(difficulty);
     }
   }
+
+  // --- Habit & Daily Goal Preferences ---
+
+  int get dailyGoalMinutes =>
+      _prefs.getInt(_keyDailyGoalMinutes) ?? HabitConstants.defaultDailyGoalMinutes;
+
+  Future<bool> setDailyGoalMinutes(int minutes) =>
+      _prefs.setInt(_keyDailyGoalMinutes, minutes);
+
+  bool get remindersEnabled =>
+      _prefs.getBool(_keyRemindersEnabled) ?? false;
+
+  Future<bool> setRemindersEnabled(bool enabled) =>
+      _prefs.setBool(_keyRemindersEnabled, enabled);
+
+  String get reminderTime =>
+      _prefs.getString(_keyReminderTime) ?? HabitConstants.defaultReminderTime;
+
+  Future<bool> setReminderTime(String time) =>
+      _prefs.setString(_keyReminderTime, time);
+
+  bool get isOnboardingDone =>
+      _prefs.getBool(_keyOnboardingDone) ?? false;
+
+  Future<bool> setOnboardingDone(bool done) =>
+      _prefs.setBool(_keyOnboardingDone, done);
+
+  int get lastCelebratedStreak =>
+      _prefs.getInt(_keyLastCelebratedStreak) ?? 0;
+
+  Future<bool> setLastCelebratedStreak(int streak) =>
+      _prefs.setInt(_keyLastCelebratedStreak, streak);
 
   /// Permanently deletes all sessions, attempts, skill ratings, mistake bank, and coach chat while preserving user preferences.
   Future<void> resetAllData({DatabaseHelper? dbHelper}) async {

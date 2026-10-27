@@ -61,7 +61,9 @@ class AppToast {
 
     // If an existing toast is active, smoothly animate it out or replace it
     if (_currentEntry != null) {
-      _currentEntry?.remove();
+      try {
+        _currentEntry?.remove();
+      } catch (_) {}
       _currentEntry = null;
       _currentState = null;
     }
@@ -82,7 +84,9 @@ class AppToast {
           duration: effectiveDuration,
           onDismissed: () {
             if (_currentEntry == entry) {
-              _currentEntry?.remove();
+              try {
+                _currentEntry?.remove();
+              } catch (_) {}
               _currentEntry = null;
               _currentState = null;
             }

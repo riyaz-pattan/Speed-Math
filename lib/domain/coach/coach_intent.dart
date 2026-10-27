@@ -21,7 +21,8 @@ enum CoachIntent {
   smalltalk('smalltalk'),
   outOfScope('out_of_scope'),
   unknown('unknown'),
-  learn('learn');
+  learn('learn'),
+  habits('habits');
 
   const CoachIntent(this.key);
   final String key;

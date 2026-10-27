@@ -1,14 +1,23 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../app/theme.dart';
+import '../../core/ads/ad_config.dart';
+import '../../core/ads/widgets/banner_ad_container.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/constants/habit_constants.dart';
 import '../../core/enums/enums.dart';
+import '../../core/services/app_info_service.dart';
 import '../../core/services/haptic_service.dart';
+import '../../core/services/notification_service.dart';
 import '../../core/services/sound_service.dart';
 import '../../core/strings/app_strings.dart';
 import '../../core/widgets/app_segmented_control.dart';
 import '../../core/widgets/app_toast.dart';
+import '../../core/widgets/notification_explanation_dialog.dart';
 import '../../core/widgets/screen_header.dart';
 import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
 import '../../data/repositories/settings_repository.dart';
@@ -271,6 +280,9 @@ class SettingsScreen extends ConsumerWidget {
                 ]),
                 const SizedBox(height: 24),
 
+                // Daily Goal & Reminders Section
+                _buildDailyGoalAndRemindersSection(context, ref, settings),
+
                 // Data Management Section
                 _buildSectionHeader('Data Management'),
                 const SizedBox(height: 8),
@@ -306,12 +318,12 @@ class SettingsScreen extends ConsumerWidget {
                       style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
                     ),
                     subtitle: const Text(
-                      'Works fully offline. Your data stays on your phone.',
+                      'Practice works offline. Your practice data stays on your phone. Ads, when you are online, are provided by Google AdMob.',
                       style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                     ),
                     trailing: GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onLongPress: () => context.push('/settings/data-check'),
+                      onLongPress: kDebugMode ? () => context.push('/settings/data-check') : null,
                       child: Container(
                         padding:
                             const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -319,36 +331,57 @@ class SettingsScreen extends ConsumerWidget {
                           color: AppTheme.surfaceSecondary,
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Text(
-                          'v${AppConstants.appVersion}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.textSecondary,
-                          ),
+                        child: FutureBuilder<String>(
+                          future: AppInfoService.getAppVersion(),
+                          builder: (context, snapshot) {
+                            final ver = snapshot.data ?? AppConstants.appVersion;
+                            return Text(
+                              'v$ver',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.textSecondary,
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),
                   ),
-                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  const Divider(height: 1, color: AppTheme.borderLight),
                   ListTile(
-                    leading: const Icon(Icons.gavel_rounded, size: 20, color: AppTheme.textSecondary),
+                    leading: const Icon(Icons.shield_outlined, color: AppTheme.primaryColor),
                     title: const Text(
-                      'Open source licences',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                      'Privacy policy',
+                      style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
                     ),
-                    trailing: const Icon(Icons.chevron_right_rounded, size: 18, color: AppTheme.textSecondary),
-                    onTap: () => showLicensePage(
-                      context: context,
-                      applicationName: AppStrings.appName,
-                      applicationVersion: 'v${AppConstants.appVersion}',
+                    subtitle: const Text(
+                      'How your calculation data and permissions are handled',
+                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                     ),
+                    trailing: const Icon(Icons.open_in_new_rounded, size: 18, color: AppTheme.textSecondary),
+                    onTap: () async {
+                      HapticFeedback.selectionClick();
+                      final uri = Uri.parse(AdConfig.privacyPolicyUrl);
+                      try {
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        } else if (context.mounted) {
+                          AppToast.show(context, message: 'Please turn on the internet to view our Privacy Policy.', type: AppToastType.warning);
+                        }
+                      } catch (_) {
+                        if (context.mounted) {
+                          AppToast.show(context, message: 'Please turn on the internet to view our Privacy Policy.', type: AppToastType.warning);
+                        }
+                      }
+                    },
                   ),
                 ]),
                 const SizedBox(height: 24),
               ],
             ),
           ),
+          const BannerAdContainer(),
         ],
       ),
     );
@@ -372,6 +405,189 @@ class SettingsScreen extends ConsumerWidget {
       borderRadius: AppTheme.radiusLg,
       child: Column(children: children),
     );
+  }
+
+  Widget _buildDailyGoalAndRemindersSection(
+    BuildContext context,
+    WidgetRef ref,
+    SettingsRepository settings,
+  ) {
+    final dailyGoal = settings.dailyGoalMinutes;
+    final remindersOn = settings.remindersEnabled;
+    final reminderTime = settings.reminderTime;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Daily Goal & Reminders'),
+        const SizedBox(height: 8),
+        _buildCard([
+          // Daily goal presets
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.flag_rounded, size: 18, color: AppTheme.primaryColor),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Daily practice goal',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '$dailyGoal min (${HabitConstants.goalLabel(dailyGoal)})',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: HabitConstants.dailyGoalPresets.map((preset) {
+                    final isSel = preset == dailyGoal;
+                    return ChoiceChip(
+                      label: Text(
+                        '$preset min',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: isSel ? Colors.white : AppTheme.textPrimary,
+                        ),
+                      ),
+                      selected: isSel,
+                      selectedColor: AppTheme.primaryColor,
+                      backgroundColor: AppTheme.canvasBackground,
+                      onSelected: (selected) async {
+                        if (selected) {
+                          HapticFeedback.selectionClick();
+                          await settings.setDailyGoalMinutes(preset);
+                          ref.read(dataRevisionProvider.notifier).state++;
+                          ref.read(notificationServiceProvider).syncReminders();
+                          ref.invalidate(settingsRepositoryProvider);
+                        }
+                      },
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: AppTheme.borderLight),
+
+          // Reminders switch
+          SwitchListTile(
+            title: const Text(
+              'Daily practice reminders',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+            subtitle: const Text(
+              'Gentle reminder once a day to protect your streak',
+              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+            ),
+            value: remindersOn,
+            activeTrackColor: AppTheme.primaryColor.withValues(alpha: 0.5),
+            activeThumbColor: AppTheme.primaryColor,
+            onChanged: (val) async {
+              HapticFeedback.selectionClick();
+              if (val) {
+                final allowed = await NotificationExplanationDialog.show(context);
+                if (allowed) {
+                  final notif = ref.read(notificationServiceProvider);
+                  final granted = await notif.requestPermission();
+                  await settings.setRemindersEnabled(granted);
+                  if (granted) {
+                    await notif.syncReminders();
+                    if (context.mounted) {
+                      AppToast.show(
+                        context,
+                        message: 'Daily reminders activated!',
+                        type: AppToastType.success,
+                      );
+                    }
+                  } else {
+                    if (context.mounted) {
+                      AppToast.show(
+                        context,
+                        message: 'Notifications are disabled on this device.',
+                        type: AppToastType.warning,
+                      );
+                    }
+                  }
+                }
+              } else {
+                await settings.setRemindersEnabled(false);
+                await ref.read(notificationServiceProvider).cancelAllReminders();
+              }
+              ref.invalidate(settingsRepositoryProvider);
+            },
+          ),
+
+          // If enabled: time picker & test button
+          if (remindersOn) ...[
+            const Divider(height: 1, color: AppTheme.borderLight),
+            ListTile(
+              leading: const Icon(Icons.access_time_rounded, color: AppTheme.primaryColor),
+              title: const Text('Reminder time', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              subtitle: Text(
+                _formatTimeLabel(reminderTime),
+                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: AppTheme.textTertiary),
+              onTap: () async {
+                HapticFeedback.selectionClick();
+                final parts = reminderTime.split(':');
+                final currentTod = TimeOfDay(
+                  hour: parts.isNotEmpty ? (int.tryParse(parts[0]) ?? 19) : 19,
+                  minute: parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0,
+                );
+                final picked = await showTimePicker(
+                  context: context,
+                  initialTime: currentTod,
+                );
+                if (picked != null) {
+                  final formatted =
+                      '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+                  await settings.setReminderTime(formatted);
+                  await ref.read(notificationServiceProvider).syncReminders();
+                  ref.invalidate(settingsRepositoryProvider);
+                  if (context.mounted) {
+                    AppToast.show(
+                      context,
+                      message: 'Reminder set for ${_formatTimeLabel(formatted)}',
+                      type: AppToastType.success,
+                    );
+                  }
+                }
+              },
+            ),
+          ],
+        ]),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  String _formatTimeLabel(String timeStr) {
+    final parts = timeStr.split(':');
+    final hour = parts.isNotEmpty ? (int.tryParse(parts[0]) ?? 19) : 19;
+    final minute = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+    final tod = TimeOfDay(hour: hour, minute: minute);
+    final period = tod.period == DayPeriod.am ? 'AM' : 'PM';
+    final h = tod.hourOfPeriod == 0 ? 12 : tod.hourOfPeriod;
+    final m = tod.minute.toString().padLeft(2, '0');
+    return '$h:$m $period';
   }
 
   Widget _buildKeypadStyleSelector(

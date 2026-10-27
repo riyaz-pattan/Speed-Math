@@ -9,6 +9,7 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private val WAKELOCK_CHANNEL = "com.speedmathwithai/wakelock"
+    private val APP_INFO_CHANNEL = "com.speedmathwithai/app_info"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,6 +28,20 @@ class MainActivity : FlutterActivity() {
                 "disable" -> {
                     window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                     result.success(true)
+                }
+                else -> result.notImplemented()
+            }
+        }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, APP_INFO_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "getVersion" -> {
+                    try {
+                        val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+                        result.success(pInfo.versionName)
+                    } catch (e: Exception) {
+                        result.success("1.13.1")
+                    }
                 }
                 else -> result.notImplemented()
             }

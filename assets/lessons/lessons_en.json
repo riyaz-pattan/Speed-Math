@@ -1,14 +1,69 @@
 {
-  "_comment": "Lesson metadata strings for Phase 8A. English locale.",
+  "_comment": "Lesson metadata strings for Speed Math Learn section. English locale.",
   "add_in_parts": {
-    "title": "Add in Parts",
+    "title": "Addition",
     "why_it_works": "Breaking a number into tens and ones lets you do two simple additions instead of one hard one.",
     "common_mistake": "Forgetting to add the ones part after adding the tens."
   },
+  "subtract_in_parts": {
+    "title": "Subtraction",
+    "why_it_works": "Left-to-right subtraction processes place values directly without scratchpad borrowing, solving deficits cleanly.",
+    "common_mistake": "Borrowing right-to-left mentally instead of taking the whole tens/hundreds difference and adjusting."
+  },
+  "multiplication_hub": {
+    "title": "Multiplication",
+    "why_it_works": "The Vertically & Crosswise (Criss-Cross) method calculates units, cross-products, and higher places directly in a single line, eliminating multi-line scratchpad additions.",
+    "common_mistake": "Forgetting to add the carry from the previous step to the cross-product sum."
+  },
+  "division_hub": {
+    "title": "Division",
+    "why_it_works": "Divisibility rules and multiplicative inversion convert difficult multi-digit divisions into fast mental multiplication and single-digit checks.",
+    "common_mistake": "Dividing by composite divisors directly without factoring them into single-digit chunks."
+  },
+  "multiply_2x2": {
+    "title": "2-Digit Multiplication",
+    "why_it_works": "The Vertically & Crosswise (Criss-Cross) method calculates units, cross-products, and tens directly into a single line, eliminating multi-line scratchpad additions.",
+    "common_mistake": "Forgetting to add the carry from the previous step to the cross-product sum."
+  },
+  "multiply_3x2": {
+    "title": "3×2 Digit Multiplication",
+    "why_it_works": "Expanding the crosswise pattern to 4 stages allows multiplying any 3-digit by 2-digit number in a single row without zero-padding scratch lines.",
+    "common_mistake": "Mixing up the inner vertical digit and the outer diagonal digit during the hundreds step."
+  },
+  "multiply_3x3": {
+    "title": "3-Digit Multiplication",
+    "why_it_works": "The 5-step star crosswise algorithm (1 → 2 → 3 → 2 → 1) computes 3-digit products directly by place values, holding carries in memory.",
+    "common_mistake": "Leaving out the middle vertical product in the 3-way star step."
+  },
+  "divide_by_5_25": {
+    "title": "Divide by 5, 25 & 125",
+    "why_it_works": "5 = 10÷2, 25 = 100÷4, and 125 = 1000÷8. Inverting to multiplication by 2, 4, or 8 and shifting the decimal point is instant mentally.",
+    "common_mistake": "Shifting the decimal point the wrong number of places or in the wrong direction."
+  },
+  "divide_by_9_99": {
+    "title": "Division by 9 & 99",
+    "why_it_works": "When dividing by 9, the quotient digits are simply the running sums of the dividend digits.",
+    "common_mistake": "Forgetting that the last running sum is the remainder, not part of the quotient."
+  },
+  "factor_division": {
+    "title": "Factor Division",
+    "why_it_works": "Decomposing a composite 2-digit divisor into single-digit factors allows fast sequential division.",
+    "common_mistake": "Dividing by factors that do not multiply to the original divisor."
+  },
+  "reciprocal_division": {
+    "title": "Reciprocal & Decimals",
+    "why_it_works": "Dividing by decimals like 0.5, 0.25, and 2.5 is equivalent to multiplying by their whole number reciprocals 2, 4, and 0.4.",
+    "common_mistake": "Confusing dividing by 0.5 (which doubles) with dividing by 2 (which halves)."
+  },
+  "flag_division": {
+    "title": "Straight Division",
+    "why_it_works": "The Dhvajanka (Flag) method breaks divisors into a 1-digit Base and a Flag digit for single-line straight division.",
+    "common_mistake": "Forgetting to subtract the Flag adjustment from the working dividend."
+  },
   "multiply_by_5_25": {
-    "title": "Multiply by 5 & 25",
-    "why_it_works": "5 = 10÷2 and 25 = 100÷4. Dividing first then multiplying by a round number is faster.",
-    "common_mistake": "Forgetting to multiply by 10 (or 100) after dividing."
+    "title": "Multiply by 5, 25 & 125",
+    "why_it_works": "5 = 10÷2, 25 = 100÷4, 75 = 100−25, and 125 = 1000÷8. Dividing then multiplying by round powers of 10 is much faster.",
+    "common_mistake": "Forgetting to multiply by 10, 100 or 1000 after dividing."
   },
   "multiply_by_11": {
     "title": "Multiply by 11",
@@ -16,9 +71,9 @@
     "common_mistake": "Forgetting to carry when the digit sum is 10 or more."
   },
   "multiply_by_99": {
-    "title": "Multiply by 99",
-    "why_it_works": "n × 99 = n × 100 − n. Multiplying by 100 is instant; subtracting n is easy.",
-    "common_mistake": "Subtracting the wrong number — subtract n, not 1."
+    "title": "Multiply by 9, 99 & 999",
+    "why_it_works": "n × (10^k − 1) = n × 10^k − n. Multiplying by 10, 100, or 1000 is instant; then subtract n.",
+    "common_mistake": "Subtracting 1 instead of subtracting the original number n."
   },
   "near_100_mult": {
     "title": "Near-100 Multiplication",
@@ -36,8 +91,13 @@
     "common_mistake": "Adding parts incorrectly, or miscounting how many 10% chunks fit."
   },
   "fraction_pct_friends": {
-    "title": "Fraction–% Friends",
+    "title": "Fraction to Percentage",
     "why_it_works": "Knowing key fraction ↔ % pairs by heart cuts computation time to zero.",
     "common_mistake": "Confusing 1/6 (≈16.7%) with 1/8 (12.5%)."
+  },
+  "percentage_to_fraction": {
+    "title": "Percentage to Fraction",
+    "why_it_works": "Replacing decimal percentages with simplest fractions turns complex multiplications into instant single-digit divisions.",
+    "common_mistake": "Forgetting the base unit family (e.g. confusing 37.5% from 1/8 with 1/6 or 1/7)."
   }
 }

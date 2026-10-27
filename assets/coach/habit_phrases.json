@@ -1,0 +1,50 @@
+{
+  "goal_progress": [
+    "{minutes_done} of {goal_minutes} min today. One more {minutes_left}-minute session gets you to your daily goal.",
+    "You have completed {minutes_done} of {goal_minutes} practice minutes today. Keep the momentum going!",
+    "{minutes_done} min practiced today — just {minutes_left} min to complete today's goal.",
+    "Making steady progress today: {minutes_done} of {goal_minutes} minutes done.",
+    "{minutes_left} more minutes to reach your {goal_minutes}-minute daily target.",
+    "Great effort so far! {minutes_done} min down, {minutes_left} min remaining for today's goal."
+  ],
+  "goal_reached_first": [
+    "Daily goal completed! You reached your {goal_minutes}-minute target for today.",
+    "Goal reached! {minutes_done} minutes of dedicated speed math training today.",
+    "Target unlocked! You have hit your {goal_minutes}-minute practice goal.",
+    "Daily goal achieved! Excellent discipline and sharp focus today.",
+    "Boom! {goal_minutes}-minute goal met. Your calculation speed is building day by day.",
+    "Goal achieved! {minutes_done} practice minutes in the bag today."
+  ],
+  "goal_reached_repeat": [
+    "Goal complete for today. {minutes_done} min practiced in total.",
+    "You have exceeded your daily target today with {minutes_done} total minutes.",
+    "All done for today with {minutes_done} minutes logged. Feel free to do bonus drills anytime.",
+    "Daily target met with {minutes_done} practice minutes. Crisp calculations today.",
+    "{minutes_done} min trained today — goal fully cleared.",
+    "Target checked off for the day. {minutes_done} dedicated minutes completed."
+  ],
+  "streak_extended": [
+    "Streak extended to {streak} days! Steady work compounds quickly.",
+    "{streak}-day streak! Consistency is the secret to mental math fluency.",
+    "Day {streak} active! Another day of sharp numbers in the books.",
+    "Your streak is now {streak} days strong. Keep building the daily habit.",
+    "{streak} days in a row! Fast, effortless calculations start with steady routines.",
+    "Streak extended to {streak} days. Wonderful consistency."
+  ],
+  "first_active_day": [
+    "Day 1 in the books! Your mental math journey is underway.",
+    "First active day completed! 10+ questions answered with precision.",
+    "Great start! You completed your first active training day.",
+    "Day 1 accomplished. A short daily habit builds massive speed.",
+    "First day finished! Consistent daily drills turn into instant reflexes.",
+    "Welcome to Day 1! Great focus on your first active session."
+  ],
+  "comeback": [
+    "Welcome back! Day 1 starts right now — steady practice builds rapid reflexes.",
+    "Great to have you back! A quick 5-minute session will refresh your mental speed.",
+    "Welcome back to training. Every session rebuilds your calculation sharpness.",
+    "Glad you are here! Pick any quick drill to restart your streak.",
+    "Welcome back! A few minutes today gets the rhythm going again.",
+    "Back in action! Clean mental calculations start with one good drill."
+  ]
+}

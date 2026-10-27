@@ -1,8 +1,409 @@
-# PROJECT_STATE.md — Speed Math with AI
+# PROJECT_STATE.md — Mental Calculation Tricks (Adaptive Coach)
 
-## Current Phase: Phase 7E Complete ✅ (Version 1.9.0)
+## Current Phase: Production Release Preparation Complete ✅ (Version 1.13.1)
 
 ## What Is Finished
+
+### Production Keystore & Production AdMob IDs Configured ✅
+- [x] **Real AdMob Production IDs Configured**:
+  - `AdConfig.realAppId`: `ca-app-pub-9917099283589501~2192467260`
+  - `AdConfig.realBannerUnitId`: `ca-app-pub-9917099283589501/1474281961`
+  - `AdConfig.realInterstitialUnitId`: `ca-app-pub-9917099283589501/3749091511`
+  - Manifest placeholder `admobAppId` updated in `build.gradle.kts` and `key.properties`.
+- [x] **Upload Keystore Generated & Configured**:
+  - Keystore created at `android/upload-keystore.jks` with alias `upload`.
+  - Configured in `android/key.properties` (secured and untracked by Git).
+  - Verified with `./gradlew :app:signingReport` — Release variant successfully signs with `upload-keystore.jks` (valid until 2054).
+- [x] **Flutter Analyze Clean**: 0 issues found with `--fatal-infos`.
+
+### Phase 10C — Privacy Policy, GitHub Pages Hosting & Play Data Safety ✅ (Version 1.13.1)
+- [x] **Part A: Accurate Privacy Policy Creation**:
+  - Authored comprehensive legal Privacy Policy explicitly matching the app's merged manifest permissions and local SQLite data architecture.
+  - Documents that practice calculations, scores, attempts, habit streaks, and progress records stay 100% on-device (zero user accounts; no developer uploads).
+  - Clarifies usage of all 6 Android permissions: `INTERNET` and `ACCESS_NETWORK_STATE` (AdMob ads and offline collapsing), `com.google.android.gms.permission.AD_ID` (advertising identifier), `VIBRATE` (keypad and celebration haptics), `POST_NOTIFICATIONS` (optional daily habit reminders), `RECEIVE_BOOT_COMPLETED` (restoring daily reminder alarms on restart).
+  - Explicit disclosures for Google AdMob advertising, links to Google Privacy Policy and partner sites, advertising ID reset instructions, and UMP consent options in EEA/UK.
+  - Includes child privacy declaration (target audience 16+, max content rating PG, not directed to children under 13), data retention & control ("Reset all data" and app uninstall immediately erase all local data), and user rights under applicable data protection laws.
+  - Developer: Pattan Riyaz, India. Contact: `riyazpattan987@gmail.com`.
+- [x] **Part B: Public Hosting on GitHub Pages**:
+  - Created a separate public GitHub repository: `https://github.com/riyaz-pattan/speed-math-pro-privacy`.
+  - Added clean, mobile-responsive single-page `index.html` (zero tracking scripts, zero cookies), `.nojekyll`, and `README.md`.
+  - Enabled GitHub Pages on branch `main` at root `/` via GitHub REST API.
+  - Verified public accessibility: **HTTP 200** response confirmed at `https://riyaz-pattan.github.io/speed-math-pro-privacy/`.
+- [x] **Part C: In-App Privacy Policy Screen & Deep Links**:
+  - Updated `AdConfig.privacyPolicyUrl` to `https://riyaz-pattan.github.io/speed-math-pro-privacy/`.
+  - Created [`PrivacyPolicyScreen`](file:///Users/rameez/Desktop/Speed%20Math/lib/features/settings/privacy_policy_screen.dart) (`/privacy-policy`) matching the app's tactile design, scrollable, working 100% offline, with an "Open web version" button.
+  - Linked from Settings > About list tile.
+  - Linked from Settings > Privacy and ads "Privacy policy" row (opens external browser, falls back to in-app screen).
+  - Linked from First-Run Setup welcome step under the offline badge.
+- [x] **Part D: Play Console Data Safety Cheat Sheet**:
+  - Authored [`PLAY_DATA_SAFETY.md`](file:///Users/rameez/Desktop/Speed%20Math/PLAY_DATA_SAFETY.md) with question-by-question answers for Google Play Console's Data Safety form adhering to Google's official AdMob disclosure guidelines.
+  - Lists exact declarations: Approximate Location (collected & shared for ads/analytics), Crash logs & Diagnostics (collected for performance), Device/other IDs (collected & shared for ads/analytics, optional/user-deletable).
+  - Confirms: Contains Ads = Yes, Target Audience = 16 and over, No Accounts.
+
+### Phase 10B — AdMob Ads (Banner & Interstitial Online Only) ✅ (Version 1.13.0)
+- [x] **Part A: Setup & Safety Architecture**:
+  - Created `lib/core/ads/ad_config.dart` as the single place with ad IDs.
+  - Automatically serves Google's official Android test IDs in debug and profile modes (`ca-app-pub-3940256099942544~3347511713` App ID, `ca-app-pub-3940256099942544/6300978111` Banner, `ca-app-pub-3940256099942544/1033173712` Interstitial).
+  - Production constants initialized with `'REPLACE_WITH_REAL_ID'`. Safety guard: if release IDs contain `'REPLACE'`, ads stay 100% disabled automatically in release builds.
+  - Configured AdMob App ID in `AndroidManifest.xml` via `${admobAppId}` manifest placeholder in `build.gradle.kts`.
+  - Added `url_launcher` intent queries (`https`, `http`) in `AndroidManifest.xml`.
+  - Authored comprehensive `ADMOB_SETUP.md` with step-by-step account setup, ad unit creation, GDPR consent, category blocking, and never-tap-live-ads warning.
+  - Added ProGuard keep rules in `proguard-rules.pro` for Google Mobile Ads and UMP SDK.
+  - Fully non-blocking: initialized asynchronously post-frame after splash inside `try/catch`.
+- [x] **Part B: Consent & Privacy Choices (Google UMP)**:
+  - Integrated User Messaging Platform (UMP) consent flow via `google_mobile_ads`.
+  - Configured `RequestConfiguration`: child-directed treatment `no`, maximum rating `MaxAdContentRating.pg`.
+  - Added "Privacy and ads" group in Settings:
+    - "Ad privacy choices": dynamically appears when UMP requires privacy options (`getPrivacyOptionsRequirementStatus() == PrivacyOptionsRequirementStatus.required`) and opens the consent management dialog.
+    - "Privacy policy": opens `privacyPolicyUrl` in external browser via `url_launcher`.
+    - Informational note: "Ads are provided by Google AdMob when you are online."
+- [x] **Part C: Online-Only Behavior**:
+  - Live connectivity monitoring via `connectivity_plus`.
+  - Banners request ads only when online; collapse to `SizedBox.shrink()` (0 reserved space) when offline or loading.
+  - Exponential retry rules: maximum 3 retries per screen visit with growing backoff delays (30s, 60s, 120s).
+- [x] **Part D: Adaptive Anchored Banners**:
+  - Adaptive anchored banners positioned at the bottom of the content, above the bottom navigation bar with >= 16 dp of clear margin above the banner to prevent accidental clicks.
+  - Shown strictly on allowed screens: Home, Learn list, Stats, History list, Report (only when real content is shown), and Settings.
+  - Strictly blocked everywhere else (Practice session, Results, lesson notebooks, Coach, onboarding, splash, Practice setup, dialogs, bottom sheets, loading/empty/error states).
+  - One banner per screen instance, loaded on appear and disposed on disappear.
+- [x] **Part E: Interstitial Ads (Pop-ups)**:
+  - Created `InterstitialAdManager` with background preloading.
+  - Interstitials shown strictly when user taps "Play Again", "Change Setup", or "Home" on Results screen before navigating on.
+  - Pure decision policy in `InterstitialPolicy.shouldShow` requiring all 7 conditions:
+    1. Online (`isOnline == true`)
+    2. Ad preloaded and ready in memory (`isAdLoaded == true`)
+    3. At least 3 total completed sessions since install (`totalCompletedSessions >= 3`)
+    4. At least 4 completed sessions since last interstitial (`sessionsSinceLastInterstitial >= 4`)
+    5. At least 5 minutes (300 s) elapsed since last interstitial (`secondsSinceLastInterstitial >= 300`)
+    6. Fewer than 3 interstitials shown today (`shownTodayCount < 3`)
+    7. Session completed normally, not ended early or discarded (`isSessionCompleted == true`)
+  - NEVER triggered during practice, lessons, Coach, onboarding, Settings, app start/resume/exit, or Android back button.
+  - Auto-reloads next interstitial after 20-second cooldown.
+  - Counters persisted in `SharedPreferences`.
+- [x] **Part F: Text, Manifest Permissions & Diagnostics**:
+  - Updated offline claims across the app: "Practice works offline. Your practice data stays on your phone. Ads, when you are online, are provided by Google AdMob."
+  - Merged manifest permissions:
+    - `android.permission.INTERNET`
+    - `android.permission.ACCESS_NETWORK_STATE`
+    - `com.google.android.gms.permission.AD_ID`
+    - `android.permission.VIBRATE`
+    - `android.permission.RECEIVE_BOOT_COMPLETED`
+    - `android.permission.POST_NOTIFICATIONS`
+  - Added "Ads & Privacy Diagnostics" section to the debug Data Check screen.
+- [x] **Part G: Throwaway Policy Verification**:
+  - Evaluated `InterstitialPolicy.shouldShow` across all 7 edge scenarios: first 3 sessions (false), 4th session online with ad ready (true), within 5 min of last ad (false), 4th ad of the day (false), offline (false), ad not loaded (false), ended-early session (false) -> **100% PASS**.
+
+### Phase 10A — Rebrand & Release Setup ✅ (Version 1.12.0)
+- [x] **Part A: New Name & Rebranding**:
+  - App rebranded as **Mental Calculation Tricks** with Play Store title and launcher label (`android:label`) set to **Mental Calculation Tricks**.
+  - Launcher label updated in `android/app/src/main/AndroidManifest.xml` to `"Mental Calculation Tricks"`.
+  - Replaced all user-facing occurrences of "Speed Math with AI" across splash screen, About dialog, First-Run setup, notification phrases, Coach welcome & phrases, strings, and documentation with "Mental Calculation Tricks".
+  - Tagline established: "Adaptive Coach" (used on splash screen, About dialog, and coach welcome).
+  - Cleaned all user-facing references/claims of "AI" (including assets, intents, and notification texts).
+  - Preserved internal package namespace `com.speedmathwithai` and Dart package name `speed_math_with_ai` intact (no import churn).
+- [x] **Part B: Android Target SDK 36 (Android 16) & System Insets**:
+  - Upgraded `compileSdk = 36` and `targetSdk = 36` in `android/app/build.gradle.kts`.
+  - Verified Gradle 8.12 and AGP 8.9.1 support SDK 36 cleanly.
+  - Edge-to-edge drawing audit: verified all screens render safely above navigation bar and below status bar with `SafeArea` and appropriate bottom insets.
+  - Android 15/16 Predictive Back & back button navigation: ensured full `PopScope` integration across practice sessions (quit confirmation dialog), Results review, Coach screen, Settings, Learn screen, and all three topic hub screens (`division_hub_screen`, `multiplication_hub_screen`, `squares_hub_screen`).
+- [x] **Part C: Release Signing & Build Configuration**:
+  - Configured `android/app/build.gradle.kts` release signing config to conditionally load from `android/key.properties` (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`), cleanly falling back to debug signing if not yet created.
+  - Added `key.properties`, `android/key.properties`, `*.jks`, and `*.keystore` to `.gitignore`.
+  - Authored comprehensive `RELEASE.md` guide at project root detailing `keytool` keystore generation, `key.properties` configuration, safe credential backup, `flutter build appbundle --release` execution, and Play Console checklist.
+  - Configured R8 minification (`isMinifyEnabled = true`) and resource shrinking (`isShrinkResources = true`) with comprehensive keep rules in `android/app/proguard-rules.pro` for Flutter engine, `sqflite`, `audioplayers`, `vibration`, `flutter_local_notifications`, `timezone`, `flutter_timezone`, and desugared Java 8+ APIs.
+  - Confirmed `versionName` and `versionCode` are dynamically sourced from `pubspec.yaml` (`1.12.0+19`).
+- [x] **Part D: Hidden Debug Tools Guarded in Release**:
+  - Guarded `/settings/data-check` route in `router.dart` and the version number long-press gesture in `settings_screen.dart` with `kDebugMode` checks so they are unreachable in release builds.
+  - Verified `debugShowCheckedModeBanner: false` in `app.dart`.
+  - Ensured no lingering TODOs or placeholders visible to users.
+- [x] **Part E: Audit & Compliance**:
+  - Zero mentions of "bank", "IQ", "Smart Practice", "Custom Practice", or exam names/acronyms in user-facing UI and text.
+  - Light mode only, zero layout overflows at 320–411 dp.
+
+### Phase 9A — Housekeeping, Habits, Reminders & First-Run Setup ✅ (Version 1.11.0)
+- [x] **Part A: Housekeeping (After Learn Rebuild)**:
+  - Removed old whiteboard player/painter files (`whiteboard_block_painter.dart`, `whiteboard_block_player.dart`, `whiteboard_painter.dart`, `whiteboard_player.dart`, `lesson_data.dart`).
+  - Removed unused Kalam handwriting font files (`assets/fonts/Kalam-Regular.ttf`, `assets/fonts/Kalam-Bold.ttf`, `assets/fonts/licenses/Kalam-OFL.txt`) and license registration in `main.dart`.
+  - Removed "Lesson writing sound" switch, volume slider, and `pencil_write` audio assets from Settings and sound engines.
+  - Audited and verified all 4 entry points into Learn:
+    1. Home Learn Card (`/learn`).
+    2. Practice setup "Shortcut tricks" row (`/learn/:lessonId` with hub routing for multiplication, division, squares).
+    3. Results review "Learn this trick →" button (comprehensive `_findLessonForAttempt` pattern matcher for all topics, operands, and variants).
+    4. Coach "learn" intent with "Open lesson" button (`CoachActionType.openLearn`).
+  - Audited all user-facing text: **zero occurrences** of banned terms ("bank", "IQ", "Smart Practice", "Custom Practice", exam names/acronyms).
+  - Merged manifest verified: **NO INTERNET permission**. Only `VIBRATE`, `RECEIVE_BOOT_COMPLETED`, and `POST_NOTIFICATIONS`.
+  - Clean `pubspec.yaml`: added strictly the 3 permitted packages (`flutter_local_notifications: ^18.0.1`, `timezone: ^0.10.0`, `flutter_timezone: ^3.0.1`).
+- [x] **Part B: Derived Habit Data Layer (No Stored Counters)**:
+  - Pure calculation derived directly from SQLite sessions and `lesson_progress` — immune to drift or clock shifts.
+  - Queries grouped by local calendar day using SQLite `(CASE WHEN started_at LIKE '%Z' THEN date(started_at, 'localtime') ELSE date(started_at) END)`.
+  - Ignores records dated more than 1 day in the future (`maxAllowedFuture` filter).
+  - Practice minutes today calculated as total session duration (ms / 60000) for sessions started today.
+  - Active day rule: $\ge 10$ questions answered (ended-early included, skipped not counted) OR $\ge 1$ lesson completed. Defined in `HabitConstants.activeDayQuestionThreshold`.
+  - Streak rule: consecutive active days ending today, or ending yesterday if today is not active yet (so active streaks do not show as broken until local midnight).
+  - Longest streak and 30-day active day counts calculated purely.
+  - Daily goal presets: 5, 10, 15, 20, 30 min (default 10 min).
+  - Reactive Riverpod provider `habitDataProvider` refreshes automatically on session completion, lesson completion, and foreground app resume.
+- [x] **Part C: Habit UI Components**:
+  - **Home "Today" Card**: Compact card placed below the user level badge featuring an SVG progress ring (`#4F46E5`), streak chip with flame icon (animation disabled when Game Effects is off), 7-day strip (Mon–Sun) with active dots and goal rings, and tap-to-open "Your habits" bottom sheet with all-time habit metrics and goal switcher.
+  - **Results Screen Habit Line & Celebrations**: Dynamic Coach insight line/card showing goal progress or streak continuation using warm phrases from `assets/coach/habit_phrases.json`. When the goal is reached for the first time that day, triggers an `AppToast` and confetti burst.
+  - **Streak Milestone Celebrations**: Automatically celebrates milestones at 3, 7, 14, 30, 60, and 100 days once per milestone (`last_celebrated_streak`).
+  - **Report Tab Habits Section**: "Habits & Consistency" card displaying current streak, longest streak, active days in the last 30 days, and average minutes per active day. Today's Plan completion also reflects in habit line.
+  - **Settings "Daily Goal & Reminders" Group**: Preset selector chips (5–30 min), reminders toggle, reminder time picker, "Send test reminder" button, and battery optimization guidance.
+  - **Coach "habits" Intent**: Added intent with 24 sample questions, 4 dynamic answer variants with real habit numbers, and "change my goal" interactive action.
+- [x] **Part D: Reminders (Local Notifications, No Internet)**:
+  - Inexact alarms via `AndroidScheduleMode.inexact` — **no `SCHEDULE_EXACT_ALARM` or `USE_EXACT_ALARM` permissions**.
+  - Handles device restart via `ScheduledNotificationBootReceiver` and `RECEIVE_BOOT_COMPLETED`.
+  - Two-stage permission request: friendly `NotificationExplanationDialog` before triggering system prompt. Displays gentle note and settings button in Settings if denied.
+  - Day-by-day 7-day scheduling plan generator (`buildReminderPlan`): automatically cancels all prior alarms and schedules the next 7 days, **skipping today** if the user is already active or met the goal today.
+  - Warm, non-guilt-tripping phrases in `assets/coach/reminder_phrases.json` (6+ variants each): normal reminder, streak-at-risk (interpolates real streak count), comeback after 2+ missed days, and final gentle message on 7th day of silence (after which nothing more is scheduled until user opens app). Reminders default to OFF.
+- [x] **Part E: First-Run Setup & Upgrades**:
+  - **Fresh Install Wizard (`FirstRunSetupScreen`)**: 4-step flow (Welcome with 100% offline assurance, Daily Goal picker with friendly labels, Reminders switch with permission flow, and optional 12-question mixed session to calibrate starting level). Skip available on every step.
+  - **Upgrade Existing Installs (`UpgradeGoalDialog`)**: Compact dialog shown on first launch after update for users who already have sessions, prompting them to set their goal and reminder preference without full onboarding.
+  - **Reset All Data**: Clears sessions, progress, mistakes, ratings, and coach data while preserving settings and `onboarding_done` (does not re-trigger onboarding).
+- [x] **Part G: Throwaway Automated Verification**:
+  - Verified 8 synthetic streak scenarios (no data, only today, yesterday active today inactive, one-day gap, long streak, lesson-only, ended-early < 10 answers, future records rejected) -> **100% PASS**.
+  - Verified 5 reminder plan generation scenarios (today active skipped, today inactive scheduled, streak-at-risk with streak numbers, comeback, 7th day final silence break) -> **100% PASS**.
+  - Cleaned up throwaway check files without committing.
+- [x] **Code Quality & Analysis**:
+  - Version bumped to `1.11.0+18` in `pubspec.yaml` and `1.11.0` in `AppConstants`.
+  - `flutter analyze --fatal-infos` clean at **0 issues**.
+
+### Phase 8A.8 — Applied Maths Static Ruled Notebook Diagrams & "Percentage to Fraction" Lesson ✅ (Version 1.10.1)
+- [x] **Applied Maths Converted to Static Ruled Notebooks**:
+  - Replaced the animated typewriter/video player in all Applied Maths lessons with static, pre-computed visual step cards on ruled cream paper (`#FFFDF5`) with amber guidelines (`#FDE68A`) and red margin line.
+  - Interactive 2D pan (horizontal and vertical scrolling) and pinch-to-zoom ($0.5\times$ to $2.5\times$) with floating zoom controls (`+`, `−`, `1:1`, percentage pill).
+  - Clear, non-overlapping step cards with formula blocks, mental logic derivations, result highlight strips, and connecting horizontal arrows that never overlap with text or numbers.
+- [x] **Split Percentages Decomposition & Calculation Overhaul (`split_percentages`)**:
+  - Eliminated hardcoded $10\% + 5\% = 15\%$ limitation and integer division truncation bugs.
+  - Built smart benchmark decomposition engine supporting:
+    * Subtractive from 50% ($45\% - 49\%$, e.g. $45\% = 50\% - 5\%$)
+    * Subtractive from 100% ($88\% - 99\%$, e.g. $95\% = 100\% - 5\%$, $99\% = 100\% - 1\%$)
+    * Compound decimal chunks (e.g. $17.5\% = 10\% + 5\% + 2.5\%$, $22.5\% = 20\% + 2.5\%$)
+    * Additive benchmark chunks ($50\%, 25\%, 10\%, 5\%, 1\%$)
+- [x] **Fraction to Percentage Expansion (`fraction_pct_friends`)**:
+  - Fixed issue where it repeatedly showed only $1/8$ or $1/4$.
+  - Expanded operands to direct `[numerator, denominator]` pairs across wide denominator families: halves, thirds, quarters, fifths, sixths, sevenths, eighths, ninths, elevenths, twelfths, sixteenths.
+  - Clearly demonstrates Unit Reciprocal Identity ($1/d$), Multiplier Scaling ($n \times 1/d$), and Complement Subtraction ($1 - 1/d = 100\% - \dots\%$).
+- [x] **NEW LESSON: Percentage to Fraction (`percentage_to_fraction`)**:
+  - Created and registered dedicated lesson under "Applied Maths" in `LessonRegistry`, `LearnScreen`, and `lessons_en.json`.
+  - Teaches how to instantly convert recurring/benchmark percentages ($37.5\% \to 3/8$, $62.5\% \to 5/8$, $83.33\% \to 5/6$, $16.67\% \to 1/6$, $14.28\% \to 1/7$, $44.44\% \to 4/9$, $9.09\% \to 1/11$, $8.33\% \to 1/12$, $6.25\% \to 1/16$) into irreducible fractions.
+  - Shows how fraction replacement turns intimidating decimal multiplication into 2-second mental division ($P\% \times N = \frac{n}{d} \times N = n \times (N \div d)$).
+- [x] **Interactive Difficulty Level in Shortcut Board (Tab 0)**:
+  - Tapping the difficulty picker (Beginner, Easy, Medium, Hard, Expert, Genius) now immediately regenerates the active example on the Shortcut Board matching the chosen difficulty.
+  - Added a dedicated "New ($difficulty)" button in the top banner to generate new examples on demand for the active difficulty level.
+  - Hard, Expert, and Genius levels generate advanced, challenging calculations for serious practice.
+- [x] **Custom Numbers Sheet & Presets (`AppliedMathCustomNumberSheet`)**:
+  - Modal sheet for inputting arbitrary percentages, fractions, or exam base numbers with instant validation and error guidance.
+  - Rich preset chips for each lesson directly on the Shortcut Board and custom number sheet.
+- [x] **Step Breakdown & Practice Review**:
+  - Comprehensive 3-card FAQs for all 3 applied math topics in Step Breakdown (Tab 1).
+  - Practice Review ("Show the trick for this problem") dynamically renders `AppliedMathStaticDiagram` for the practiced question.
+- [x] **Automated Verification**:
+  - Added test suite `test/features/learn/applied_math_test.dart` (14/14 tests passing).
+  - Full codebase analysis clean at **0 issues** (`flutter analyze --fatal-infos`).
+  - Strict compliance with all constraints (light mode, zero banned words, no exam names).
+- [x] **Squares Hub Architecture & Categorization**:
+  - Created dedicated `SquaresHubScreen` (`/learn/squares`) accessible from the "Powers & Roots" section in `LearnScreen`.
+  - Added real-time progress tracking badge for all 6 squaring lessons ($X/6$).
+  - Divided hub into two structured sections:
+    1. **DIGIT ENDING IN 5 (1 SHORTCUT)**: Squares Ending in 5 (`squares_ending_5`).
+    2. **BASE METHOD SQUARES (5 SHORTCUTS)**: Base 25 (`squares_base_25`), Base 50 (`squares_base_50`), Base 100 (`squares_base_100`), Base 150 (`squares_base_150`), Base 200 (`squares_base_200`).
+- [x] **Interactive Static Ruled Notebook Diagrams (`SquaresStaticDiagram`)**:
+  - Replaced animated typewriter/video player with 100% static, pre-computed step cards on ruled cream paper (`#FFFDF5`) with amber guidelines (`#FDE68A`) and red margin line.
+  - Interactive 2D pan (horizontal and vertical scrolling) and pinch-to-zoom ($0.5\times$ to $2.5\times$) with floating controls (`+`, `−`, `1:1`, zoom %).
+  - Zero-overlap layout: step cards feature header pills, formula boxes, mental thought boxes ("How to do it mentally:"), key result highlight strips, and connecting horizontal step arrows that never intersect or obscure text/numbers.
+  - Comprehensive algebraic squaring engines:
+    * `squares_ending_5`: $(10t + 5)^2 = 100t(t+1) + 25 \to t \times (t+1) \mid 25$.
+    * `squares_base_25`: $(25 \pm d)^2 = 625 \pm 50d + d^2$ using rapid mental 50-cascade additions.
+    * `squares_base_50`: Half-base speed shortcut $(25 \pm d) \mid d^2$ (2 digits) with carry resolution for $d^2 \ge 100$.
+    * `squares_base_100`: Reference base shortcut $(N \pm d) \mid d^2$ (2 digits) with zero-padding and carry resolution.
+    * `squares_base_150`: $1.5\times$ scaling trick $(N \pm d) \times 1.5 \mid d^2$ computed mentally as $(N \pm d) + \frac{N \pm d}{2}$.
+    * `squares_base_200`: $2\times$ scaling trick $(N \pm d) \times 2 \mid d^2$ with 2-digit right block and carry forwarding.
+- [x] **Custom Numbers Sheet & Dynamic Preset Chips (`SquaresCustomNumberSheet`)**:
+  - Interactive custom number modal sheet with strict input validation for all 6 squaring lessons.
+  - For `squares_ending_5`: strictly enforces 2-digit number ending in 5 ($15-95$). Displays error guidance if input does not end in 5 or is outside 2 digits: *"This shortcut cannot be applied here. The number must end with the digit 5."*
+  - Dedicated preset chips row in `LessonScreen` for all 6 squaring shortcuts.
+- [x] **Practice Engine & Review Integration**:
+  - Tailored 6-tier difficulty generators (Beginner, Easy, Medium, Hard, Expert, Genius) for all 6 squaring lessons.
+  - Interactive practice review: "Show the trick for this problem" dynamically renders `SquaresStaticDiagram` for the exact practiced operand.
+  - Step Breakdown tab features comprehensive FAQ cards (`_buildSquaresBreakdownCards`) explaining each technique step-by-step.
+- [x] **Verification**:
+  - `flutter analyze --fatal-infos` clean across the entire codebase (**0 issues**).
+  - Terminology check confirmed 0 occurrences of banned words ("bank", "IQ", exam names).
+- [x] **Bug Fix: "Unable to display content" in `multiply_by_99` & `multiply_by_5_25`**:
+  - Diagnosed root cause: `multiply_by_99` and `multiply_by_5_25` had variant sub-definitions without top-level `builder` or `featuredOperands` in `LessonRegistry`. When bypassing the variant chooser for static notebooks, `meta.buildScript()` invoked a null `_builder!()` assertion, crashing the initialization.
+  - Implemented safe fallback resolution in `LessonMeta.buildScript()` to dynamically match variant builders via operands without throwing null assertions.
+  - Provided top-level builders `MultiplyBy5And25Builder.build` and `MultiplyBy99Builder.build` with default featured operands `[48, 5]` and `[47, 99]`.
+  - Hardened `LessonScreen._initLesson()`, `_buildScript()`, `_calcAnswerAndText()`, and `_buildStaticBoardTab()` to defensively validate operand bounds.
+  - Added unit test suite `test/features/learn/mental_multiplication_test.dart` verifying all 4 mental multiplication shortcuts load cleanly. All tests passing.
+
+### Phase 8A.6 — Mental Multiplication Shortcuts Integration (Static Diagrams & Category Hierarchy) ✅ (Version 1.10.1)
+- [x] **Category Hierarchy Streamlined**:
+  - Reorganized top-level Learn categories into three streamlined pillars: `Arithmetic`, `Powers & Roots`, `Applied Maths`.
+  - Moved all 4 Mental Multiplication Shortcuts (`multiply_by_5_25`, `multiply_by_11`, `multiply_by_99`, `near_100_mult`) under Arithmetic's `Multiplication` section.
+  - Updated `multiplication_hub` progress counter in `LearnScreen` to track all 7 multiplication techniques ($7/7$).
+- [x] **Multiplication Hub Screen Reorganization**:
+  - Divided `MultiplicationHubScreen` into two distinct, beautifully formatted sections:
+    1. **UNIVERSAL CRISS-CROSS (3 TECHNIQUES)**: 2-Digit (2×2), 3×2-Digit (3×2), 3-Digit (3×3).
+    2. **SPEED MULTIPLICATION SHORTCUTS (4 SHORTCUTS)**: Multiply by 5/25/75/125, Multiply by 11, Multiply by 9/99/999, Near-100 Multiplication.
+- [x] **Interactive Static Ruled Notebook Diagrams (`MentalMultiplicationStaticDiagram`)**:
+  - Completely replaced the animated video typewriter player with 100% static, pre-computed step cards on ruled cream paper (`#FFFDF5`) with amber guidelines (`#FDE68A`) and red margin line.
+  - Full 2D pan (horizontal and vertical) and pinch-to-zoom ($0.5\times$ to $2.5\times$) with floating controls (`+`, `−`, `1:1`, zoom %).
+  - Zero-overlap layout: step cards feature header pills, formula boxes, mental thought boxes ("How to do it mentally:"), key result highlight strips, and connecting horizontal step arrows.
+  - Comprehensive algorithm coverage:
+    * `multiply_by_5_25`: Inversion principles for $\times 5$ ($10\div 2$), $\times 25$ ($100\div 4$), $\times 75$ ($3/4\times 100$), and $\times 125$ ($1000\div 8$) with doubling/halving cascades.
+    * `multiply_by_11`: Outer digit anchor frames, adjacent pairwise digit sums, carry resolution, and final assembled products.
+    * `multiply_by_99`: Round-up powers of 10 identity ($10^k - 1$), zero-append, left-to-right mental subtraction, and Vedic Ekanyunena complement shortcuts.
+    * `near_100_mult`: Base-100 deviations, dual cross operations (left part), deviation product with mandatory 2-digit zero-padding (right part), and answer assembly.
+- [x] **Custom Number Sheets & Preset Selector Chips**:
+  - Integrated `MentalMultiplicationCustomNumberSheet` with dynamic validation and guidance.
+  - Added dedicated preset chips row for each mental shortcut in `LessonScreen`.
+  - Wired interactive practice review so "Show the trick for this problem" renders the static diagram for the exact operands being practiced.
+- [x] **Verification**:
+  - `flutter analyze --fatal-infos` clean across the entire codebase (**0 issues**).
+  - Terminology check confirmed 0 occurrences of banned words ("bank", "IQ", exam names).
+
+### Phase 8A.5 — Division Shortcuts Static Diagrams, Cheat-Sheet Handbook & UI Polish ✅ (Version 1.10.1)
+- [x] **Multiplication Hub Screen UI Polish**:
+  - Simplified lesson cards: removed long paragraph texts and redundant example formulas.
+  - Crisp titles (2-Digit Multiplication, 3×2-Digit Multiplication, 3-Digit Multiplication), compact `Criss-Cross Shortcut` badges, star ratings, and clean direct card navigation.
+- [x] **Pixel-Perfect Multiplication Carry Arrow ($3\times 2$ & $3\times 3$)**:
+  - Dynamically calculates the exact vertical coordinate of the `+ carry` line in card $i+1$ based on formula height (`tpFormula.height`).
+  - S-curve Bézier trajectory and directional arrowhead land with pixel precision on the center of the `+ carry` text across all multiplication dimensions.
+- [x] **Horizontally Scrollable Pill Tabs**:
+  - Replaced cramped segmented tabs with horizontally scrollable, generously spaced pill tabs with clear borders and comfortable margins.
+  - Completely resolved "Practice Shortcut" squishing/truncation on all mobile screen widths across Addition, Subtraction, Multiplication, and Division.
+- [x] **Interactive Difficulty Picker**:
+  - Tapping the top-right difficulty pill badge opens an interactive bottom sheet to select from all 6 difficulty levels (Beginner, Easy, Medium, Hard, Expert, Genius).
+  - Dynamically updates active practice questions to match the selected difficulty.
+- [x] **Divisibility Handbook Scannable Revision Cheat-Sheets**:
+  - Rebuilt all 16 divisibility rule cards into structured revision cheat-sheets:
+    * Prominent rule badges (`÷2`, `÷3`, `÷4`, `÷7`, `÷11`, etc.).
+    * One-liner bold **Golden Rule** banner.
+    * 3-step numbered bullet roadmap.
+    * Side-by-side color-coded **Pass ✅** and **Fail ❌** example cards with step calculations.
+    * Live test result banner for the currently tested number.
+    * Catchy memory hooks and speed calculation tips.
+- [x] **Division Speed Shortcuts Static Diagrams & Dynamic Numbers**:
+  - Converted all 5 division speed shortcuts to interactive static ruled notebook diagrams with pinch-to-zoom ($0.5\times$ to $2.5\times$) and 2D pan:
+    * `divide_by_5_25`: Multiplicative inversion with presets for $\div 5$, $\div 25$, and $\div 125$.
+    * `divide_by_9_99`: Vedic running sum / Nikhilam cascade with presets for $\div 9$ and $\div 99$.
+    * `factor_division`: Sequential single-digit factor division with presets ($14, 15, 18, 24, 36, 45$).
+    * `reciprocal_division`: Decimal fraction replacement with presets ($0.5, 0.25, 0.2, 0.125, 2.5$).
+    * `flag_division`: Dhvajanka straight division with base digit and flag adjustments.
+  - Implemented `DivisionCustomNumberSheet` with dynamic validation and guidance banners.
+- [x] **Verification**:
+  - `flutter analyze --fatal-infos` clean across the entire codebase (**0 issues**).
+  - Terminology check confirmed 0 occurrences of banned words.
+
+### Phase 8A.3 — Speed Multiplication (Criss-Cross Shortcut Engine) ✅ (Version 1.10.1)
+- [x] **Criss-Cross / Urdhva Tiryagbhyam Multiplication Engine**:
+  - Researched the optimal competitive exam method: Vertically and Crosswise (Urdhva Tiryagbhyam).
+  - Eliminates multi-row scratchpad writing and zero-padding, producing the final product directly into a single line from right to left.
+  - Implemented mathematical convolution algorithm supporting up to 3-digit multiplication:
+    * **2-Digit × 2-Digit (3 Steps)**: Units vertical (`|`), Crosswise product (`X`), Tens vertical (`|`).
+    * **3-Digit × 2-Digit (4 Steps)**: Units vertical (`|`), Right cross (`X`), Left cross + Inner (`X |`), Leftmost vertical (`|`).
+    * **3-Digit × 3-Digit (5 Steps)**: Units vertical (`|`), Right cross (`X`), Star 3-way cross (`*`), Left cross (`X`), Leftmost vertical (`|`).
+- [x] **Interactive Multiplication Notebook Diagram (`MultiplicationStaticDiagram`)**:
+  - Ruled cream notebook paper (`#FFFDF5`) with amber guidelines (`#FDE68A`).
+  - Full pinch-to-zoom ($0.5\times$ to $2.5\times$) and 2D pan with floating controls (`+`, `−`, `1:1`, zoom %).
+  - Individual step cards with visual digit grid:
+    * Top and bottom digits aligned in columns.
+    * Glowing bidirectional arrows indicating the active multiplied pairs: vertical lines in blue (`#2563EB`) and crosswise diagonals in orange (`#F97316`).
+    * Active digits highlighted in bold dark ink; inactive digits softly muted.
+  - Calculation box displaying product terms, subtotals, carries, and green write badge + amber carry badge.
+  - Single-line running answer strip showing digits accumulating from right to left.
+  - Victory celebration banner with final equation and speed advantages note.
+- [x] **Multiplication Custom Numbers Sheet (`MultiplicationCustomNumberSheet`)**:
+  - Modal sheet allowing users to input any $A$ and $B$ (up to 3 digits).
+  - Quick presets:
+    * 2×2: `23 × 42`, `31 × 24`, `47 × 36`, `84 × 23`
+    * 3×2: `312 × 42`, `214 × 32`, `425 × 38`, `624 × 57`
+    * 3×3: `123 × 321`, `231 × 214`, `342 × 256`, `512 × 438`
+  - Randomizer buttons: `Random 2×2`, `Random 3×2`, `Random 3×3`.
+- [x] **3 Dedicated Flagship Lessons in `LessonRegistry`**:
+  - `multiply_2x2`: "2-Digit Multiplication" (Arithmetic, 1 min)
+  - `multiply_3x2`: "3×2 Digit Multiplication" (Arithmetic, 2 min)
+  - `multiply_3x3`: "3-Digit Multiplication" (Arithmetic, 2 min)
+  - Metadata registered in `assets/lessons/lessons_en.json`.
+- [x] **Lesson Screen & Practice Integration**:
+  - Integrated into the 3-tab layout (`Shortcut Board`, `Breakdown & FAQ`, `Practice Shortcut`).
+  - Tailored 6-tier difficulty generators for 2×2, 3×2, and 3×3 (Beginner, Easy, Medium, Hard, Expert, Genius).
+  - Questions Mode (5, 10, 15, 20) and Timer Mode (30s, 60s, 120s).
+  - Dynamic "Show the trick for this problem" during practice review renders `MultiplicationStaticDiagram` for the exact operands.
+  - Smart results lesson navigation in `ResultsScreen` routes missed multiplication questions to the appropriate 2×2, 3×2, or 3×3 lesson.
+- [x] **Verification**:
+  - Clean `flutter analyze --fatal-infos` (0 issues).
+  - Throwaway unit tests passed and cleaned up.
+
+### Phase 8A.2 — Static Shortcut Diagrams, Gesture Isolation & Practice Modes ✅ (Version 1.10.1)
+- [x] **Static Diagram Engine for Addition & Subtraction**:
+  - Removed video player format, animated writing wipes, and pencil sounds.
+  - Implemented 100% static, instantly readable visual diagrams on ruled cream notebook paper (`#FFFDF5`) with amber guidelines (`#FDE68A`).
+  - Pinch-to-zoom (0.5x to 2.5x), horizontal pan, and vertical pan via `InteractiveViewer`.
+  - Floating zoom controls: `+` (Zoom In), `−` (Zoom Out), `1:1` (Reset), and live scale % badge.
+  - Generous top padding ($Y = 36$ for Step 1 badge, $Y = 72$ for problem card, $Y = 145$ for column cards) preventing top border overlap.
+  - Stepped/curved branching arrows that bypass column header text (`HUNDREDS`, `TENS`, `UNITS`) and enter term cards vertically from above.
+  - Cone-shaped downward converging diagonal arrows containing `+` (Addition) or `−` (Subtraction) symbol badges in the center.
+  - Deficit handling for subtraction (e.g. $3 - 7 = -4$ deficit) with left-to-right combination adjustment ($40 - 4 = 36$).
+- [x] **Conflict-Free Segmented Tab UI (Scroll Conflict Resolved)**:
+  - Replaced nested outer scroll view with top Segmented Navigation:
+    * **Tab 0: Shortcut Board**: Notebook canvas inside `Expanded` with zero gesture capture conflicts. Unrestricted pan & zoom. Bottom bar with quick buttons to Step Breakdown and Practice.
+    * **Tab 1: Step Breakdown & FAQs**: Dedicated smoothly scrolling educational guide covering Step 1 Decomposition, Step 2 Mental Place-Value Operations, Step 3 Left-to-Right Combining, Why It Works, and Common Mistakes.
+    * **Tab 2: Practice Shortcut**: Complete practice setup and active testing arena.
+- [x] **Difficulty Levels (Beginner to Genius)**:
+  - Added 6 selectable difficulty levels: `Beginner`, `Easy`, `Medium`, `Hard`, `Expert`, `Genius`.
+  - Difficulty-tailored math generators:
+    * `Beginner`: 2-digit without regrouping / carrying / deficits.
+    * `Easy`: Standard 2-digit numbers.
+    * `Medium`: 2-digit numbers with carrying and deficit columns.
+    * `Hard`: 3-digit and mixed 3+2 digit numbers.
+    * `Expert`: 3-digit and 4-digit speed math calculations.
+    * `Genius`: 4-digit and 5-digit high-speed mental arithmetic.
+- [x] **Examination Modes**:
+  - `Questions Mode`: Configurable questions count (5, 10, 15, 20 questions).
+  - `Timer Mode`: Live countdown timer (30s, 60s, 120s) with live score and auto-advance.
+  - In practice review, "Show the trick for this problem" renders `AdditionStaticDiagram` or `SubtractionStaticDiagram` for the exact numbers.
+- [x] **Researched Subtraction Shortcut**:
+  - Implemented Left-to-Right Place-Value Decomposition with mental deficit resolution.
+  - Registered `subtract_in_parts` in `LessonRegistry` and `assets/lessons/lessons_en.json`.
+  - Custom numbers sheet (`SubtractionCustomNumberSheet`) with presets and custom entry ($A \ge B$, up to 5 digits).
+- [x] **Verification**:
+  - Clean `flutter analyze --fatal-infos` (0 issues).
+  - Throwaway test verified and deleted.
+
+### Phase 8A.1 — Lesson Whiteboard Rebuild & Fixes ✅ (Version 1.10.1)
+- [x] **Vertical Block Layout (No Overlapping)**:
+  - Replaced single-box layout with vertical scrolling notebook paper.
+  - Each step is rendered in its own dedicated block (`LessonBlock`) stacked vertically with clear step headers and separator lines.
+  - Previous steps remain fully visible and readable at 92% opacity (never dimmed to 50% or overlapped).
+- [x] **Pencil Animation & Writing Sound**:
+  - Replaced typewriter wipe with natural handwriting progression and real-time pencil tip overlay.
+  - Added `assets/sounds/pencil_write.wav` looped during active writing animations.
+  - Created `PencilSoundService` with start, stop, volume control, and preview support.
+  - Added "Lesson writing sound" toggle and volume slider in Settings under Sound section.
+- [x] **Sticky Problem Bar & Auto-Scroll**:
+  - Problem statement (e.g. `35² = ?`) stays pinned at the top of the screen during scrolling.
+  - Whiteboard board automatically smoothly scrolls into view as blocks advance.
+  - Controls (Back, Play/Pause, Next/Done, Speed selector) remain fixed at the bottom.
+- [x] **Variant System for Multi-Number Lessons**:
+  - Multi-number lessons (`multiply_by_5_25` and `multiply_by_99`) support dedicated variants:
+    * `multiply_by_5_25`: ×5, ×25, ×75, ×125
+    * `multiply_by_99`: ×9, ×99, ×999
+  - Created `VariantChooser` screen displaying sub-tricks with individual star ratings.
+  - Practice and examples strictly adhere to the chosen variant.
+- [x] **Fresh Numbers on "Try Another Example"**:
+  - "Try another example" generates distinct random numbers and resets to Step 1 with a new drawing animation.
+- [x] **Dynamic "Show the Trick" in Practice**:
+  - "Show the trick" dynamically calculates the shortcut breakdown for the *current* question's operands (not the default featured example).
+  - Added "Watch it drawn on board" button to inspect any practice question animated on the whiteboard.
+- [x] **"Learn Trick" Navigation from Results**:
+  - Mistake list on Results screen correctly passes actual question operands and auto-detected variant to the lesson screen.
+- [x] **All 8 Flagship Builders Modernized**:
+  - `SquaresEnding5Builder`, `AddInPartsBuilder`, `MultiplyBy5And25Builder`, `MultiplyBy11Builder`, `MultiplyBy99Builder`, `Near100MultBuilder`, `SplitPercentagesBuilder`, `FractionPctFriendsBuilder`.
+- [x] **Verification**:
+  - Clean `flutter analyze --fatal-infos` (0 issues).
+  - Version bumped to `1.10.1+17` across `pubspec.yaml` and `AppConstants`.
 
 ### Phase 1 — Project Setup ✅
 - [x] Flutter project with `com.speedmathwithai`, minSdk 24, portrait, no INTERNET

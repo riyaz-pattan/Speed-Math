@@ -1,8 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
+import '../../core/ads/ad_service.dart';
+import '../../core/ads/interstitial_ad_manager.dart';
+import '../../core/ads/widgets/banner_ad_container.dart';
 import '../../core/enums/enums.dart';
+import '../../core/services/notification_service.dart';
+import '../../core/widgets/app_toast.dart';
 import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
 import '../../data/models/session.dart';
 import '../../data/repositories/report_repository.dart';
@@ -10,6 +16,8 @@ import '../../data/repositories/session_repository.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../domain/scoring/xp_calculator.dart';
 import 'widgets/home_report_card.dart';
+import 'widgets/today_habit_card.dart';
+import 'widgets/upgrade_goal_dialog.dart';
 
 /// Home screen displaying time-of-day greeting in a gradient header,
 /// last session summary, and direct topic practice tiles with signature colors.
@@ -23,11 +31,56 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   Session? _lastSession;
   bool _isLoading = true;
+  Timer? _reminderCheckTimer;
+  String? _lastShownInAppReminderMinute;
 
   @override
   void initState() {
     super.initState();
     _loadLastSession();
+    _startReminderCheck();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(AdService.instance.initialize());
+      unawaited(InterstitialAdManager.instance.init());
+    });
+  }
+
+  @override
+  void dispose() {
+    _reminderCheckTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startReminderCheck() {
+    _reminderCheckTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      final now = DateTime.now();
+      // Only evaluate on the exact zeroth second of each minute
+      if (now.second != 0) return;
+
+      final settings = ref.read(settingsRepositoryProvider);
+      if (!settings.remindersEnabled) return;
+
+      final parts = settings.reminderTime.split(':');
+      final remHour = parts.isNotEmpty ? (int.tryParse(parts[0]) ?? 19) : 19;
+      final remMin = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+
+      final currentMinuteKey =
+          '${now.year}-${now.month}-${now.day}_${now.hour}:${now.minute}';
+      if (now.hour == remHour && now.minute == remMin) {
+        if (_lastShownInAppReminderMinute != currentMinuteKey) {
+          _lastShownInAppReminderMinute = currentMinuteKey;
+          AppToast.show(
+            context,
+            message:
+                '⏰ Daily practice reminder: Time for your speed math workout!',
+            type: AppToastType.info,
+          );
+          // If the app is actively open at reminder time, cancel today's system tray notification
+          ref.read(notificationServiceProvider).cancelNotification(100);
+        }
+      }
+    });
   }
 
   Future<void> _loadLastSession() async {
@@ -41,6 +94,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           _lastSession = recent.isNotEmpty ? recent.first : null;
           _isLoading = false;
         });
+        _checkOnboardingOrUpgrade(recent.isNotEmpty);
       }
     } catch (_) {
       if (mounted) {
@@ -48,7 +102,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           _lastSession = null;
           _isLoading = false;
         });
+        _checkOnboardingOrUpgrade(false);
       }
+    }
+  }
+
+  void _checkOnboardingOrUpgrade(bool hasSessions) {
+    final settings = ref.read(settingsRepositoryProvider);
+    if (settings.isOnboardingDone) return;
+
+    if (hasSessions) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) UpgradeGoalDialog.show(context);
+      });
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.go('/onboarding');
+      });
     }
   }
 
@@ -83,77 +153,84 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.canvasBackground,
-      body: RefreshIndicator(
-        onRefresh: _loadLastSession,
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            // Header Sliver
-            SliverToBoxAdapter(
-              child: _buildHeaderArea(),
-            ),
-
-            // Content List
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  // "Last Session" or Welcome Card
-                  if (_isLoading)
-                    const SizedBox(
-                      height: 90,
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  else if (_lastSession != null)
-                    _buildLastSessionCard(_lastSession!, colorScheme)
-                  else
-                    _buildWelcomeCard(colorScheme),
-
-                  const SizedBox(height: 18),
-
-                  // Home Performance Report Summary Card
-                  const HomeReportCard(),
-
-                  const SizedBox(height: 16),
-
-                  // Learn Shortcuts card
-                  _LearnShortcutsCard(),
-
-                  const SizedBox(height: 24),
-
-                  // Practice Topics Section Title
-                  Row(
-                    children: [
-                      Container(
-                        width: 4,
-                        height: 18,
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryColor,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Practice Topics',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.textPrimary,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                    ],
+      body: Column(
+        children: [
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _loadLastSession,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  // Header Sliver
+                  SliverToBoxAdapter(
+                    child: _buildHeaderArea(),
                   ),
-                  const SizedBox(height: 14),
 
-                  // Topic Practice Cards grouped by Arithmetic, Powers & Roots, Applied Maths
-                  _buildTopicGrid(colorScheme),
-                  const SizedBox(height: 24),
-                ]),
+                  // Content List
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        // "Last Session" or Welcome Card
+                        if (_isLoading)
+                          const SizedBox(
+                            height: 90,
+                            child: Center(child: CircularProgressIndicator()),
+                          )
+                        else if (_lastSession != null)
+                          _buildLastSessionCard(_lastSession!, colorScheme)
+                        else
+                          _buildWelcomeCard(colorScheme),
+
+                        const SizedBox(height: 18),
+
+                        // Home Performance Report Summary Card
+                        const HomeReportCard(),
+
+                        const SizedBox(height: 16),
+
+                        // Learn Shortcuts card
+                        _LearnShortcutsCard(),
+
+                        const SizedBox(height: 24),
+
+                        // Practice Topics Section Title
+                        Row(
+                          children: [
+                            Container(
+                              width: 4,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                color: AppTheme.primaryColor,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Practice Topics',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.textPrimary,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Topic Practice Cards grouped by Arithmetic, Powers & Roots, Applied Maths
+                        _buildTopicGrid(colorScheme),
+                        const SizedBox(height: 24),
+                      ]),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+          const BannerAdContainer(),
+        ],
       ),
     );
   }
@@ -247,7 +324,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Master speed and precision for competitive exams',
+                  'Master mental calculations with speed and precision',
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.white.withValues(alpha: 0.88),
@@ -256,6 +333,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 const SizedBox(height: 16),
                 _buildCompactLevelChip(),
+                const SizedBox(height: 14),
+                const TodayHabitCard(),
               ],
             ),
           ),

@@ -1,24 +1,20 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
+import '../../core/ads/widgets/banner_ad_container.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/enums/enums.dart';
 import '../../core/strings/app_strings.dart';
-import 'package:speed_math_with_ai/core/widgets/app_toast.dart';
 import 'package:speed_math_with_ai/core/widgets/empty_state_view.dart';
 import 'package:speed_math_with_ai/core/widgets/screen_header.dart';
 import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
 import '../../data/models/session.dart';
-import '../../data/repositories/attempt_repository.dart';
-import '../../data/repositories/session_repository.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../data/repositories/skill_repository.dart';
 import '../../data/repositories/stats_repository.dart';
 import '../../domain/adaptive/skill_engine.dart';
 import '../../domain/adaptive/skill_rating.dart';
-import 'services/debug_sample_data.dart';
 import 'widgets/history_line_graph.dart';
 
 /// Screen presenting per-topic performance metrics, high scores, top-3 best times,
@@ -181,75 +177,6 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     _loadStats();
   }
 
-  void _showDebugMenu() {
-    if (!kDebugMode) return;
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '🛠️ Debug Sample Data',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                leading: const Icon(Icons.auto_graph_rounded, color: Colors.blue),
-                title: const Text('Generate 60 Days Sample History'),
-                subtitle: Text('For ${_selectedTopic.displayName} (${_selectedDifficulty.displayName})'),
-                onTap: () async {
-                  Navigator.pop(ctx);
-                  final sessionRepo = ref.read(sessionRepositoryProvider);
-                  final attemptRepo = ref.read(attemptRepositoryProvider);
-                  final count = await DebugSampleDataService.generateSampleHistory(
-                    sessionRepo: sessionRepo,
-                    attemptRepo: attemptRepo,
-                    topic: _selectedTopic,
-                    difficulty: _selectedDifficulty,
-                    mode: _selectedMode,
-                    modeValue: _selectedModeValue,
-                  );
-                  if (mounted) {
-                    AppToast.show(
-                      context,
-                      message: 'Generated $count realistic sample sessions!',
-                      type: AppToastType.success,
-                    );
-                    _loadStats();
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete_sweep_rounded, color: Colors.red),
-                title: const Text('Clear All Sample Data'),
-                onTap: () async {
-                  Navigator.pop(ctx);
-                  await DebugSampleDataService.clearAllSampleData();
-                  if (mounted) {
-                    AppToast.show(
-                      context,
-                      message: 'Cleared all database data.',
-                      type: AppToastType.info,
-                    );
-                    _loadStats();
-                  }
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   String _formatDate(DateTime dt) {
     return '${dt.month}/${dt.day}/${dt.year}';
   }
@@ -284,12 +211,6 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                 tooltip: 'History',
                 onPressed: () => context.push('/history'),
               ),
-              if (kDebugMode)
-                HeaderIconButton(
-                  icon: Icons.bug_report_rounded,
-                  tooltip: 'Debug Data',
-                  onPressed: _showDebugMenu,
-                ),
             ],
           ),
           Expanded(
@@ -360,6 +281,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
           ),
         ),
       ),
+      if (!_isLoading) const BannerAdContainer(),
     ],
   ),
 );

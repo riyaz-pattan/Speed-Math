@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/ads/ad_config.dart';
+import '../../core/ads/ad_service.dart';
+import '../../core/ads/interstitial_ad_manager.dart';
 import '../../data/db/database_helper.dart';
 import '../../data/repositories/report_repository.dart';
 import '../../data/repositories/settings_repository.dart';
@@ -230,6 +233,62 @@ class _DataCheckScreenState extends ConsumerState<DataCheckScreen> {
                     if (_lastFetchTime != null)
                       _buildRow('Last queried', _formatTime(_lastFetchTime!)),
                   ],
+                ),
+                const SizedBox(height: 12),
+
+                // AdMob Ads & Privacy Diagnostics Card
+                Consumer(
+                  builder: (context, ref, _) {
+                    final adService = ref.watch(adServiceProvider);
+                    final interstitialManager = InterstitialAdManager.instance;
+                    return _buildCard(
+                      colorScheme,
+                      title: 'Ads & Privacy Diagnostics',
+                      icon: Icons.ads_click_rounded,
+                      children: [
+                        _buildRow(
+                          'AdConfig enabled',
+                          AdConfig.isEnabled ? 'Yes (Active)' : 'No (REPLACE in ID)',
+                          highlight: true,
+                        ),
+                        _buildRow('AdService initialized', adService.isInitialized ? 'Yes' : 'No'),
+                        _buildRow(
+                          'Connectivity status',
+                          adService.isOnline ? 'Online' : 'Offline',
+                          highlight: true,
+                        ),
+                        _buildRow('Consent status', adService.consentStatus),
+                        _buildRow('Privacy choices required', adService.isPrivacyOptionsRequired ? 'Yes' : 'No'),
+                        _buildRow('Last banner result', adService.lastBannerResult),
+                        _buildRow('Last interstitial result', adService.lastInterstitialResult),
+                        const Divider(height: 12),
+                        _buildRow(
+                          'Interstitial ready in cache',
+                          interstitialManager.isLoaded ? 'Yes' : 'No',
+                          highlight: true,
+                        ),
+                        _buildRow(
+                          'Total completed sessions',
+                          interstitialManager.totalCompletedSessions.toString(),
+                        ),
+                        _buildRow(
+                          'Sessions since last interstitial',
+                          '${interstitialManager.sessionsSinceLastInterstitial} / 4',
+                        ),
+                        _buildRow(
+                          'Last interstitial shown',
+                          interstitialManager.lastInterstitialShownTime == 0
+                              ? 'Never'
+                              : _formatTime(DateTime.fromMillisecondsSinceEpoch(
+                                  interstitialManager.lastInterstitialShownTime)),
+                        ),
+                        _buildRow(
+                          'Interstitials shown today',
+                          '${interstitialManager.shownTodayCount} / 3',
+                        ),
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
 

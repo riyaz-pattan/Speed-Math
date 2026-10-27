@@ -126,7 +126,17 @@ class StatsRepository {
       [topic.name, difficulty.name, mode.name, modeValue, limit],
     );
 
-    return results.map((map) => Session.fromMap(map)).toList();
+    final sessions = results.map((map) => Session.fromMap(map)).toList();
+    // Ensure distinct sessions by startedAt timestamp so accidental duplicates never repeat
+    final seen = <String>{};
+    final uniqueSessions = <Session>[];
+    for (final s in sessions) {
+      final key = s.startedAt.toIso8601String();
+      if (seen.add(key)) {
+        uniqueSessions.add(s);
+      }
+    }
+    return uniqueSessions;
   }
 
   /// Retrieves chronological session history for the specified combination of
@@ -155,8 +165,9 @@ class StatsRepository {
       whereArgs.add(since.toIso8601String());
     }
 
+    final List<Map<String, dynamic>> results;
     if (limit != null) {
-      final results = await db.rawQuery(
+      results = await db.rawQuery(
         '''
         SELECT * FROM (
           SELECT * FROM ${DatabaseHelper.tableSessions}
@@ -167,15 +178,24 @@ class StatsRepository {
         ''',
         [...whereArgs, limit],
       );
-      return results.map((map) => Session.fromMap(map)).toList();
+    } else {
+      results = await db.query(
+        DatabaseHelper.tableSessions,
+        where: whereClause,
+        whereArgs: whereArgs,
+        orderBy: 'started_at ASC',
+      );
     }
 
-    final results = await db.query(
-      DatabaseHelper.tableSessions,
-      where: whereClause,
-      whereArgs: whereArgs,
-      orderBy: 'started_at ASC',
-    );
-    return results.map((map) => Session.fromMap(map)).toList();
+    final sessions = results.map((map) => Session.fromMap(map)).toList();
+    final seen = <String>{};
+    final uniqueSessions = <Session>[];
+    for (final s in sessions) {
+      final key = s.startedAt.toIso8601String();
+      if (seen.add(key)) {
+        uniqueSessions.add(s);
+      }
+    }
+    return uniqueSessions;
   }
 }

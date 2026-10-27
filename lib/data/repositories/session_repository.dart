@@ -30,6 +30,24 @@ class SessionRepository {
   /// Returns the generated primary key id.
   Future<int> insertSession(Session session) async {
     final db = await _dbHelper.database;
+    // Guard against identical duplicate session insertion
+    final existing = await db.query(
+      DatabaseHelper.tableSessions,
+      columns: ['id'],
+      where:
+          'started_at = ? AND topic = ? AND difficulty = ? AND total_questions = ?',
+      whereArgs: [
+        session.startedAt.toIso8601String(),
+        session.topic.name,
+        session.difficulty.name,
+        session.totalQuestions,
+      ],
+      limit: 1,
+    );
+    if (existing.isNotEmpty) {
+      return existing.first['id'] as int;
+    }
+
     final id = await db.insert(
       DatabaseHelper.tableSessions,
       session.toMap(),

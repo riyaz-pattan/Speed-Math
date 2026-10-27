@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/ads/interstitial_ad_manager.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/enums/enums.dart';
 import '../../../core/services/sound_service.dart';
@@ -70,7 +71,7 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
   // Idempotency controls to guarantee finishing/saving runs exactly once
   bool _isFinishing = false;
   bool _isFinished = false;
-  Future<PracticeResultData>? _finishFuture;
+  Future<PracticeResultData?>? _finishFuture;
   PracticeResultData? _cachedResultData;
 
   /// Whether the session is currently concluding or has already concluded.
@@ -339,8 +340,15 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
     }
   }
 
+  void _ensureRunning() {
+    if (state.status == PracticeSessionStatus.ready) {
+      start();
+    }
+  }
+
   /// Appends a digit to the current input, checking for auto-advance or wrong tries.
   void inputDigit(String digit) {
+    _ensureRunning();
     if (state.status != PracticeSessionStatus.running || _isFinishing || _isFinished) return;
     if (state.currentInput.length >= 8) return; // Prevent overflow
 
@@ -376,6 +384,7 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
 
   /// Inserts the '/' separator for fraction answers.
   void inputSlash() {
+    _ensureRunning();
     if (state.status != PracticeSessionStatus.running || _isFinishing || _isFinished) return;
     if (!state.currentQuestion.isFractionAnswer) return;
     if (state.currentInput.isEmpty || state.currentInput.contains('/')) return;
@@ -384,6 +393,7 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
 
   /// Toggles or sets negative sign if applicable.
   void inputMinus() {
+    _ensureRunning();
     if (state.status != PracticeSessionStatus.running || _isFinishing || _isFinished) return;
     if (state.currentInput.isEmpty) {
       state = state.copyWith(currentInput: '-');
@@ -394,6 +404,7 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
 
   /// Removes the last typed character.
   void deleteDigit() {
+    _ensureRunning();
     if (state.status != PracticeSessionStatus.running || _isFinishing || _isFinished) return;
     if (state.currentInput.isNotEmpty) {
       state = state.copyWith(
@@ -405,12 +416,14 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
 
   /// Clears the entire current input.
   void clearInput() {
+    _ensureRunning();
     if (state.status != PracticeSessionStatus.running || _isFinishing || _isFinished) return;
     state = state.copyWith(currentInput: '');
   }
 
   /// Submits the current typed answer manually.
   void submit() {
+    _ensureRunning();
     if (state.status != PracticeSessionStatus.running || _isFinishing || _isFinished) return;
     if (state.currentInput.isEmpty || state.currentInput == '-') return;
 
@@ -439,6 +452,7 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
   /// If there was a wrong try, it counts as wrong (not skipped).
   /// If there was no wrong try, it counts as skipped.
   void skip() {
+    _ensureRunning();
     if (state.status != PracticeSessionStatus.running || _isFinishing || _isFinished) return;
 
     final timeMs = state.currentQuestionElapsedMs;
@@ -703,70 +717,94 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
   /// Strictly idempotent: runs exactly once even if called multiple times or
   /// concurrently from different triggers (e.g. timer expiring, question count reaching limit,
   /// and UI state listeners).
-  Future<PracticeResultData> finishSession() {
+  Future<PracticeResultData> finishSession() async {
     if (_finishFuture != null) {
-      return _finishFuture!;
+      final res = await _finishFuture!;
+      return res!;
     }
     if (_cachedResultData != null) {
-      return Future.value(_cachedResultData!);
+      return _cachedResultData!;
     }
     if (_isFinished) {
-      return Future.error(StateError('Session is already finished'));
+      throw StateError('Session is already finished');
+    }
+    if (_isFinishing) {
+      if (_finishFuture != null) {
+        final res = await _finishFuture!;
+        return res!;
+      }
+      if (_cachedResultData != null) return _cachedResultData!;
     }
     _isFinishing = true;
     _stopTicker();
 
     _flushCurrentQuestionIfWrongTryOnScreen();
 
-    state = state.copyWith(status: PracticeSessionStatus.completed);
-    final future = _saveSessionData(completed: true);
-    _finishFuture = future;
+    final completer = Completer<PracticeResultData>();
+    _finishFuture = completer.future;
 
-    return future.then((result) {
+    state = state.copyWith(status: PracticeSessionStatus.completed);
+
+    _saveSessionData(completed: true).then((result) {
       _cachedResultData = result;
       _isFinished = true;
-      return result;
-    }).catchError((error) {
+      _isFinishing = false;
+      completer.complete(result);
+    }).catchError((error, stackTrace) {
       _isFinishing = false;
       _finishFuture = null;
-      throw error;
+      completer.completeError(error, stackTrace);
     });
+
+    return completer.future;
   }
 
   /// User leaves early. Incomplete data is saved if at least 1 attempt occurred.
   ///
   /// Strictly idempotent: runs exactly once even if called multiple times.
-  Future<PracticeResultData?> quit() {
+  Future<PracticeResultData?> quit() async {
     if (_finishFuture != null) {
-      return _finishFuture!;
+      return await _finishFuture!;
+    }
+    if (_cachedResultData != null) {
+      return _cachedResultData;
     }
     if (_isFinished) {
-      return Future.value(_cachedResultData);
+      return _cachedResultData;
+    }
+    if (_isFinishing) {
+      if (_finishFuture != null) return await _finishFuture!;
+      if (_cachedResultData != null) return _cachedResultData;
     }
     _isFinishing = true;
     _stopTicker();
 
     _flushCurrentQuestionIfWrongTryOnScreen();
 
+    final completer = Completer<PracticeResultData?>();
+    _finishFuture = completer.future;
+
     state = state.copyWith(status: PracticeSessionStatus.abandoned);
 
     if (state.attempts.isEmpty) {
       _isFinished = true;
-      return Future.value(null);
+      _isFinishing = false;
+      completer.complete(null);
+      return null;
     }
 
-    final future = _saveSessionData(completed: false);
-    _finishFuture = future;
-
-    return future.then((result) {
+    _saveSessionData(completed: false).then((result) {
       _cachedResultData = result;
       _isFinished = true;
-      return result;
-    }).catchError((error) {
+      _isFinishing = false;
+      completer.complete(result);
+    }).catchError((error, stackTrace) {
       _isFinishing = false;
       _finishFuture = null;
-      throw error;
+      completer.completeError(error, stackTrace);
     });
+
+    return completer.future;
   }
 
   /// Discards the session completely: nothing is saved to database,
@@ -837,6 +875,9 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
   }
 
   Future<PracticeResultData> _saveSessionData({required bool completed}) async {
+    if (completed) {
+      unawaited(InterstitialAdManager.instance.onSessionCompleted());
+    }
     final attemptResults = state.attempts
         .map((a) => AttemptResult(
               isCorrect: a.isCorrect,

@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
+import '../../core/ads/widgets/banner_ad_container.dart';
 import '../../core/enums/enums.dart';
 import 'package:speed_math_with_ai/core/widgets/screen_header.dart';
 import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
+import '../../data/repositories/habit_repository.dart';
 import '../../data/repositories/report_repository.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../domain/report/report_constants.dart';
@@ -85,64 +87,75 @@ class ReportScreen extends ConsumerWidget {
                   return _buildEmptyState(context, ref, data.totalQuestionsAllTime);
                 }
 
-                return RefreshIndicator(
-                  onRefresh: () async {
-                    ref.invalidate(reportDataProvider);
-                    await ref.read(reportViewModelProvider.future);
-                  },
-                  child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    children: [
-                      // Early Report banner (10-40 questions)
-                      if (data.isEarlyReport) ...[
-                        _buildEarlyReportBanner(context, data),
-                        const SizedBox(height: 14),
-                      ],
+                return Column(
+                  children: [
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: () async {
+                          ref.invalidate(reportDataProvider);
+                          await ref.read(reportViewModelProvider.future);
+                        },
+                        child: ListView(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          children: [
+                            // Early Report banner (10-40 questions)
+                            if (data.isEarlyReport) ...[
+                              _buildEarlyReportBanner(context, data),
+                              const SizedBox(height: 14),
+                            ],
 
-                      // 1. Speed Score hero card
-                      _buildSpeedScoreHero(context, data, text),
-                      const SizedBox(height: 18),
+                            // 1. Speed Score hero card
+                            _buildSpeedScoreHero(context, data, text),
+                            const SizedBox(height: 18),
 
-                      // 2. Today's Plan (~15 min)
-                      _buildTodaysPlanSection(context, ref, plan, text),
-                      const SizedBox(height: 18),
+                            // 2. Today's Plan (~15 min)
+                            _buildTodaysPlanSection(context, ref, plan, text),
+                            const SizedBox(height: 18),
 
-                      // 3. This week vs last week (hidden if 0 questions in both windows)
-                      if (data.weeklyComparison.currentWindow.questionsAnswered > 0 ||
-                          data.weeklyComparison.previousWindow.questionsAnswered > 0) ...[
-                        _buildWeeklyComparison(context, data, text),
-                        const SizedBox(height: 18),
-                      ],
+                            // 3. This week vs last week (hidden if 0 questions in both windows)
+                            if (data.weeklyComparison.currentWindow.questionsAnswered > 0 ||
+                                data.weeklyComparison.previousWindow.questionsAnswered > 0) ...[
+                              _buildWeeklyComparison(context, data, text),
+                              const SizedBox(height: 18),
+                            ],
 
-                      // 4. Strong areas (hidden if empty)
-                      if (data.strongAreas.isNotEmpty) ...[
-                        _buildStrongAreas(context, data),
-                        const SizedBox(height: 18),
-                      ],
+                            // Habits & Consistency
+                            _buildHabitsSection(context, ref),
+                            const SizedBox(height: 18),
 
-                      // 5. Needs work (hidden if empty)
-                      if (data.weakAreas.isNotEmpty) ...[
-                        _buildWeakAreas(context, data),
-                        const SizedBox(height: 18),
-                      ],
+                            // 4. Strong areas (hidden if empty)
+                            if (data.strongAreas.isNotEmpty) ...[
+                              _buildStrongAreas(context, data),
+                              const SizedBox(height: 18),
+                            ],
 
-                      // 6. Improving and Slipping (hidden if both empty)
-                      if (text.improving != null || text.slipping != null) ...[
-                        _buildTrendsSection(context, data, text),
-                        const SizedBox(height: 18),
-                      ],
+                            // 5. Needs work (hidden if empty)
+                            if (data.weakAreas.isNotEmpty) ...[
+                              _buildWeakAreas(context, data),
+                              const SizedBox(height: 18),
+                            ],
 
-                      // 7. Topic table in topic colors
-                      _buildTopicTable(context, data),
-                      const SizedBox(height: 18),
+                            // 6. Improving and Slipping (hidden if both empty)
+                            if (text.improving != null || text.slipping != null) ...[
+                              _buildTrendsSection(context, data, text),
+                              const SizedBox(height: 18),
+                            ],
 
-                      // 8. Mistakes summary (hidden if 0 mistakes)
-                      if (data.mistakeSummary.totalMistakes > 0) ...[
-                        _buildMistakesSummary(context, ref, data),
-                        const SizedBox(height: 24),
-                      ],
-                    ],
-                  ),
+                            // 7. Topic table in topic colors
+                            _buildTopicTable(context, data),
+                            const SizedBox(height: 18),
+
+                            // 8. Mistakes summary (hidden if 0 mistakes)
+                            if (data.mistakeSummary.totalMistakes > 0) ...[
+                              _buildMistakesSummary(context, ref, data),
+                              const SizedBox(height: 24),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                    const BannerAdContainer(),
+                  ],
                 );
               },
             ),
@@ -343,12 +356,162 @@ class ReportScreen extends ConsumerWidget {
         const SizedBox(height: 12),
         ...plan.blocks.map((block) => _buildPlanBlockCard(context, ref, block)),
         const SizedBox(height: 6),
+        if (plan.isAllCompleted) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppTheme.successColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.check_circle_rounded, size: 16, color: AppTheme.successColor),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "All plan blocks completed! Your daily habit is in great shape.",
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.successColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+        ],
         Text(
           text.closingPush,
           style: const TextStyle(
             fontSize: 12.5,
             fontStyle: FontStyle.italic,
             color: AppTheme.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // --- Habits & Consistency Section ---
+  Widget _buildHabitsSection(BuildContext context, WidgetRef ref) {
+    final habitDataAsync = ref.watch(habitDataProvider);
+    final habitData = habitDataAsync.valueOrNull;
+    if (habitData == null) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 4,
+              height: 16,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF97316),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'Habits & Consistency',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        TactileCard(
+          padding: const EdgeInsets.all(16),
+          borderRadius: AppTheme.radiusLg,
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildHabitStat(
+                      icon: Icons.local_fire_department_rounded,
+                      iconColor: const Color(0xFFEA580C),
+                      label: 'Current streak',
+                      value: '${habitData.streakDays} ${habitData.streakDays == 1 ? "day" : "days"}',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildHabitStat(
+                      icon: Icons.emoji_events_rounded,
+                      iconColor: const Color(0xFFF59E0B),
+                      label: 'Longest streak',
+                      value: '${habitData.longestStreak} ${habitData.longestStreak == 1 ? "day" : "days"}',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              const Divider(height: 1, color: AppTheme.borderLight),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildHabitStat(
+                      icon: Icons.calendar_month_rounded,
+                      iconColor: AppTheme.primaryColor,
+                      label: 'Active (30 days)',
+                      value: '${habitData.activeDaysPast30} / 30 days',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildHabitStat(
+                      icon: Icons.timelapse_rounded,
+                      iconColor: const Color(0xFF10B981),
+                      label: 'Avg per active day',
+                      value: '${habitData.averageMinutesPerActiveDay.toStringAsFixed(1)} min',
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHabitStat({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required String value,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 16, color: iconColor),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.textPrimary,
           ),
         ),
       ],

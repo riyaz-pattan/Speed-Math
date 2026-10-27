@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math' as math;
 import '../../core/enums/enums.dart';
+import '../../features/learn/engine/lesson_registry.dart';
 import '../../features/practice_session/models/practice_models.dart';
 import '../questions/session_random.dart';
 import 'coach_constants.dart';
@@ -61,6 +62,7 @@ class CoachComposer {
     required CoachIntent intent,
     required CoachSlots slots,
     required CoachContext context,
+    String? rawQuery,
   }) {
     assert(_initialized, 'CoachComposer must be initialized before compose()');
 
@@ -85,7 +87,9 @@ class CoachComposer {
       case CoachIntent.unknown:
         return _composeUnknown(slots);
       case CoachIntent.learn:
-        return _composeLearn(slots);
+        return _composeLearn(slots, rawQuery: rawQuery);
+      case CoachIntent.habits:
+        return _composeHabits(context, slots);
       default:
         break;
     }
@@ -1005,8 +1009,278 @@ class CoachComposer {
     return '${pct.toStringAsFixed(0)}%';
   }
 
-  CoachReply _composeLearn(CoachSlots slots) {
+  CoachReply _composeLearn(CoachSlots slots, {String? rawQuery}) {
+    final query = (rawQuery ?? '').toLowerCase();
+    final topic = slots.topic;
+
+    // 1. Multiply by 11
+    if (query.contains('11') || query.contains('eleven')) {
+      return CoachReply(
+        text:
+            'Shortcut for × 11:\nWrite the outer digits and insert their sum in the middle!\nFor example: 35 × 11 → write 3 _ 5, sum is 3 + 5 = 8 → 385.\nIf the sum is 10 or more (like 67 × 11: 6 + 7 = 13), write 3 in the middle and carry 1 to the tens: 6 + 1 = 7 → 737!',
+        intent: CoachIntent.learn,
+        slots: slots,
+        actions: const [
+          CoachAction(
+            label: 'Open Multiply by 11 Shortcut',
+            type: CoachActionType.openLearn,
+            payload: 'multiply_by_11',
+          ),
+        ],
+      );
+    }
+
+    // 2. Multiply by 99 / 9 / 999
+    if (query.contains('99') ||
+        query.contains('999') ||
+        query.contains('multiply by 9')) {
+      return CoachReply(
+        text:
+            'Shortcut for × 99 / 999:\nThink of 99 as (100 − 1). Multiply by 100 first (append two zeros), then subtract the original number!\nFor example: 47 × 99 = 4,700 − 47 = 4,653. Completed in seconds entirely in your head!',
+        intent: CoachIntent.learn,
+        slots: slots,
+        actions: const [
+          CoachAction(
+            label: 'Open Multiply by 99 Shortcut',
+            type: CoachActionType.openLearn,
+            payload: 'multiply_by_99',
+          ),
+        ],
+      );
+    }
+
+    // 3. Multiply by 5 / 25 / 125
+    if (query.contains(' 5') ||
+        query.contains('25') ||
+        query.contains('125') ||
+        query.contains('power of 5')) {
+      return CoachReply(
+        text:
+            'Shortcut for × 5 and × 25:\nHalving is much faster than multiplying!\n• For × 5: halve the number and multiply by 10 (e.g. 48 × 5 = 24 × 10 = 240).\n• For × 25: divide by 4 and multiply by 100 (e.g. 48 × 25 = 12 × 100 = 1,200)!',
+        intent: CoachIntent.learn,
+        slots: slots,
+        actions: const [
+          CoachAction(
+            label: 'Open Multiply by 5 & 25 Shortcut',
+            type: CoachActionType.openLearn,
+            payload: 'multiply_by_5_25',
+          ),
+        ],
+      );
+    }
+
+    // 4. Near 100 Multiplication
+    if (query.contains('near 100') ||
+        query.contains('close to 100') ||
+        query.contains('base 100 mult')) {
+      return CoachReply(
+        text:
+            'Shortcut for Near-100 Multiplication:\nFor numbers close to 100 (like 97 × 94): find the gaps from 100 (3 and 6).\n• Cross-subtract: 97 − 6 = 91 (the left part).\n• Multiply the gaps: 3 × 6 = 18 (the right part).\nCombine: 9,118!',
+        intent: CoachIntent.learn,
+        slots: slots,
+        actions: const [
+          CoachAction(
+            label: 'Open Near-100 Shortcut',
+            type: CoachActionType.openLearn,
+            payload: 'near_100_mult',
+          ),
+        ],
+      );
+    }
+
+    // 5. Squares ending in 5
+    if (query.contains('ending in 5') ||
+        query.contains('ending with 5') ||
+        query.contains('square 5') ||
+        query.contains('squares 5')) {
+      return CoachReply(
+        text:
+            'Shortcut for Squares Ending in 5:\nTake the tens prefix (k), multiply by (k + 1), and append 25!\nFor example: 35² → 3 × (3 + 1) = 3 × 4 = 12, append 25 → 1,225.\nFor 75² → 7 × 8 = 56, append 25 → 5,625!',
+        intent: CoachIntent.learn,
+        slots: slots,
+        actions: const [
+          CoachAction(
+            label: 'Open Squares Ending in 5 Shortcut',
+            type: CoachActionType.openLearn,
+            payload: 'squares_ending_5',
+          ),
+        ],
+      );
+    }
+
+    // 6. Base Squaring (Base 25, 50, 100, 150, 200)
+    if (query.contains('base 50') ||
+        query.contains('base 100') ||
+        query.contains('base 25') ||
+        query.contains('base 150') ||
+        query.contains('base 200') ||
+        query.contains('base square')) {
+      return CoachReply(
+        text:
+            'Base Squaring Shortcut:\n• Near 50 (e.g. 54²): Base = 50, deviation d = +4. Add deviation to 25: 25 + 4 = 29. Square deviation: 4² = 16 → 2,916!\n• Near 100 (e.g. 96²): Deviation d = −4. Subtract from number: 96 − 4 = 92. Square deviation: 4² = 16 → 9,216!',
+        intent: CoachIntent.learn,
+        slots: slots,
+        actions: const [
+          CoachAction(
+            label: 'Open Base Squaring Shortcuts',
+            type: CoachActionType.openLearn,
+            payload: 'squares',
+          ),
+        ],
+      );
+    }
+
+    // 7. Criss-Cross Multiplications (2x2, 3x2, 3x3)
+    if (query.contains('criss') ||
+        query.contains('cross') ||
+        query.contains('2x2') ||
+        query.contains('3x2') ||
+        query.contains('3x3') ||
+        (topic == Topic.multiplication && query.contains('trick'))) {
+      return CoachReply(
+        text:
+            'Criss-Cross Vedic Multiplication:\nComputes the product in a single line without scratch work:\n1) Multiply units columns.\n2) Cross-multiply tens and units and add with carry.\n3) Multiply tens columns and add carry.\nExplore all 2×1, 2×2, 3×2, and 3×3 ruled notebooks with live carry arrows in Learn Shortcuts!',
+        intent: CoachIntent.learn,
+        slots: slots,
+        actions: const [
+          CoachAction(
+            label: 'Open Multiplication Shortcuts',
+            type: CoachActionType.openLearn,
+            payload: 'multiplication',
+          ),
+        ],
+      );
+    }
+
+    // 8. Split Percentages
+    if (query.contains('split percent') ||
+        query.contains('split %') ||
+        (topic == Topic.percentages && query.contains('trick'))) {
+      return CoachReply(
+        text:
+            'Split Percentages Shortcut:\nInstead of doing decimal long multiplication, break percentages into easy benchmarks:\n• 50% (half)\n• 25% (quarter)\n• 10% (move decimal 1 place left)\n• 5% (half of 10%)\n• 1% (move decimal 2 places left)\nFor example: 35% of 240 = 3 × (10% of 240) + 5% = 3 × 24 + 12 = 72 + 12 = 84!',
+        intent: CoachIntent.learn,
+        slots: slots,
+        actions: const [
+          CoachAction(
+            label: 'Open Split Percentages Shortcut',
+            type: CoachActionType.openLearn,
+            payload: 'split_percentages',
+          ),
+        ],
+      );
+    }
+
+    // 9. Fraction to Percentages / Reciprocals
+    if (query.contains('fraction') ||
+        query.contains('reciprocal') ||
+        query.contains('percent to fraction')) {
+      return CoachReply(
+        text:
+            'Fraction ↔ Percentage Friends:\nMemorise key fraction reciprocal pairs to skip slow division entirely:\n• 1/2 = 50%   • 1/4 = 25%   • 3/4 = 75%\n• 1/8 = 12.5% • 3/8 = 37.5% • 5/8 = 62.5% • 7/8 = 87.5%\n• 1/3 = 33.33% • 2/3 = 66.67% • 1/6 = 16.67% • 1/7 ≈ 14.28%',
+        intent: CoachIntent.learn,
+        slots: slots,
+        actions: const [
+          CoachAction(
+            label: 'Open Fraction–% Shortcuts',
+            type: CoachActionType.openLearn,
+            payload: 'fraction_pct_friends',
+          ),
+        ],
+      );
+    }
+
+    // 10. Division Shortcuts
+    if (query.contains('division') ||
+        query.contains('divide') ||
+        query.contains('factor division') ||
+        topic == Topic.division) {
+      return CoachReply(
+        text:
+            'Division Shortcuts:\n• Divide by 5: Double the number and divide by 10 (e.g. 140 ÷ 5 = 280 ÷ 10 = 28).\n• Factor Division: For composite divisors (14, 15, 18, 24, 36, 45), break into single digits and divide sequentially: 1,620 ÷ 45 = (1,620 ÷ 9) ÷ 5 = 180 ÷ 5 = 36!',
+        intent: CoachIntent.learn,
+        slots: slots,
+        actions: const [
+          CoachAction(
+            label: 'Open Division Shortcuts',
+            type: CoachActionType.openLearn,
+            payload: 'division',
+          ),
+        ],
+      );
+    }
+
+    // 11. General Squares
+    if (topic == Topic.squares) {
+      return CoachReply(
+        text:
+            'Squares & Roots Shortcuts:\nMaster rapid mental squaring with two core techniques:\n1) Numbers ending in 5: multiply tens by (tens + 1) and append 25 (35² = 1,225).\n2) Base Squaring: use deviations from bases 25, 50, 100, 150, and 200 to square any 2 or 3-digit number in under 3 seconds!',
+        intent: CoachIntent.learn,
+        slots: slots,
+        actions: const [
+          CoachAction(
+            label: 'Open Squares Shortcuts',
+            type: CoachActionType.openLearn,
+            payload: 'squares',
+          ),
+        ],
+      );
+    }
+
+    // 12. General fallback
     final text = _getVariant('learn', {});
-    return CoachReply(text: text, intent: CoachIntent.learn, slots: slots);
+    String? lessonPath;
+    if (topic != null) {
+      if (topic == Topic.multiplication) {
+        lessonPath = 'multiplication';
+      } else if (topic == Topic.division) {
+        lessonPath = 'division';
+      } else if (topic == Topic.squares) {
+        lessonPath = 'squares';
+      } else {
+        final lessons = LessonRegistry.forTopic(topic);
+        if (lessons.isNotEmpty) {
+          lessonPath = lessons.first.id;
+        }
+      }
+    }
+    return CoachReply(
+      text: text,
+      intent: CoachIntent.learn,
+      slots: slots,
+      actions: [
+        CoachAction(
+          label: 'Open Learn Shortcuts',
+          type: CoachActionType.openLearn,
+          payload: lessonPath,
+        ),
+      ],
+    );
+  }
+
+  CoachReply _composeHabits(CoachContext context, CoachSlots slots) {
+    final habit = context.habitData;
+    final streak = habit?.streakDays ?? 0;
+    final longest = habit?.longestStreak ?? 0;
+    final minsToday = habit?.practiceMinutesToday ?? 0;
+    final goal = habit?.dailyGoalMinutes ?? 10;
+    final activeMonth = habit?.activeDaysPast30 ?? 0;
+    final weekMins = habit?.weekPracticeMinutes ?? 0;
+
+    final vars = {
+      'streak': '$streak',
+      'longest_streak': '$longest',
+      'minutes_today': '$minsToday',
+      'goal_minutes': '$goal',
+      'active_days_month': '$activeMonth',
+      'week_minutes': '$weekMins',
+    };
+
+    final text = _getVariant('habits', vars);
+    return CoachReply(
+      text: text,
+      intent: CoachIntent.habits,
+      slots: slots,
+    );
   }
 }

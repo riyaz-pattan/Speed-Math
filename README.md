@@ -1,16 +1,11 @@
-# speed_math_with_ai
+# Mental Calculation Tricks (Adaptive Coach)
 
-A new Flutter project.
+Master rapid mental calculation shortcuts and techniques with clean visual diagrams, adaptive daily drills, and an on-device Adaptive Coach.
 
-## Getting Started
+## Features
+- **Privacy First**: Practice works offline. Your practice data stays on your phone. Ads, when you are online, are provided by Google AdMob. No user accounts required.
+- **Mental Calculation Shortcuts**: Visual notebooks for multiplication (Criss-Cross, 11s, 5/25, 99s, near 100), straight division, squaring bases (ending in 5, base 25, 50, 100, 150, 200), and benchmark percentages.
+- **Adaptive Daily Drills**: Practice that adapts to speed and tracks accuracy across 16 math topics.
+- **Adaptive Coach**: On-device performance analysis and calculation tips.
+- **Habit Tracking**: Local streak tracking and gentle daily reminders.
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.

@@ -1,4 +1,4 @@
-# DESIGN SYSTEM: SPEED MATH (EXPRESSIVE TACTILE)
+# DESIGN SYSTEM: SPEED MATH PRO / MENTAL CALCULATION TRICKS (EXPRESSIVE TACTILE)
 
 ## 1. Design Philosophy
 - **Style**: Modern Expressive Tactile (Material 3 Expressive + Clean Micro-Tactility).
@@ -84,3 +84,13 @@
 - **Durations**: Fast 180–220ms for micro-interactions; 250–300ms for screen / modal transitions.
 - **Tactile Response**: Subtle scale factor `0.975` on press for interactive cards and primary buttons.
 - **Practice Session**: Strictly zero typing animation delays, zero screen shake or red flash on wrong tries.
+
+## 7. Static Ruled Notebook Design (Learn Section)
+- **Paper Canvas**: Light ruled cream notebook paper (`#FFFDF5`) with subtle amber horizontal rules (`#FDE68A`, 28dp pitch) and red margin rule (`#EF4444`, 12% opacity).
+- **Navigation & Layout**: Static step blocks (no typewriter animations, no writing sounds). Horizontal and vertical 2D scrolling with interactive pinch-to-zoom ($0.5\times$ to $2.5\times$) and floating zoom controls (`+`, `−`, `1:1`, zoom percentage pill).
+- **Diagrams & Typography**: High-contrast Slate 900 mathematical symbols, distinct step badges, mental calculation callout boxes, and non-overlapping horizontal progression arrows.
+
+## 8. Habit & Onboarding Components
+- **Today Habit Card**: Compact Home card below the level badge featuring an SVG-style circular progress ring (`#4F46E5`), day streak badge with flame icon (animation disabled when game effects are toggled off), and a 7-day strip (Mon–Sun) with active dots and goal-completed rings. Tapping opens a bottom sheet with comprehensive streak and time metrics.
+- **First-Run Setup Wizard**: 4-step clean onboarding modal on fresh installs (Welcome 100% offline, Daily goal with presets, Reminder time & permission flow, and optional 12-question starting level check). Always skippable at any step.
+- **Upgrade Goal Dialog**: Compact single-step dialog shown on the first app launch after an upgrade for users who already have existing practice sessions.

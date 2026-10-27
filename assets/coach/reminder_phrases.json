@@ -1,0 +1,234 @@
+{
+  "daily_motivation": [
+    {
+      "title": "Daily Brain Warmup ⚡",
+      "body": "A quick 3-minute mental math drill keeps your calculation reflexes sharp and effortless."
+    },
+    {
+      "title": "Stay Sharp, Calculate Fast 🎯",
+      "body": "Spend a few minutes with numbers today and feel your calculation speed accelerate."
+    },
+    {
+      "title": "Master Numbers Daily 🧠",
+      "body": "Mental agility compounds every single day. Take a quick drill to level up your speed."
+    },
+    {
+      "title": "Quick Mental Workout ⚡",
+      "body": "Challenge your working memory with a quick math sprint. Ready when you are!"
+    },
+    {
+      "title": "Power Up Your Mental Math 🚀",
+      "body": "A short practice session today keeps your arithmetic instincts quick and accurate."
+    },
+    {
+      "title": "Keep Your Calculation Edge 💡",
+      "body": "Just 5 minutes of rapid calculation makes large numbers feel second nature."
+    },
+    {
+      "title": "Daily Calculation Focus 🎯",
+      "body": "Clear your mind and warm up with a quick set of mental calculation questions."
+    },
+    {
+      "title": "Speed & Accuracy Check ✨",
+      "body": "Test your calculation reflexes today. Can you beat your best response time?"
+    },
+    {
+      "title": "Unlock Rapid Shortcuts 🔓",
+      "body": "Every practice session reinforces powerful calculation shortcuts. Jump in for a quick drill!"
+    },
+    {
+      "title": "Consistency Builds Speed 🏆",
+      "body": "Top mental calculators practice a few minutes every day. Let's do today's drill!"
+    },
+    {
+      "title": "Sharpen Your Arithmetic ⚡",
+      "body": "Give your brain a quick boost. Work through a handful of rapid-fire questions."
+    },
+    {
+      "title": "Fast Math, Sharp Focus 🧠",
+      "body": "A brief mental math session is the perfect brain exercise for today."
+    },
+    {
+      "title": "Elevate Your Mental Pace 🌟",
+      "body": "Rapid calculation is a muscle. Give it a quick 3-minute workout today."
+    },
+    {
+      "title": "Ready for a Quick Drill? ⚡",
+      "body": "A fresh set of speed math questions is waiting. Test your speed today!"
+    },
+    {
+      "title": "Mental Agility Workout 🎯",
+      "body": "Keep numbers moving smoothly. A short practice run keeps your thinking agile."
+    },
+    {
+      "title": "Precision & Speed Today 💡",
+      "body": "Sharpen your estimation and exact arithmetic with a rapid 5-minute session."
+    },
+    {
+      "title": "Compound Your Skills 🚀",
+      "body": "Small daily drills lead to effortless mental calculation fluency over time."
+    },
+    {
+      "title": "Brain Spark: Quick Math ⚡",
+      "body": "Wake up your calculation instincts with a quick series of speed math challenges."
+    },
+    {
+      "title": "Keep Your Reflexes Quick 🎯",
+      "body": "Practice today to keep number patterns clear and mental math intuitive."
+    },
+    {
+      "title": "Daily Math Sprint 🏃",
+      "body": "A quick 10-question sprint is ready. Hop in and set a brand-new personal best!"
+    },
+    {
+      "title": "Time for Mental Math 🌟",
+      "body": "Your daily calculation workout is ready whenever you want a quick mental stretch."
+    }
+  ],
+  "streak_motivation": [
+    {
+      "title": "Keep your {streak}-day streak alive! 🔥",
+      "body": "You are on a {streak}-day streak! 3 to 5 minutes today keeps your momentum going strong."
+    },
+    {
+      "title": "Streak Alert: Day {streak_plus_one} awaits! ⚡",
+      "body": "Don't break the chain! Complete a quick drill today to extend your streak to {streak_plus_one} days."
+    },
+    {
+      "title": "Protect your {streak}-day momentum 🏆",
+      "body": "You are building serious calculation consistency. A quick practice session locks in today's streak."
+    },
+    {
+      "title": "{streak} days strong! Keep climbing 🚀",
+      "body": "Every consecutive day makes mental calculation easier and faster. Extend your streak to {streak_plus_one} today!"
+    },
+    {
+      "title": "Unstoppable: Day {streak_plus_one} 🎯",
+      "body": "You've practiced {streak} days in a row! Keep the rhythm going with a quick session."
+    },
+    {
+      "title": "Your {streak}-day streak is calling 🔥",
+      "body": "Take 3 minutes today to keep your streak intact and your calculations sharp."
+    },
+    {
+      "title": "Streak Champion in the making 🌟",
+      "body": "Day {streak_plus_one} is within reach! Knock out a short practice drill to keep your streak alive."
+    },
+    {
+      "title": "Don't stop now: {streak} days! ⚡",
+      "body": "You're on fire! A fast 5-minute workout keeps your {streak}-day streak thriving."
+    },
+    {
+      "title": "Keep the fire burning: Day {streak_plus_one} 🔥",
+      "body": "You have completed {streak} days of practice. Extend your streak today with a quick drill."
+    },
+    {
+      "title": "Consistency is your superpower 🏆",
+      "body": "Protect your {streak}-day streak today with a quick arithmetic sprint."
+    },
+    {
+      "title": "One drill preserves your streak ⚡",
+      "body": "You're on a {streak}-day run! A couple of minutes today keeps the streak shining."
+    },
+    {
+      "title": "Keep the rhythm: Day {streak_plus_one} 🎯",
+      "body": "Great habits build great speed. Jump in for a quick session to reach day {streak_plus_one}."
+    },
+    {
+      "title": "{streak} days and counting! 🚀",
+      "body": "Your calculation reflexes are sharper than ever. Keep the streak active today!"
+    },
+    {
+      "title": "Maintain the streak! 🔥",
+      "body": "A brief mental math session today keeps your {streak}-day streak proud and active."
+    }
+  ],
+  "comeback_motivation": [
+    {
+      "title": "Ready to restart your rhythm? ⚡",
+      "body": "Mental math reflexes bounce right back after just one quick warm-up drill."
+    },
+    {
+      "title": "Jump back in anytime! 💡",
+      "body": "A relaxed 3-minute session today is all it takes to rebuild your calculation pace."
+    },
+    {
+      "title": "A fresh start with numbers 🌟",
+      "body": "Hop into an easy drill whenever you have a moment — no pressure, just quick practice."
+    },
+    {
+      "title": "Sharpen your skills today 🧠",
+      "body": "Your mental math workout is ready whenever you want a quick mental stretch."
+    },
+    {
+      "title": "Pick up where you left off 🎯",
+      "body": "A few gentle practice questions will get your calculation speed right back on track."
+    },
+    {
+      "title": "Good time for a warmup ⚡",
+      "body": "Take 3 minutes to refresh your calculation reflexes and rebuild your daily habit."
+    },
+    {
+      "title": "Your brain will thank you 💡",
+      "body": "A short, easy math drill today makes mental arithmetic feel comfortable and fast again."
+    }
+  ],
+  "normal": [
+    {
+      "title": "Daily Brain Warmup ⚡",
+      "body": "A quick 3-minute mental math drill keeps your calculation reflexes sharp and effortless."
+    },
+    {
+      "title": "Stay Sharp, Calculate Fast 🎯",
+      "body": "Spend a few minutes with numbers today and feel your calculation speed accelerate."
+    },
+    {
+      "title": "Master Numbers Daily 🧠",
+      "body": "Mental agility compounds every single day. Take a quick drill to level up your speed."
+    },
+    {
+      "title": "Quick Mental Workout ⚡",
+      "body": "Challenge your working memory with a quick math sprint. Ready when you are!"
+    },
+    {
+      "title": "Power Up Your Mental Math 🚀",
+      "body": "A short practice session today keeps your arithmetic instincts quick and accurate."
+    },
+    {
+      "title": "Keep Your Calculation Edge 💡",
+      "body": "Just 5 minutes of rapid calculation makes large numbers feel second nature."
+    }
+  ],
+  "streak_at_risk": [
+    {
+      "title": "Keep your {streak}-day streak alive! 🔥",
+      "body": "You are on a {streak}-day streak! 3 to 5 minutes today keeps your momentum going strong."
+    },
+    {
+      "title": "Streak Alert: Day {streak_plus_one} awaits! ⚡",
+      "body": "Don't break the chain! Complete a quick drill today to extend your streak to {streak_plus_one} days."
+    },
+    {
+      "title": "Protect your {streak}-day momentum 🏆",
+      "body": "You are building serious calculation consistency. A quick practice session locks in today's streak."
+    },
+    {
+      "title": "{streak} days strong! Keep climbing 🚀",
+      "body": "Every consecutive day makes mental calculation easier and faster. Extend your streak to {streak_plus_one} today!"
+    }
+  ],
+  "comeback": [
+    {
+      "title": "Ready to restart your rhythm? ⚡",
+      "body": "Mental math reflexes bounce right back after just one quick warm-up drill."
+    },
+    {
+      "title": "Jump back in anytime! 💡",
+      "body": "A relaxed 3-minute session today is all it takes to rebuild your calculation pace."
+    },
+    {
+      "title": "A fresh start with numbers 🌟",
+      "body": "Hop into an easy drill whenever you have a moment — no pressure, just quick practice."
+    }
+  ]
+}

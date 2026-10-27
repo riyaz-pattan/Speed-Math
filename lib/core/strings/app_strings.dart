@@ -5,9 +5,9 @@ abstract final class AppStrings {
   AppStrings._();
 
   // App
-  static const String appName = 'Speed Math with AI';
-  static const String appTitle = 'Speed Math with AI';
-  static const String appTagline = 'Master mental math with speed and precision';
+  static const String appName = 'Mental Calculation Tricks';
+  static const String appTitle = 'Mental Calculation Tricks';
+  static const String appTagline = 'Adaptive Coach';
 
   // Navigation Tabs
   static const String tabHome = 'Home';
@@ -78,7 +78,7 @@ abstract final class AppStrings {
   // Practice Modes & Setup
   static const String timerMode = 'Timer Mode';
   static const String questionMode = 'Question Mode';
-  static const String smartPractice = 'Smart Practice';
+  static const String smartPractice = 'Adaptive practice';
   static const String mixedPractice = 'Mixed practice';
   static const String mistakePractice = 'Mistakes practice';
   static const String practiceYourMistakes = 'Practice your mistakes';
@@ -206,10 +206,10 @@ abstract final class AppStrings {
 
   // About
   static const String aboutText =
-      'Speed Math with AI helps you build lightning-fast mental calculation '
-      'skills for competitive exams. Practice daily and watch your speed grow!';
+      'Mental Calculation Tricks helps you build lightning-fast mental calculation '
+      'shortcuts and techniques. Practice daily and watch your speed grow!';
   static const String privacyNote =
-      'This app works 100% offline. No data is collected or sent anywhere.';
+      'Practice works offline. Your practice data stays on your phone. Ads, when you are online, are provided by Google AdMob.';
 
   // Fraction input hint
   static const String fractionInputHint =

@@ -24,7 +24,7 @@
     "Take care! Your mental math skills will be right here when you return."
   ],
   "smalltalk": [
-    "I am your offline speed math Coach, built right into this phone to help you calculate faster.",
+    "I am your speed math Coach, built right into this phone to help you calculate faster.",
     "Doing well and ready to train! I keep track of your practice numbers and help guide your sessions.",
     "I am an on-device training coach designed to make your mental calculations fast and accurate.",
     "I feel great whenever you beat your best times! What would you like to work on?"
@@ -204,9 +204,15 @@
     "Activity summary:\n\u2022 Today: {questions_today} questions ({minutes_today} minutes of practice)\n\u2022 Last 7 days: {questions_week} questions across {sessions_week} sessions\n\u2022 Total: {questions_total} questions completed all time."
   ],
   "learn": [
-    "The Learn section has 8 animated shortcut lessons. Tap \"Learn Shortcuts\" on the home screen to start!",
-    "Want to master mental math tricks? Check out the Learn section \u2014 8 whiteboard lessons with animations.",
-    "Head to Learn Shortcuts on the home screen for step-by-step animated lessons on mental math tricks.",
-    "Great idea! The Learn section teaches tricks like multiplying by 11, 99, and near-100 numbers with animations."
+    "The Learn section features step-by-step mental calculation notebooks and shortcut guides. Tap \"Open lesson\" to explore!",
+    "Want to master speed calculation shortcuts? Check out our visual calculation notebooks in the Learn section.",
+    "Head to Learn Shortcuts to explore step-by-step methods for criss-cross multiplication, divisibility, and percentage anchors.",
+    "Great idea! The Learn section teaches fast mental techniques with clean visual diagrams and instant practice."
+  ],
+  "habits": [
+    "You have logged {minutes_today} of your {goal_minutes}-minute daily goal today. Your current streak is {streak} days (longest streak: {longest_streak} days) with {active_days_month} active days over the last month.",
+    "Habit check-in: {minutes_today} of {goal_minutes} min completed today! You are on a {streak}-day streak, with {week_minutes} total practice minutes this week. Consistency compounds quickly.",
+    "Daily habit status:\n• Today: {minutes_today} / {goal_minutes} min\n• Streak: {streak} days in a row (all-time best: {longest_streak} days)\n• Active days: {active_days_month} of the last 30 days\n• This week: {week_minutes} minutes trained.",
+    "Consistency report: You're on a {streak}-day streak! You've logged {minutes_today} min today toward your {goal_minutes}-min target, and {week_minutes} min total this week."
   ]
 }

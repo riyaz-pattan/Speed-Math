@@ -5,7 +5,7 @@ abstract final class AppConstants {
   AppConstants._();
 
   /// App name displayed across the system.
-  static const String appName = 'Speed Math with AI';
+  static const String appName = 'Mental Calculation Tricks';
 
   // --- Scoring Constants ---
   /// Base points awarded for each correct answer.
@@ -174,5 +174,5 @@ abstract final class AppConstants {
   static const double minAccuracyForBestTimes = 0.8;
 
   /// Current app version matching pubspec.yaml.
-  static const String appVersion = '1.10.0';
+  static const String appVersion = '1.13.1';
 }

@@ -7,7 +7,7 @@ import '../../domain/questions/pattern_constants.dart';
 import '../repositories/skill_repository.dart';
 
 /// Singleton helper class to manage SQLite database creation, migrations,
-/// and connection lifecycle for Speed Math with AI.
+/// and connection lifecycle for Mental Calculation Tricks.
 class DatabaseHelper {
   static const String databaseName = 'speed_math.db';
   static const int databaseVersion = 8;

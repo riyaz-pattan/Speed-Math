@@ -1,5 +1,6 @@
 import '../../core/enums/enums.dart';
 import '../adaptive/mistake_entry.dart';
+import '../../data/models/habit_data.dart';
 import '../../data/models/session.dart';
 import '../adaptive/skill_rating.dart';
 import '../report/report_data.dart';
@@ -14,6 +15,7 @@ class CoachContext {
   final int mistakeCount;
   final List<MistakeEntry> mistakes;
   final Map<Topic, Map<Difficulty, SkillRating>> skillRatings;
+  final HabitData? habitData;
 
   const CoachContext({
     required this.reportData,
@@ -22,6 +24,7 @@ class CoachContext {
     required this.mistakeCount,
     required this.mistakes,
     required this.skillRatings,
+    this.habitData,
   });
 
   /// Total questions answered across all topics and sessions (excluding skips).

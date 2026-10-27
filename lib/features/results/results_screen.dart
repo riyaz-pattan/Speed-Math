@@ -1,21 +1,30 @@
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
+import '../../core/ads/interstitial_ad_manager.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/constants/habit_constants.dart';
 import '../../core/enums/enums.dart';
 import '../../core/services/haptic_service.dart';
+import '../../core/services/notification_service.dart';
 import '../../core/strings/app_strings.dart';
+import '../../core/widgets/app_toast.dart';
 import '../../core/widgets/question_text_widget.dart';
 import 'package:speed_math_with_ai/core/widgets/screen_header.dart';
 import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
 import '../../data/models/attempt.dart';
+import '../../data/models/habit_data.dart';
+import '../../data/repositories/habit_repository.dart';
 import '../../data/repositories/session_repository.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../domain/questions/session_random.dart';
 import '../../domain/scoring/session_summary.dart';
 import '../../domain/scoring/xp_calculator.dart';
+import '../learn/engine/lesson_block.dart';
 import '../learn/engine/lesson_registry.dart';
 import '../practice_session/models/practice_models.dart';
 import 'widgets/confetti_burst.dart';
@@ -38,9 +47,13 @@ class ResultsScreen extends ConsumerStatefulWidget {
 class _ResultsScreenState extends ConsumerState<ResultsScreen> {
   PracticeResultData get resultData => widget.resultData;
 
+  String? _habitPhrase;
+  bool _firstGoalReachedToday = false;
+
   @override
   void initState() {
     super.initState();
+    _initHabitState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final settings = ref.read(settingsRepositoryProvider);
@@ -50,6 +63,90 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
         );
       }
     });
+  }
+
+  Future<void> _initHabitState() async {
+    try {
+      final habitRepo = ref.read(habitRepositoryProvider);
+      final habitData = await habitRepo.getHabitData();
+      final settings = ref.read(settingsRepositoryProvider);
+
+      // Reschedule reminders for next 7 days
+      ref.read(notificationServiceProvider).syncReminders();
+
+      // Check if this session crossed the daily goal for the first time today
+      final sessionDurationMs = resultData.savedSession?.durationMs ?? 0;
+      final priorMinutes = habitData.practiceMinutesToday - (sessionDurationMs ~/ 60000);
+      final isFirstGoal = priorMinutes < habitData.dailyGoalMinutes && habitData.isGoalMetToday;
+
+      final phrase = await _getHabitPhrase(habitData, isFirstGoal);
+
+      if (mounted) {
+        setState(() {
+          _habitPhrase = phrase;
+          _firstGoalReachedToday = isFirstGoal;
+        });
+
+        if (isFirstGoal) {
+          AppToast.show(
+            context,
+            message: 'Daily goal reached! Great job today!',
+            type: AppToastType.success,
+          );
+        }
+
+        // Check streak milestones
+        for (final milestone in HabitConstants.streakMilestones) {
+          if (habitData.streakDays >= milestone && settings.lastCelebratedStreak < milestone) {
+            settings.setLastCelebratedStreak(milestone);
+            AppToast.show(
+              context,
+              message: '$milestone-day streak milestone reached! Outstanding consistency!',
+              type: AppToastType.success,
+            );
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('ResultsScreen habit init error: $e');
+    }
+  }
+
+  Future<String> _getHabitPhrase(HabitData habitData, bool isFirstGoal) async {
+    try {
+      final jsonStr = await rootBundle.loadString('assets/coach/habit_phrases.json');
+      final Map<String, dynamic> data = json.decode(jsonStr);
+
+      String situation;
+      if (isFirstGoal) {
+        situation = 'goal_reached_first';
+      } else if (habitData.isGoalMetToday) {
+        situation = 'goal_reached_repeat';
+      } else if (habitData.streakDays > 1) {
+        situation = 'streak_extended';
+      } else if (habitData.totalActiveDays == 1 && habitData.isTodayActive) {
+        situation = 'first_active_day';
+      } else {
+        situation = 'goal_progress';
+      }
+
+      final list = (data[situation] as List<dynamic>?) ?? [];
+      if (list.isEmpty) {
+        return '${habitData.practiceMinutesToday} of ${habitData.dailyGoalMinutes} min practiced today.';
+      }
+
+      final raw = list[Random().nextInt(list.length)] as String;
+      final minutesLeft = max(0, habitData.dailyGoalMinutes - habitData.practiceMinutesToday);
+
+      return raw
+          .replaceAll('{minutes_done}', '${habitData.practiceMinutesToday}')
+          .replaceAll('{goal_minutes}', '${habitData.dailyGoalMinutes}')
+          .replaceAll('{minutes_left}', '$minutesLeft')
+          .replaceAll('{streak}', '${habitData.streakDays}');
+    } catch (_) {
+      return '${habitData.practiceMinutesToday} of ${habitData.dailyGoalMinutes} min practiced today.';
+    }
   }
 
   String _formatDuration(int ms) {
@@ -85,7 +182,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
         summary.correctCount == summary.totalQuestions &&
         summary.wrongCount == 0 &&
         summary.skippedCount == 0;
-    final showConfetti = (resultData.isNewBestScore || (isCompleted && isPerfectRound)) &&
+    final showConfetti = (resultData.isNewBestScore || (isCompleted && isPerfectRound) || _firstGoalReachedToday) &&
         settings.gameEffectsEnabled;
 
     return PopScope(
@@ -168,11 +265,9 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
                         _buildStatsGrid(context, colorScheme),
                         const SizedBox(height: 20),
 
-                        // Dynamic Coach Insight Card
-                        if (resultData.coachInsight != null) ...[
-                          _buildCoachInsightCard(context, colorScheme),
-                          const SizedBox(height: 24),
-                        ],
+                        // Dynamic Coach Insight & Habit Progress Card
+                        _buildCoachInsightCard(context, colorScheme),
+                        const SizedBox(height: 24),
 
                         // Per-Topic Breakdown for Mixed or Mistake Practice
                         if (isNotDrill) ...[
@@ -848,15 +943,22 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
                     ),
                     // Learn this trick button
                     Builder(builder: (ctx) {
-                      final lessons = LessonRegistry.forTopic(attempt.question.topic);
-                      if (lessons.isEmpty) return const SizedBox.shrink();
-                      final lesson = lessons.first;
+                      final matched = _findLessonForAttempt(attempt);
+                      if (matched == null) return const SizedBox.shrink();
                       return GestureDetector(
-                        onTap: () => ctx.push('/learn/${lesson.id}'),
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 6),
+                        onTap: () {
+                          ctx.push(
+                            '/learn/${matched.lesson.id}',
+                            extra: {
+                              'operands': matched.operands,
+                              'variantId': matched.variantId,
+                            },
+                          );
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.only(top: 6),
                           child: Text(
-                            'Learn trick →',
+                            'Learn this trick →',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
@@ -972,7 +1074,10 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
     ColorScheme colorScheme,
   ) {
     final insight = resultData.coachInsight;
-    if (insight == null || insight.isEmpty) return const SizedBox.shrink();
+    final hasInsight = insight != null && insight.isNotEmpty;
+    final hasHabit = _habitPhrase != null && _habitPhrase!.isNotEmpty;
+
+    if (!hasInsight && !hasHabit) return const SizedBox.shrink();
 
     return Container(
       width: double.infinity,
@@ -984,50 +1089,94 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
           color: colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: const Center(
-              child: Icon(
-                Icons.psychology_rounded,
-                size: 22,
-                color: AppTheme.primaryColor,
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
+          if (hasInsight)
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Coach insight',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.2,
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.psychology_rounded,
+                      size: 22,
+                      color: AppTheme.primaryColor,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  insight,
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    height: 1.45,
-                    color: colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w400,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Coach insight',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        insight,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          height: 1.45,
+                          color: colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-          ),
+          if (hasInsight && hasHabit) ...[
+            const SizedBox(height: 12),
+            Divider(height: 1, color: colorScheme.outlineVariant.withValues(alpha: 0.4)),
+            const SizedBox(height: 12),
+          ],
+          if (hasHabit)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF97316).withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.local_fire_department_rounded,
+                      size: 20,
+                      color: Color(0xFFEA580C),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _habitPhrase!,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      height: 1.4,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );
@@ -1056,7 +1205,15 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
                 final freshConfig = resultData.config.copyWith(
                   sessionSeed: SessionRandom.newSessionSeed(),
                 );
-                context.pushReplacement('/practice/session', extra: freshConfig);
+                InterstitialAdManager.instance.maybeShowInterstitial(
+                  context,
+                  isSessionCompleted: resultData.savedSession?.completed == true,
+                  onContinue: () {
+                    if (context.mounted) {
+                      context.pushReplacement('/practice/session', extra: freshConfig);
+                    }
+                  },
+                );
               },
               icon: const Icon(Icons.replay_rounded, size: 22),
               label: const Text(
@@ -1078,7 +1235,17 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => context.go('/practice'),
+                  onPressed: () {
+                    InterstitialAdManager.instance.maybeShowInterstitial(
+                      context,
+                      isSessionCompleted: resultData.savedSession?.completed == true,
+                      onContinue: () {
+                        if (context.mounted) {
+                          context.go('/practice');
+                        }
+                      },
+                    );
+                  },
                   icon: const Icon(Icons.tune_rounded, size: 18),
                   label: const FittedBox(
                     fit: BoxFit.scaleDown,
@@ -1098,7 +1265,17 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => context.go('/home'),
+                  onPressed: () {
+                    InterstitialAdManager.instance.maybeShowInterstitial(
+                      context,
+                      isSessionCompleted: resultData.savedSession?.completed == true,
+                      onContinue: () {
+                        if (context.mounted) {
+                          context.go('/home');
+                        }
+                      },
+                    );
+                  },
                   icon: const Icon(Icons.home_rounded, size: 18),
                   label: const FittedBox(
                     fit: BoxFit.scaleDown,
@@ -1120,6 +1297,135 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
         ],
       ),
     );
+  }
+
+  ({LessonMeta lesson, List<int> operands, String? variantId})? _findLessonForAttempt(SessionAttempt attempt) {
+    final topic = attempt.question.topic;
+    final ops = attempt.question.operands;
+    final pat = attempt.question.pattern ?? '';
+
+    switch (topic) {
+      case Topic.addition:
+        final l = LessonRegistry.findById('add_in_parts');
+        if (l != null) return (lesson: l, operands: ops, variantId: null);
+        break;
+
+      case Topic.subtraction:
+        final l = LessonRegistry.findById('subtract_in_parts');
+        if (l != null) return (lesson: l, operands: ops, variantId: null);
+        break;
+
+      case Topic.multiplication:
+      case Topic.patternMultiplication:
+      case Topic.powerOfFive:
+        if (ops.length >= 2) {
+          final a = ops[0];
+          final b = ops[1];
+          if (a == 11 || b == 11 || pat.contains('eleven')) {
+            final l = LessonRegistry.findById('multiply_by_11');
+            if (l != null) return (lesson: l, operands: [a == 11 ? b : a], variantId: null);
+          }
+          if (b == 5 || a == 5 || b == 25 || a == 25 || b == 125 || a == 125 || topic == Topic.powerOfFive) {
+            final l = LessonRegistry.findById('multiply_by_5_25');
+            final mult = (b == 5 || b == 25 || b == 125) ? b : ((a == 5 || a == 25 || a == 125) ? a : 5);
+            final n = (mult == b) ? a : b;
+            if (l != null) return (lesson: l, operands: [n, mult], variantId: 'x$mult');
+          }
+          if (b == 9 || a == 9 || b == 99 || a == 99 || b == 999 || a == 999 || pat.contains('ninetynine')) {
+            final l = LessonRegistry.findById('multiply_by_99');
+            final mult = (b == 9 || b == 99 || b == 999) ? b : ((a == 9 || a == 99 || a == 999) ? a : 99);
+            final n = (mult == b) ? a : b;
+            if (l != null) return (lesson: l, operands: [n, mult], variantId: 'x$mult');
+          }
+          if (a >= 90 && a <= 109 && b >= 90 && b <= 109) {
+            final l = LessonRegistry.findById('near_100_mult');
+            if (l != null) return (lesson: l, operands: [a, b], variantId: null);
+          }
+          final lenA = '$a'.length;
+          final lenB = '$b'.length;
+          if (lenA >= 3 && lenB >= 3) {
+            final l = LessonRegistry.findById('multiply_3x3');
+            if (l != null) return (lesson: l, operands: [a, b], variantId: null);
+          } else if ((lenA >= 3 && lenB >= 2) || (lenA >= 2 && lenB >= 3)) {
+            final l = LessonRegistry.findById('multiply_3x2');
+            if (l != null) return (lesson: l, operands: [a, b], variantId: null);
+          } else {
+            final l = LessonRegistry.findById('multiply_2x2');
+            if (l != null) return (lesson: l, operands: [a, b], variantId: null);
+          }
+        }
+        break;
+
+      case Topic.division:
+        if (ops.length >= 2) {
+          final div = ops[1];
+          if (div == 5 || div == 25) {
+            final l = LessonRegistry.findById('divide_by_5_25');
+            if (l != null) return (lesson: l, operands: ops, variantId: 'd$div');
+          } else if (div == 9 || div == 99) {
+            final l = LessonRegistry.findById('divide_by_9_99');
+            if (l != null) return (lesson: l, operands: ops, variantId: 'd$div');
+          } else if (div > 3 && (div % 2 == 0 || div % 3 == 0 || div % 5 == 0)) {
+            final l = LessonRegistry.findById('factor_division');
+            if (l != null) return (lesson: l, operands: ops, variantId: null);
+          } else {
+            final l = LessonRegistry.findById('divide_by_5_25');
+            if (l != null) return (lesson: l, operands: ops, variantId: null);
+          }
+        }
+        break;
+
+      case Topic.squares:
+        if (ops.isNotEmpty) {
+          final n = ops[0];
+          if (n % 10 == 5) {
+            final l = LessonRegistry.findById('squares_ending_5');
+            if (l != null) return (lesson: l, operands: [n], variantId: null);
+          } else if (n >= 20 && n <= 30) {
+            final l = LessonRegistry.findById('squares_base_25');
+            if (l != null) return (lesson: l, operands: [n], variantId: null);
+          } else if (n >= 40 && n <= 60) {
+            final l = LessonRegistry.findById('squares_base_50');
+            if (l != null) return (lesson: l, operands: [n], variantId: null);
+          } else if (n >= 90 && n <= 110) {
+            final l = LessonRegistry.findById('squares_base_100');
+            if (l != null) return (lesson: l, operands: [n], variantId: null);
+          } else if (n >= 140 && n <= 160) {
+            final l = LessonRegistry.findById('squares_base_150');
+            if (l != null) return (lesson: l, operands: [n], variantId: null);
+          } else if (n >= 190 && n <= 210) {
+            final l = LessonRegistry.findById('squares_base_200');
+            if (l != null) return (lesson: l, operands: [n], variantId: null);
+          } else {
+            final l = LessonRegistry.findById('squares_ending_5');
+            if (l != null) return (lesson: l, operands: [35], variantId: null);
+          }
+        }
+        break;
+
+      case Topic.splitPercentages:
+      case Topic.percentages:
+      case Topic.basePercentages:
+        final l = LessonRegistry.findById('split_percentages');
+        if (l != null) return (lesson: l, operands: ops, variantId: null);
+        break;
+
+      case Topic.fractionPercentages:
+      case Topic.fractionReciprocals:
+      case Topic.derivedFractions:
+      case Topic.fractions:
+        final l = LessonRegistry.findById('fraction_pct_friends');
+        if (l != null) return (lesson: l, operands: ops, variantId: null);
+        break;
+
+      default:
+        final lessons = LessonRegistry.forTopic(topic);
+        if (lessons.isNotEmpty) {
+          return (lesson: lessons.first, operands: ops, variantId: null);
+        }
+        break;
+    }
+    return null;
   }
 }
 

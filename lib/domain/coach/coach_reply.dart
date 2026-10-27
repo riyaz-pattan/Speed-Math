@@ -10,7 +10,8 @@ enum CoachActionType {
   practiceMistakes,
   openStats,
   selectTopic,
-  suggestQuestion;
+  suggestQuestion,
+  openLearn;
 
   static CoachActionType fromString(String val) {
     for (final type in CoachActionType.values) {

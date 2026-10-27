@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../app/theme.dart';
 import '../../../data/models/lesson_progress.dart';
-import '../engine/lesson_data.dart';
+import '../engine/lesson_block.dart';
 import 'lesson_stars.dart';
 
 /// Card widget for one lesson on the Learn screen.
@@ -12,18 +12,22 @@ class LessonCard extends StatelessWidget {
     super.key,
     required this.meta,
     required this.progress,
+    this.variantProgressCount,
+    this.totalVariantsCount,
     required this.onTap,
   });
 
   final LessonMeta meta;
   final LessonProgress? progress;
+  final int? variantProgressCount; // e.g. how many variants completed
+  final int? totalVariantsCount;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final stars = progress?.stars ?? 0;
     final status = progress?.status ?? LessonStatus.none;
-    final catColor = _categoryColor(meta.category);
+    final catColor = meta.iconColor ?? _categoryColor(meta.category);
 
     return GestureDetector(
       onTap: () {
@@ -67,8 +71,20 @@ class LessonCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      LessonStars(stars: stars, size: 13),
-                      const SizedBox(width: 8),
+                      if (meta.hasVariants || totalVariantsCount != null) ...[
+                        Text(
+                          '${totalVariantsCount ?? meta.variants.length} shortcuts',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: catColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ] else ...[
+                        LessonStars(stars: stars, size: 13),
+                        const SizedBox(width: 8),
+                      ],
                       Text(
                         meta.durationLabel,
                         style: const TextStyle(
@@ -82,9 +98,26 @@ class LessonCard extends StatelessWidget {
                 ],
               ),
             ),
-            if (status != LessonStatus.none) ...[
+            if (status != LessonStatus.none && !meta.hasVariants && totalVariantsCount == null) ...[
               const SizedBox(width: 8),
               _StatusBadge(status: status),
+            ] else if (variantProgressCount != null && variantProgressCount! > 0) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: catColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '$variantProgressCount/${totalVariantsCount ?? meta.variants.length}',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: catColor,
+                  ),
+                ),
+              ),
             ],
             const SizedBox(width: 4),
             const Icon(Icons.chevron_right_rounded, size: 18, color: AppTheme.textSecondary),

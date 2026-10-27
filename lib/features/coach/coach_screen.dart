@@ -120,6 +120,13 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
           _handleSend(action.payload as String);
         }
         break;
+      case CoachActionType.openLearn:
+        if (action.payload is String && (action.payload as String).isNotEmpty) {
+          context.push('/learn/${action.payload}');
+        } else {
+          context.push('/learn');
+        }
+        break;
     }
   }
 
@@ -226,17 +233,34 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
 
     final isOnlyWelcome = state.messages.length <= 1;
 
-    return Scaffold(
-      backgroundColor: AppTheme.canvasBackground,
-      body: Column(
-        children: [
-          ScreenHeader(
-            title: 'Coach',
-            subtitle: 'On-device practice assistant',
-            leading: HeaderIconButton(
-              icon: Icons.arrow_back_rounded,
-              onPressed: () => context.pop(),
-            ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/home');
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.canvasBackground,
+        body: Column(
+          children: [
+            ScreenHeader(
+              title: 'Adaptive Coach',
+              subtitle: 'On-device practice assistant',
+              leading: HeaderIconButton(
+                icon: Icons.arrow_back_rounded,
+                onPressed: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/home');
+                  }
+                },
+              ),
             actions: [
               PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert_rounded, color: AppTheme.textSecondary),
@@ -289,24 +313,31 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
             secondChild: const SizedBox.shrink(),
           ),
 
-          // Modern Pill Composer
-          _buildModernComposer(),
-
-          // Bottom Disclaimer
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: Text(
-              'Coach answers come from your practice on this phone. It cannot answer general questions.',
-              style: TextStyle(
-                fontSize: 11,
-                color: AppTheme.textTertiary.withValues(alpha: 0.9),
-              ),
-              textAlign: TextAlign.center,
+          // Modern Pill Composer & Bottom Disclaimer with SafeArea
+          SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildModernComposer(),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: Text(
+                    'Coach answers come from your practice on this phone. It cannot answer general questions.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppTheme.textTertiary.withValues(alpha: 0.9),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildStarterCards() {
@@ -585,7 +616,9 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
             ? Icons.insights_rounded
             : action.type == CoachActionType.openStats
                 ? Icons.bar_chart_rounded
-                : Icons.touch_app_rounded,
+                : action.type == CoachActionType.openLearn
+                    ? Icons.menu_book_rounded
+                    : Icons.touch_app_rounded,
         size: 14,
       ),
       label: Text(

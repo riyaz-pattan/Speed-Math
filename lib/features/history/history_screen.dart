@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
+import '../../core/ads/widgets/banner_ad_container.dart';
 import '../../core/enums/enums.dart';
 import '../../core/strings/app_strings.dart';
 import 'package:speed_math_with_ai/core/widgets/empty_state_view.dart';
@@ -301,6 +302,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           ],
         ),
       ),
+      if (_sessions.isNotEmpty && !_isLoading) const BannerAdContainer(),
     ],
   ),
 );

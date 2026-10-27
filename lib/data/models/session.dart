@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:speed_math_with_ai/core/enums/enums.dart';
 
-/// Immutable model representing a practice session in Speed Math with AI.
+/// Immutable model representing a practice session in Mental Calculation Tricks.
 @immutable
 class Session {
   final int? id;

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,8 +16,12 @@ import 'package:speed_math_with_ai/features/practice_setup/practice_setup_screen
 import 'package:speed_math_with_ai/features/mistakes/mistakes_screen.dart';
 import 'package:speed_math_with_ai/features/report/report_screen.dart';
 import 'package:speed_math_with_ai/features/results/results_screen.dart';
+import 'package:speed_math_with_ai/features/learn/division_hub_screen.dart';
 import 'package:speed_math_with_ai/features/learn/learn_screen.dart';
 import 'package:speed_math_with_ai/features/learn/lesson_screen.dart';
+import 'package:speed_math_with_ai/features/learn/multiplication_hub_screen.dart';
+import 'package:speed_math_with_ai/features/learn/squares_hub_screen.dart';
+import 'package:speed_math_with_ai/features/onboarding/first_run_setup_screen.dart';
 import 'package:speed_math_with_ai/features/settings/data_check_screen.dart';
 import 'package:speed_math_with_ai/features/settings/settings_screen.dart';
 import 'package:speed_math_with_ai/features/stats/stats_screen.dart';
@@ -32,6 +37,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const FirstRunSetupScreen(),
       ),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
@@ -59,10 +69,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/settings',
             builder: (context, state) => const SettingsScreen(),
           ),
-          GoRoute(
-            path: '/settings/data-check',
-            builder: (context, state) => const DataCheckScreen(),
-          ),
+          if (kDebugMode)
+            GoRoute(
+              path: '/settings/data-check',
+              builder: (context, state) => const DataCheckScreen(),
+            ),
         ],
       ),
       GoRoute(
@@ -110,12 +121,48 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LearnScreen(),
       ),
       GoRoute(
+        path: '/learn/multiplication',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const MultiplicationHubScreen(),
+      ),
+      GoRoute(
+        path: '/learn/division',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const DivisionHubScreen(),
+      ),
+      GoRoute(
+        path: '/learn/squares',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const SquaresHubScreen(),
+      ),
+      GoRoute(
         path: '/learn/:lessonId',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) {
           final lessonId = state.pathParameters['lessonId']!;
-          final operands = state.extra is List<int> ? state.extra as List<int> : null;
-          return LessonScreen(lessonId: lessonId, initialOperands: operands);
+          if (lessonId == 'multiplication_hub' || lessonId == 'multiplication') {
+            return const MultiplicationHubScreen();
+          }
+          if (lessonId == 'division_hub' || lessonId == 'division') {
+            return const DivisionHubScreen();
+          }
+          if (lessonId == 'squares_hub' || lessonId == 'squares') {
+            return const SquaresHubScreen();
+          }
+          List<int>? operands;
+          String? variantId;
+          if (state.extra is List<int>) {
+            operands = state.extra as List<int>;
+          } else if (state.extra is Map<String, dynamic>) {
+            final map = state.extra as Map<String, dynamic>;
+            operands = (map['operands'] as List<dynamic>?)?.cast<int>();
+            variantId = map['variantId'] as String?;
+          }
+          return LessonScreen(
+            lessonId: lessonId,
+            initialOperands: operands,
+            initialVariantId: variantId,
+          );
         },
       ),
     ],

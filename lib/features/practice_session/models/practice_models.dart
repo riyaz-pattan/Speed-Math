@@ -302,6 +302,52 @@ class PracticeConfig {
       focusOnWeakAreas: map['focusOnWeakAreas'] as bool? ?? true,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PracticeConfig &&
+          runtimeType == other.runtimeType &&
+          topic == other.topic &&
+          difficulty == other.difficulty &&
+          mode == other.mode &&
+          modeValue == other.modeValue &&
+          sessionSeed == other.sessionSeed &&
+          autoSubmit == other.autoSubmit &&
+          hapticsEnabled == other.hapticsEnabled &&
+          vibrationStrength == other.vibrationStrength &&
+          soundEnabled == other.soundEnabled &&
+          correctSoundEnabled == other.correctSoundEnabled &&
+          wrongSoundEnabled == other.wrongSoundEnabled &&
+          soundVolume == other.soundVolume &&
+          correctSoundVolume == other.correctSoundVolume &&
+          wrongSoundVolume == other.wrongSoundVolume &&
+          keypadStyle == other.keypadStyle &&
+          kind == other.kind &&
+          focusOnWeakAreas == other.focusOnWeakAreas &&
+          similarMistakes == other.similarMistakes;
+
+  @override
+  int get hashCode => Object.hash(
+        topic,
+        difficulty,
+        mode,
+        modeValue,
+        sessionSeed,
+        autoSubmit,
+        hapticsEnabled,
+        vibrationStrength,
+        soundEnabled,
+        correctSoundEnabled,
+        wrongSoundEnabled,
+        soundVolume,
+        correctSoundVolume,
+        wrongSoundVolume,
+        keypadStyle,
+        kind,
+        focusOnWeakAreas,
+        similarMistakes,
+      );
 }
 
 /// Record of an attempt on a single question during a practice session.

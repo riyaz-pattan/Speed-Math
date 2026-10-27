@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:speed_math_with_ai/app/theme.dart';
 import 'package:speed_math_with_ai/core/strings/app_strings.dart';
+import 'package:speed_math_with_ai/data/repositories/session_repository.dart';
+import 'package:speed_math_with_ai/data/repositories/settings_repository.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -18,7 +20,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer(const Duration(seconds: 2), () {
+    _timer = Timer(const Duration(milliseconds: 1500), () async {
+      if (!mounted) return;
+      try {
+        final settings = ref.read(settingsRepositoryProvider);
+        if (!settings.isOnboardingDone) {
+          final repo = ref.read(sessionRepositoryProvider);
+          final sessions = await repo.getRecentSessions(1);
+          if (mounted && sessions.isEmpty) {
+            context.go('/onboarding');
+            return;
+          }
+        }
+      } catch (_) {
+        // Fall back to home
+      }
       if (mounted) {
         context.go('/home');
       }

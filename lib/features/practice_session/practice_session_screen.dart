@@ -69,11 +69,14 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WakelockService.enable();
-    // Start session once widget is mounted
+    // Start session immediately
+    ref.read(practiceSessionControllerProvider(widget.config).notifier).start();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref
-          .read(practiceSessionControllerProvider(widget.config).notifier)
-          .start();
+      if (mounted) {
+        ref
+            .read(practiceSessionControllerProvider(widget.config).notifier)
+            .start();
+      }
     });
   }
 
@@ -153,7 +156,11 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
         controller.discard();
         if (mounted && !_hasNavigated) {
           _hasNavigated = true;
-          context.pop();
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/home');
+          }
         }
       } else {
         controller.resume();
@@ -200,14 +207,22 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
         _navigateToResults(resultData);
       } else {
         _hasNavigated = true;
-        context.pop();
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/home');
+        }
       }
     } else if (choice == 1) {
       // Discard session: save nothing at all
       controller.discard();
       if (mounted && !_hasNavigated) {
         _hasNavigated = true;
-        context.pop();
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/home');
+        }
       }
     } else {
       // Dismissed or choice 2 (Keep practicing)
@@ -228,6 +243,14 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
         ref.watch(practiceSessionControllerProvider(widget.config));
     final controller =
         ref.read(practiceSessionControllerProvider(widget.config).notifier);
+
+    if (state.status == PracticeSessionStatus.ready) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(practiceSessionControllerProvider(widget.config).notifier).start();
+        }
+      });
+    }
 
     final settings = ref.watch(settingsRepositoryProvider);
 

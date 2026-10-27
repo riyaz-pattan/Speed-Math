@@ -1,55 +1,190 @@
 // lib/features/learn/builders/split_percentages_builder.dart
 import 'package:flutter/material.dart';
-import '../engine/lesson_data.dart';
+import '../engine/lesson_block.dart';
 
-/// Split Percentages: 15% of N = 10% + 5%.
+/// Split Percentages: decompose % into whole hundreds, 50%, grouped tens (k × 10%), 5%, and 1% chunks.
+/// e.g. 15% of 240 = 10% (24) + 5% (12) = 36
+/// e.g. 35% of 240 = 30% (3 × 24 = 72) + 5% (12) = 84
+/// e.g. 750% of 240 = 700% (7 × 240 = 1680) + 50% (120) = 1800
 class SplitPercentagesBuilder {
-  static const Color _blue = Color(0xFF2563EB);
-  static const Color _orange = Color(0xFFF97316);
-  static const Color _green = Color(0xFF16A34A);
-  static const Color _gray = Color(0xFF64748B);
-
-  static List<LessonStep> build(List<int> operands) {
+  static LessonScript build(List<int> operands) {
     final pct = operands[0];
     final n = operands[1];
-    final tenPct = n ~/ 10;
-    final fivePct = tenPct ~/ 2;
-    final result = n * pct ~/ 100;
+    final tenPct = (n / 10).round();
+    final fivePct = (tenPct / 2).round();
+    final result = (n * pct / 100).round();
 
-    // Build decomposition string
+    // Decomposition parts
     final List<String> parts = [];
+    final List<String> partValues = [];
     int rem = pct;
-    while (rem >= 10) { parts.add('10%'); rem -= 10; }
-    if (rem >= 5) { parts.add('5%'); rem -= 5; }
-    if (rem > 0) parts.add('$rem%');
-    final decomp = parts.join(' + ');
 
-    return [
-      LessonStep(
-        caption: '$pct% of $n — split into easy parts!',
-        elements: [
-          DrawElement(type: DrawElementType.writtenText, x: 30, y: 65, startT: 0, endT: 0.45,
-              text: '$pct% of $n = ?', fontSize: 34, color: _blue, fontWeight: FontWeight.bold),
-          DrawElement(type: DrawElementType.writtenText, x: 30, y: 108, startT: 0.45, endT: 1.0,
-              text: '$pct% = $decomp', fontSize: 22, color: _gray),
-        ],
-      ),
-      LessonStep(
-        caption: '10% of $n = $tenPct (move decimal left once).',
-        elements: [
-          DrawElement(type: DrawElementType.writtenText, x: 30, y: 80, startT: 0, endT: 0.6,
-              text: '10% of $n = $tenPct', fontSize: 28, color: _orange, fontWeight: FontWeight.bold),
-        ],
-      ),
-      LessonStep(
-        caption: '5% = half of 10% = $fivePct. Add all parts → $pct% of $n = $result',
-        elements: [
-          DrawElement(type: DrawElementType.writtenText, x: 30, y: 80, startT: 0, endT: 0.5,
-              text: '$pct% of $n = $result', fontSize: 32, color: _green, fontWeight: FontWeight.bold),
-          DrawElement(type: DrawElementType.highlight, x: 20, y: 90, startT: 0.5, endT: 1.0,
-              highlightWidth: 195, highlightHeight: 44, color: _green),
-        ],
-      ),
-    ];
+    // 1. Hundreds
+    if (rem >= 100) {
+      final hCount = rem ~/ 100;
+      final hVal = hCount * n;
+      parts.add('${hCount * 100}% ($hCount × 100%)');
+      partValues.add('$hVal');
+      rem %= 100;
+    }
+
+    // 2. 50%
+    if (rem >= 50) {
+      final fiftyVal = n ~/ 2;
+      parts.add('50%');
+      partValues.add('$fiftyVal');
+      rem -= 50;
+    }
+
+    // 3. Grouped tens
+    final tens = (rem ~/ 10) * 10;
+    if (tens > 0) {
+      final k = tens ~/ 10;
+      final tVal = k * tenPct;
+      if (k == 1) {
+        parts.add('10%');
+      } else {
+        parts.add('$tens% ($k × 10%)');
+      }
+      partValues.add('$tVal');
+      rem -= tens;
+    }
+
+    // 4. 5%
+    if (rem >= 5) {
+      parts.add('5%');
+      partValues.add('$fivePct');
+      rem -= 5;
+    }
+
+    // 5. Units
+    if (rem > 0) {
+      final uVal = (n * rem / 100).round();
+      parts.add('$rem%');
+      partValues.add('$uVal');
+    }
+
+    final decomp = parts.join(' + ');
+    final sumStr = partValues.join(' + ');
+
+    return LessonScript(
+      problemText: '$pct% of $n = ?',
+      blocks: [
+        LessonBlock(
+          stepTitle: 'Step 1',
+          caption: 'Break $pct% down into friendly chunks: $decomp.',
+          blockHeight: 120,
+          elements: [
+            BElement(
+              type: BElementType.text,
+              x: 36, y: 38,
+              startT: 0.0, endT: 0.45,
+              text: '$pct%  of  $n  =  ?',
+              fontSize: 34,
+              color: LessonColors.tens,
+              fontWeight: FontWeight.bold,
+            ),
+            BElement(
+              type: BElementType.text,
+              x: 36, y: 80,
+              startT: 0.45, endT: 0.8,
+              text: '$pct%  =  $decomp',
+              fontSize: 22,
+              color: LessonColors.note,
+              fontWeight: FontWeight.bold,
+            ),
+            BElement(
+              type: BElementType.sideNote,
+              x: 230, y: 80,
+              startT: 0.75, endT: 1.0,
+              text: 'easy chunks',
+              color: LessonColors.note,
+              fontSize: 16,
+            ),
+          ],
+        ),
+        LessonBlock(
+          stepTitle: 'Step 2',
+          caption: 'Find 10% of $n: move decimal 1 place left → $tenPct.',
+          blockHeight: 110,
+          elements: [
+            BElement(
+              type: BElementType.text,
+              x: 36, y: 38,
+              startT: 0.0, endT: 0.55,
+              text: '10%  of  $n  =  $tenPct',
+              fontSize: 30,
+              color: LessonColors.tens,
+              fontWeight: FontWeight.bold,
+            ),
+            BElement(
+              type: BElementType.sideNote,
+              x: 210, y: 38,
+              startT: 0.55, endT: 0.85,
+              text: 'anchor value',
+              color: LessonColors.note,
+              fontSize: 16,
+            ),
+            BElement(
+              type: BElementType.underline,
+              x: 36, y: 52,
+              startT: 0.7, endT: 1.0,
+              width: 155,
+              strokeWidth: 2.5,
+              color: LessonColors.tens,
+            ),
+          ],
+        ),
+        LessonBlock(
+          stepTitle: 'Step 3',
+          caption: 'Derive parts from primary anchors: $decomp.',
+          blockHeight: 110,
+          elements: [
+            BElement(
+              type: BElementType.text,
+              x: 36, y: 38,
+              startT: 0.0, endT: 0.7,
+              text: 'Parts:  $sumStr',
+              fontSize: 26,
+              color: LessonColors.ones,
+              fontWeight: FontWeight.bold,
+            ),
+          ],
+        ),
+        LessonBlock(
+          stepTitle: 'Step 4',
+          caption: 'Sum the parts: $sumStr = $result.',
+          blockHeight: 120,
+          elements: [
+            BElement(
+              type: BElementType.text,
+              x: 36, y: 38,
+              startT: 0.0, endT: 0.5,
+              text: '$sumStr  =  $result',
+              fontSize: 30,
+              color: LessonColors.tens,
+              fontWeight: FontWeight.bold,
+            ),
+            BElement(
+              type: BElementType.text,
+              x: 36, y: 82,
+              startT: 0.55, endT: 0.85,
+              text: '$pct% of $n  =  $result',
+              fontSize: 30,
+              color: LessonColors.result,
+              fontWeight: FontWeight.bold,
+            ),
+            BElement(
+              type: BElementType.highlight,
+              x: 26, y: 95,
+              startT: 0.82, endT: 1.0,
+              width: 180,
+              height: 42,
+              color: LessonColors.result,
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }

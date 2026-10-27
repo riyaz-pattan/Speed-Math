@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/enums/enums.dart';
 import '../../../data/models/coach_message.dart';
 import '../../../data/repositories/coach_repository.dart';
+import '../../../data/repositories/habit_repository.dart';
 import '../../../data/repositories/mistake_repository.dart';
 import '../../../data/repositories/report_repository.dart';
 import '../../../data/repositories/session_repository.dart';
@@ -201,6 +202,9 @@ class CoachController extends StateNotifier<CoachState> {
       skillMap.putIfAbsent(r.topic, () => {})[r.difficulty] = r;
     }
 
+    final habitRepo = _ref.read(habitRepositoryProvider);
+    final habitData = await habitRepo.getHabitData();
+
     return CoachContext(
       reportData: reportData,
       todayPlan: todayPlan,
@@ -208,6 +212,7 @@ class CoachController extends StateNotifier<CoachState> {
       mistakeCount: mistakeCount,
       mistakes: mistakes,
       skillRatings: skillMap,
+      habitData: habitData,
     );
   }
 

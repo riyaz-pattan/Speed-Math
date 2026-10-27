@@ -55,6 +55,7 @@ class CoachEngine {
       intent: result.intent,
       slots: result.slots,
       context: context,
+      rawQuery: result.normalizedMessage,
     );
 
     // Update conversation context (remember intent for follow-ups, ignore greetings/smalltalk)
