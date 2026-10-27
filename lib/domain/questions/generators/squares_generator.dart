@@ -39,6 +39,14 @@ class SquaresGenerator extends QuestionGenerator {
           DifficultyRanges.squaresHardMin,
           DifficultyRanges.squaresHardMax,
         ),
+      Difficulty.expert => (
+          DifficultyRanges.squaresExpertMin,
+          DifficultyRanges.squaresExpertMax,
+        ),
+      Difficulty.genius => (
+          DifficultyRanges.squaresGeniusMin,
+          DifficultyRanges.squaresGeniusMax,
+        ),
       Difficulty.mixed =>
         throw ArgumentError('Cannot generate Difficulty.mixed directly'),
     };

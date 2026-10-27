@@ -70,6 +70,9 @@ class SettingsRepository {
   static const _keyDailyGoalMinutes = 'daily_goal_minutes';
   static const _keyRemindersEnabled = 'reminders_enabled';
   static const _keyReminderTime = 'reminder_time';
+  /// Stores enabled reminder weekdays as a comma-separated string of ints.
+  /// 0=Monday, 1=Tuesday, 2=Wednesday, 3=Thursday, 4=Friday, 5=Saturday, 6=Sunday.
+  static const _keyReminderDays = 'reminder_days_v2';
   static const _keyOnboardingDone = 'onboarding_done';
   static const _keyLastCelebratedStreak = 'last_celebrated_streak';
 
@@ -370,6 +373,27 @@ class SettingsRepository {
 
   Future<bool> setReminderTime(String time) =>
       _prefs.setString(_keyReminderTime, time);
+
+  /// Returns the list of enabled weekday indices (0=Mon … 6=Sun).
+  /// Defaults to all 7 days if not set.
+  List<int> get reminderDays {
+    final stored = _prefs.getString(_keyReminderDays);
+    if (stored == null || stored.isEmpty) {
+      // Default: all 7 days enabled
+      return [0, 1, 2, 3, 4, 5, 6];
+    }
+    return stored
+        .split(',')
+        .map((s) => int.tryParse(s.trim()))
+        .whereType<int>()
+        .where((d) => d >= 0 && d <= 6)
+        .toList();
+  }
+
+  Future<bool> setReminderDays(List<int> days) {
+    final sorted = days.toSet().toList()..sort();
+    return _prefs.setString(_keyReminderDays, sorted.join(','));
+  }
 
   bool get isOnboardingDone =>
       _prefs.getBool(_keyOnboardingDone) ?? false;

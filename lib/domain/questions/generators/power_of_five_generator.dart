@@ -82,8 +82,8 @@ class PowerOfFiveGenerator extends QuestionGenerator {
 
       case Difficulty.hard:
         // × 125 of multiples of 8, or ÷ 125 of multiples of 125
-        final useDiv = random.nextBool();
-        if (useDiv) {
+        final useDivHard = random.nextBool();
+        if (useDivHard) {
           final m = 2 + random.nextInt(28); // result 2..29
           final n = m * 125;
           return Question(
@@ -106,6 +106,77 @@ class PowerOfFiveGenerator extends QuestionGenerator {
             correctAnswer: n * 125,
             pattern: PatternConstants.patternOf(
                 Topic.powerOfFive, difficulty, [n, 125]),
+          );
+        }
+
+      case Difficulty.expert:
+        // × 625 (clean numbers divisible by 16) or ÷ 625 (5⁴ = 625: n × 625 = n × 10000 / 16)
+        final useDivExp = random.nextBool();
+        if (useDivExp) {
+          final m = 2 + random.nextInt(25); // result 2..26
+          final n = m * 625;
+          return Question(
+            topic: Topic.powerOfFive,
+            difficulty: difficulty,
+            displayText: '$n ÷ 625 = ?',
+            operands: [n, 625],
+            correctAnswer: m,
+            pattern: PatternConstants.patternOf(
+                Topic.powerOfFive, difficulty, [n, 625]),
+          );
+        } else {
+          final m = 1 + random.nextInt(25); // 1..25
+          final n = m * 16;
+          return Question(
+            topic: Topic.powerOfFive,
+            difficulty: difficulty,
+            displayText: '$n × 625 = ?',
+            operands: [n, 625],
+            correctAnswer: n * 625,
+            pattern: PatternConstants.patternOf(
+                Topic.powerOfFive, difficulty, [n, 625]),
+          );
+        }
+
+      case Difficulty.genius:
+        // × 3125 (n × 100000 / 32, divisible by 32) or ÷ 3125, or mixed powers of 5
+        final type = random.nextInt(3);
+        if (type == 0) {
+          final m = 1 + random.nextInt(20); // 1..20
+          final n = m * 32;
+          return Question(
+            topic: Topic.powerOfFive,
+            difficulty: difficulty,
+            displayText: '$n × 3125 = ?',
+            operands: [n, 3125],
+            correctAnswer: n * 3125,
+            pattern: PatternConstants.patternOf(
+                Topic.powerOfFive, difficulty, [n, 3125]),
+          );
+        } else if (type == 1) {
+          final m = 2 + random.nextInt(20); // 2..21
+          final n = m * 3125;
+          return Question(
+            topic: Topic.powerOfFive,
+            difficulty: difficulty,
+            displayText: '$n ÷ 3125 = ?',
+            operands: [n, 3125],
+            correctAnswer: m,
+            pattern: PatternConstants.patternOf(
+                Topic.powerOfFive, difficulty, [n, 3125]),
+          );
+        } else {
+          // Mixed powers: larger multiples of 625
+          final m = 26 + random.nextInt(35); // 26..60
+          final n = m * 16;
+          return Question(
+            topic: Topic.powerOfFive,
+            difficulty: difficulty,
+            displayText: '$n × 625 = ?',
+            operands: [n, 625],
+            correctAnswer: n * 625,
+            pattern: PatternConstants.patternOf(
+                Topic.powerOfFive, difficulty, [n, 625]),
           );
         }
 

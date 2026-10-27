@@ -53,6 +53,16 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
   }
 
   @override
+  void didUpdateWidget(covariant PracticeSetupScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialTopic != null && widget.initialTopic != oldWidget.initialTopic) {
+      setState(() {
+        _selectedTopics = [widget.initialTopic!];
+      });
+    }
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _isLaunching = false;
@@ -608,41 +618,100 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
   }
 
   Widget _buildDifficultySegmented(ColorScheme colorScheme) {
+    const row1 = <(Difficulty?, String)>[
+      (null, 'Auto'),
+      (Difficulty.easy, 'Easy'),
+      (Difficulty.medium, 'Medium'),
+    ];
+    const row2 = <(Difficulty?, String)>[
+      (Difficulty.hard, 'Hard'),
+      (Difficulty.expert, 'Expert'),
+      (Difficulty.genius, 'Genius'),
+    ];
+
+    Widget buildSegmentRow(List<(Difficulty?, String)> items) {
+      return Row(
+        children: items.map((item) {
+          final isSelected = _selectedDifficulty == item.$1;
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _selectedDifficulty = item.$1;
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeInOutCubic,
+                    padding: const EdgeInsets.symmetric(vertical: 9),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? colorScheme.primary
+                          : colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected
+                            ? colorScheme.primary
+                            : colorScheme.outline.withValues(alpha: 0.15),
+                        width: 1.0,
+                      ),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: colorScheme.primary.withValues(alpha: 0.25),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Text(
+                      item.$2,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                        color: isSelected
+                            ? colorScheme.onPrimary
+                            : colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      );
+    }
+
+    String? explanation;
+    if (_selectedDifficulty == null) {
+      explanation = AppStrings.autoDifficultyExplanation;
+    } else if (_selectedDifficulty == Difficulty.expert) {
+      explanation = 'Expert: Advanced drills (e.g. 100 to 150 for squares)';
+    } else if (_selectedDifficulty == Difficulty.genius) {
+      explanation = 'Genius: Peak mastery challenge (e.g. 150 to 200 for squares)';
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppSegmentedControl<Difficulty?>(
-          selectedValue: _selectedDifficulty,
-          items: const [
-            AppSegmentedItem<Difficulty?>(
-              value: null,
-              label: 'Auto',
-            ),
-            AppSegmentedItem<Difficulty?>(
-              value: Difficulty.easy,
-              label: 'Easy',
-            ),
-            AppSegmentedItem<Difficulty?>(
-              value: Difficulty.medium,
-              label: 'Medium',
-            ),
-            AppSegmentedItem<Difficulty?>(
-              value: Difficulty.hard,
-              label: 'Hard',
-            ),
-          ],
-          onValueChanged: (val) {
-            setState(() {
-              _selectedDifficulty = val;
-            });
-          },
-        ),
-        if (_selectedDifficulty == null) ...[
+        buildSegmentRow(row1),
+        const SizedBox(height: 6),
+        buildSegmentRow(row2),
+        if (explanation != null) ...[
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.only(left: 4),
             child: Text(
-              AppStrings.autoDifficultyExplanation,
+              explanation,
               style: TextStyle(
                 fontSize: 12,
                 color: colorScheme.onSurfaceVariant,

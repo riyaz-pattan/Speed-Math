@@ -47,6 +47,8 @@ abstract final class AppStrings {
   static const String easy = 'Easy';
   static const String medium = 'Medium';
   static const String hard = 'Hard';
+  static const String expert = 'Expert';
+  static const String genius = 'Genius';
   static const String difficulty = 'Difficulty';
 
   // Topics
@@ -73,6 +75,14 @@ abstract final class AppStrings {
   static const String splitPercentages = 'Split Percentages';
   static const String powerOfFive = 'Fast 5, 25, 125';
   static const String patternMultiplication = '× 11, 99';
+  static const String linearEquations = 'Linear Equations';
+  static const String quadraticEquations = 'Quadratic Equations';
+  static const String algebraAndEquations = 'Algebra & Equations';
+  static const String root1 = 'Root 1';
+  static const String root2 = 'Root 2';
+  static const String findValueOfX = 'Find the value of x';
+  static const String findValueOfY = 'Find the value of y';
+  static const String compareXAndY = 'Compare Quantity x and Quantity y';
   static const String topic = 'Topic';
 
   // Practice Modes & Setup

@@ -17,7 +17,6 @@ import '../../core/services/sound_service.dart';
 import '../../core/strings/app_strings.dart';
 import '../../core/widgets/app_segmented_control.dart';
 import '../../core/widgets/app_toast.dart';
-import '../../core/widgets/notification_explanation_dialog.dart';
 import '../../core/widgets/screen_header.dart';
 import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
 import '../../data/repositories/settings_repository.dart';
@@ -415,6 +414,7 @@ class SettingsScreen extends ConsumerWidget {
     final dailyGoal = settings.dailyGoalMinutes;
     final remindersOn = settings.remindersEnabled;
     final reminderTime = settings.reminderTime;
+    final reminderDays = settings.reminderDays;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -493,7 +493,7 @@ class SettingsScreen extends ConsumerWidget {
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
             subtitle: const Text(
-              'Gentle reminder once a day to protect your streak',
+              'Get reminded on your chosen days and time',
               style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
             ),
             value: remindersOn,
@@ -502,28 +502,30 @@ class SettingsScreen extends ConsumerWidget {
             onChanged: (val) async {
               HapticFeedback.selectionClick();
               if (val) {
-                final allowed = await NotificationExplanationDialog.show(context);
-                if (allowed) {
-                  final notif = ref.read(notificationServiceProvider);
-                  final granted = await notif.requestPermission();
-                  await settings.setRemindersEnabled(granted);
-                  if (granted) {
-                    await notif.syncReminders();
-                    if (context.mounted) {
-                      AppToast.show(
-                        context,
-                        message: 'Daily reminders activated!',
-                        type: AppToastType.success,
-                      );
-                    }
-                  } else {
-                    if (context.mounted) {
-                      AppToast.show(
-                        context,
-                        message: 'Notifications are disabled on this device.',
-                        type: AppToastType.warning,
-                      );
-                    }
+                final notif = ref.read(notificationServiceProvider);
+                final granted = await notif.requestPermission();
+                await settings.setRemindersEnabled(granted);
+                if (granted) {
+                  final canExact = await notif.canScheduleExactAlarms();
+                  if (!canExact) {
+                    // Open system exact alarm settings directly without middleman dialog
+                    await notif.openExactAlarmSettings();
+                  }
+                  await notif.syncReminders();
+                  if (context.mounted) {
+                    AppToast.show(
+                      context,
+                      message: 'Daily reminders activated!',
+                      type: AppToastType.success,
+                    );
+                  }
+                } else {
+                  if (context.mounted) {
+                    AppToast.show(
+                      context,
+                      message: 'Notifications are disabled on this device. Please enable them in Settings.',
+                      type: AppToastType.warning,
+                    );
                   }
                 }
               } else {
@@ -534,9 +536,11 @@ class SettingsScreen extends ConsumerWidget {
             },
           ),
 
-          // If enabled: time picker & test button
+          // Reminder configuration (time + day picker) — shown when enabled
           if (remindersOn) ...[
             const Divider(height: 1, color: AppTheme.borderLight),
+
+            // Time picker
             ListTile(
               leading: const Icon(Icons.access_time_rounded, color: AppTheme.primaryColor),
               title: const Text('Reminder time', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
@@ -570,6 +574,99 @@ class SettingsScreen extends ConsumerWidget {
                     );
                   }
                 }
+              },
+            ),
+
+            const Divider(height: 1, color: AppTheme.borderLight),
+
+            // Day-of-week selector
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.calendar_today_rounded, size: 16, color: AppTheme.primaryColor),
+                      SizedBox(width: 8),
+                      Text(
+                        'Remind me on',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  _DayOfWeekSelector(
+                    selectedDays: reminderDays,
+                    onChanged: (days) async {
+                      HapticFeedback.selectionClick();
+                      await settings.setReminderDays(days);
+                      await ref.read(notificationServiceProvider).syncReminders();
+                      ref.invalidate(settingsRepositoryProvider);
+                      if (days.isEmpty && context.mounted) {
+                        AppToast.show(
+                          context,
+                          message: 'No days selected — reminders paused.',
+                          type: AppToastType.warning,
+                        );
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+
+            const Divider(height: 1, color: AppTheme.borderLight),
+
+            // Exact alarm permission check & banner
+            FutureBuilder<bool>(
+              future: ref.read(notificationServiceProvider).canScheduleExactAlarms(),
+              builder: (context, snapshot) {
+                final canExact = snapshot.data ?? true;
+                if (canExact) return const SizedBox.shrink();
+
+                return Container(
+                  margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    border: Border.all(color: Colors.amber.shade700.withValues(alpha: 0.4)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.alarm_on_rounded, color: Colors.orange, size: 22),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Exact timing permission needed',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Tap here to allow exact alarms in Android settings so reminders fire on time.',
+                              style: TextStyle(fontSize: 11, color: Colors.amber.shade900),
+                            ),
+                          ],
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          HapticFeedback.selectionClick();
+                          await ref.read(notificationServiceProvider).openExactAlarmSettings();
+                        },
+                        child: const Text('Fix', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                );
               },
             ),
           ],
@@ -658,6 +755,70 @@ class SettingsScreen extends ConsumerWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// A compact day-of-week selector showing Mon–Sun as toggle chips.
+/// [selectedDays] is a list of 0-based indices (0=Mon…6=Sun).
+class _DayOfWeekSelector extends StatelessWidget {
+  final List<int> selectedDays;
+  final ValueChanged<List<int>> onChanged;
+
+  const _DayOfWeekSelector({
+    required this.selectedDays,
+    required this.onChanged,
+  });
+
+  static const _labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  static const _fullLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: List.generate(7, (index) {
+        final isOn = selectedDays.contains(index);
+        return Tooltip(
+          message: _fullLabels[index],
+          child: GestureDetector(
+            onTap: () {
+              final newDays = List<int>.from(selectedDays);
+              if (isOn) {
+                newDays.remove(index);
+              } else {
+                newDays.add(index);
+              }
+              onChanged(newDays);
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: isOn ? AppTheme.primaryColor : AppTheme.canvasBackground,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isOn
+                      ? AppTheme.primaryColor
+                      : AppTheme.borderLight,
+                  width: 1.5,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  _labels[index],
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: isOn ? Colors.white : AppTheme.textSecondary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
     );
   }
 }

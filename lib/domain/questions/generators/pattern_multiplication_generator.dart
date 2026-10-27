@@ -93,10 +93,10 @@ class PatternMultiplicationGenerator extends QuestionGenerator {
         }
 
       case Difficulty.hard:
-        // 3-digit × 11, or 2-digit × 101, or 2-digit × 99 (larger range)
-        final choice = random.nextInt(3);
-        if (choice == 0) {
-          final n = 100 + random.nextInt(800); // 100..899
+        // 3-digit × 11, 2-digit × 101, 2-digit × 99
+        final choiceHard = random.nextInt(3);
+        if (choiceHard == 0) {
+          final n = 100 + random.nextInt(900); // 100..999
           return Question(
             topic: Topic.patternMultiplication,
             difficulty: difficulty,
@@ -106,7 +106,7 @@ class PatternMultiplicationGenerator extends QuestionGenerator {
             pattern: PatternConstants.patternOf(
                 Topic.patternMultiplication, difficulty, [n, 11]),
           );
-        } else if (choice == 1) {
+        } else if (choiceHard == 1) {
           final n = 10 + random.nextInt(90); // 10..99
           return Question(
             topic: Topic.patternMultiplication,
@@ -118,7 +118,7 @@ class PatternMultiplicationGenerator extends QuestionGenerator {
                 Topic.patternMultiplication, difficulty, [n, 101]),
           );
         } else {
-          final n = 100 + random.nextInt(200); // 100..299
+          final n = 10 + random.nextInt(90); // 10..99
           return Question(
             topic: Topic.patternMultiplication,
             difficulty: difficulty,
@@ -127,6 +127,82 @@ class PatternMultiplicationGenerator extends QuestionGenerator {
             correctAnswer: n * 99,
             pattern: PatternConstants.patternOf(
                 Topic.patternMultiplication, difficulty, [n, 99]),
+          );
+        }
+
+      case Difficulty.expert:
+        // 4-digit × 11, 3-digit × 101, 3-digit × 999
+        final choiceExp = random.nextInt(3);
+        if (choiceExp == 0) {
+          final n = 1000 + random.nextInt(9000); // 1000..9999
+          return Question(
+            topic: Topic.patternMultiplication,
+            difficulty: difficulty,
+            displayText: '$n × 11 = ?',
+            operands: [n, 11],
+            correctAnswer: n * 11,
+            pattern: PatternConstants.patternOf(
+                Topic.patternMultiplication, difficulty, [n, 11]),
+          );
+        } else if (choiceExp == 1) {
+          final n = 100 + random.nextInt(900); // 100..999
+          return Question(
+            topic: Topic.patternMultiplication,
+            difficulty: difficulty,
+            displayText: '$n × 101 = ?',
+            operands: [n, 101],
+            correctAnswer: n * 101,
+            pattern: PatternConstants.patternOf(
+                Topic.patternMultiplication, difficulty, [n, 101]),
+          );
+        } else {
+          final n = 100 + random.nextInt(900); // 100..999
+          return Question(
+            topic: Topic.patternMultiplication,
+            difficulty: difficulty,
+            displayText: '$n × 999 = ?',
+            operands: [n, 999],
+            correctAnswer: n * 999,
+            pattern: PatternConstants.patternOf(
+                Topic.patternMultiplication, difficulty, [n, 999]),
+          );
+        }
+
+      case Difficulty.genius:
+        // 4-digit × 1001, 4-digit × 999, 3-digit × 111 tricks
+        final choiceGen = random.nextInt(3);
+        if (choiceGen == 0) {
+          final n = 1000 + random.nextInt(9000); // 1000..9999
+          return Question(
+            topic: Topic.patternMultiplication,
+            difficulty: difficulty,
+            displayText: '$n × 1001 = ?',
+            operands: [n, 1001],
+            correctAnswer: n * 1001,
+            pattern: PatternConstants.patternOf(
+                Topic.patternMultiplication, difficulty, [n, 1001]),
+          );
+        } else if (choiceGen == 1) {
+          final n = 1000 + random.nextInt(9000); // 1000..9999
+          return Question(
+            topic: Topic.patternMultiplication,
+            difficulty: difficulty,
+            displayText: '$n × 999 = ?',
+            operands: [n, 999],
+            correctAnswer: n * 999,
+            pattern: PatternConstants.patternOf(
+                Topic.patternMultiplication, difficulty, [n, 999]),
+          );
+        } else {
+          final n = 100 + random.nextInt(900); // 100..999
+          return Question(
+            topic: Topic.patternMultiplication,
+            difficulty: difficulty,
+            displayText: '$n × 111 = ?',
+            operands: [n, 111],
+            correctAnswer: n * 111,
+            pattern: PatternConstants.patternOf(
+                Topic.patternMultiplication, difficulty, [n, 111]),
           );
         }
 

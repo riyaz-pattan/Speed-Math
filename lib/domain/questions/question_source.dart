@@ -38,6 +38,7 @@ class GeneratorQuestionSource implements QuestionSource {
   final Random random;
   final bool focusWeakAreas;
   final Map<String, PatternSkill> patternSkills;
+  final Set<String> _sessionAskedDisplayTexts = {};
 
   GeneratorQuestionSource({
     required this.generator,
@@ -82,12 +83,21 @@ class GeneratorQuestionSource implements QuestionSource {
       recentPatterns: recentPatterns,
     );
 
+    final askedInSession = <String>{
+      if (previousQuestion != null) previousQuestion.displayText,
+      if (recentAttempts != null)
+        for (final a in recentAttempts) a.question.displayText,
+      ..._sessionAskedDisplayTexts,
+    };
+
     final q = generator.generateUnique(
       difficulty: difficulty,
       random: random,
       previousQuestion: previousQuestion,
+      excludedDisplayTexts: askedInSession,
       pattern: targetPattern,
     );
+    _sessionAskedDisplayTexts.add(q.displayText);
     return QuestionNext(question: q, isReplayedMistake: false);
   }
 }

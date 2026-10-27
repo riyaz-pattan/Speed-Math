@@ -47,6 +47,53 @@ class DerivedFractionsGenerator extends QuestionGenerator {
     ['46.67', 7, 15],
   ];
 
+  static const _expert = [
+    ['27.27', 3, 11],
+    ['45.45', 5, 11],
+    ['63.64', 7, 11],
+    ['72.73', 8, 11],
+    ['81.82', 9, 11],
+    ['91.67', 11, 12],
+    ['15.38', 2, 13],
+    ['23.08', 3, 13],
+    ['30.77', 4, 13],
+    ['21.43', 3, 14],
+    ['35.71', 5, 14],
+    ['64.29', 9, 14],
+    ['78.57', 11, 14],
+    ['18.75', 3, 16],
+    ['31.25', 5, 16],
+    ['43.75', 7, 16],
+    ['56.25', 9, 16],
+    ['68.75', 11, 16],
+    ['81.25', 13, 16],
+    ['93.75', 15, 16],
+  ];
+
+  static const _genius = [
+    ['38.46', 5, 13],
+    ['46.15', 6, 13],
+    ['53.85', 7, 13],
+    ['61.54', 8, 13],
+    ['69.23', 9, 13],
+    ['76.92', 10, 13],
+    ['11.76', 2, 17],
+    ['17.65', 3, 17],
+    ['23.53', 4, 17],
+    ['29.41', 5, 17],
+    ['10.53', 2, 19],
+    ['15.79', 3, 19],
+    ['21.05', 4, 19],
+    ['26.32', 5, 19],
+    ['27.78', 5, 18],
+    ['38.89', 7, 18],
+    ['61.11', 11, 18],
+    ['20.83', 5, 24],
+    ['29.17', 7, 24],
+    ['45.83', 11, 24],
+    ['54.17', 13, 24],
+  ];
+
   @override
   Question generate({
     required Difficulty difficulty,
@@ -58,6 +105,8 @@ class DerivedFractionsGenerator extends QuestionGenerator {
       Difficulty.easy => _easy,
       Difficulty.medium => _medium,
       Difficulty.hard => _hard,
+      Difficulty.expert => _expert,
+      Difficulty.genius => _genius,
       Difficulty.mixed =>
         throw ArgumentError('Cannot generate Difficulty.mixed directly'),
     };

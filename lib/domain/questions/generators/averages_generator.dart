@@ -32,6 +32,8 @@ class AveragesGenerator extends QuestionGenerator {
         Difficulty.easy => _generateEasy(random, targetPattern: pattern),
         Difficulty.medium => _generateMedium(random, targetPattern: pattern),
         Difficulty.hard => _generateHard(random, targetPattern: pattern),
+        Difficulty.expert => _generateExpert(random, targetPattern: pattern),
+        Difficulty.genius => _generateGenius(random, targetPattern: pattern),
         Difficulty.mixed =>
           throw ArgumentError('Cannot generate Difficulty.mixed directly'),
       };
@@ -39,7 +41,7 @@ class AveragesGenerator extends QuestionGenerator {
       final pat = patternOf(difficulty, raw.operands);
       q = Question(
         topic: raw.topic,
-        difficulty: raw.difficulty,
+        difficulty: difficulty,
         displayText: raw.displayText,
         operands: raw.operands,
         correctAnswer: raw.correctAnswer,
@@ -261,6 +263,144 @@ class AveragesGenerator extends QuestionGenerator {
         operands: [m, k, ans, 1],
         correctAnswer: ans,
       );
+    }
+  }
+
+  Question _generateExpert(Random random, {String? targetPattern}) {
+    final count = random.nextBool() ? 6 : 7;
+    final targetAvg = 80 + random.nextInt(240); // 80..319
+    final nums = <int>[];
+    int sum = 0;
+    for (int i = 0; i < count - 1; i++) {
+      final d = -35 + random.nextInt(71);
+      final v = (targetAvg + d).clamp(30, 400);
+      nums.add(v);
+      sum += v;
+    }
+    var last = (count * targetAvg) - sum;
+    if (last < 30 || last > 400) {
+      last = targetAvg;
+      nums.add(last);
+      final total = nums.reduce((a, b) => a + b);
+      final rem = total % count;
+      if (rem != 0) nums[count - 1] += (count - rem);
+    } else {
+      nums.add(last);
+    }
+    final finalAvg = nums.reduce((a, b) => a + b) ~/ count;
+
+    final isMissing = random.nextBool();
+    if (isMissing) {
+      final hideIdx = random.nextInt(count);
+      final ans = nums[hideIdx];
+      final remaining = [...nums]..removeAt(hideIdx);
+      final text =
+          'The average of $count numbers is $finalAvg. ${count - 1} of them are ${remaining.join(', ')}. Find the missing number.';
+      return Question(
+        topic: Topic.averages,
+        difficulty: Difficulty.expert,
+        displayText: text,
+        operands: [count, finalAvg, ...remaining, ans, 1],
+        correctAnswer: ans,
+      );
+    } else {
+      final text = 'Average of ${nums.join(', ')} = ?';
+      return Question(
+        topic: Topic.averages,
+        difficulty: Difficulty.expert,
+        displayText: text,
+        operands: [...nums, finalAvg, 2],
+        correctAnswer: finalAvg,
+      );
+    }
+  }
+
+  Question _generateGenius(Random random, {String? targetPattern}) {
+    final useWeighted = random.nextBool();
+
+    if (useWeighted) {
+      const ratios = [
+        (2, 3),
+        (3, 2),
+        (1, 3),
+        (3, 1),
+        (3, 4),
+        (4, 3),
+        (2, 5),
+        (5, 2),
+        (3, 5),
+        (5, 3),
+      ];
+      final r = ratios[random.nextInt(ratios.length)];
+      final rA = r.$1;
+      final rB = r.$2;
+      final m = 5 + random.nextInt(10);
+      final countA = m * rA;
+      final countB = m * rB;
+      final totalCount = countA + countB;
+
+      final combinedAvg = 45 + random.nextInt(45);
+      final k = 1 + random.nextInt(3);
+      final avgA = combinedAvg - (rB * k);
+      final avgB = combinedAvg + (rA * k);
+
+      final text =
+          'Group A of $countA students has an average score of $avgA, and Group B of $countB students has an average score of $avgB. Find the combined average of all $totalCount students.';
+
+      return Question(
+        topic: Topic.averages,
+        difficulty: Difficulty.genius,
+        displayText: text,
+        operands: [countA, avgA, countB, avgB, combinedAvg, 1],
+        correctAnswer: combinedAvg,
+      );
+    } else {
+      const count = 8;
+      final targetAvg = 100 + random.nextInt(250);
+      final nums = <int>[];
+      int sum = 0;
+      for (int i = 0; i < count - 1; i++) {
+        final d = -40 + random.nextInt(81);
+        final v = (targetAvg + d).clamp(30, 500);
+        nums.add(v);
+        sum += v;
+      }
+      var last = (count * targetAvg) - sum;
+      if (last < 30 || last > 500) {
+        last = targetAvg;
+        nums.add(last);
+        final total = nums.reduce((a, b) => a + b);
+        final rem = total % count;
+        if (rem != 0) nums[count - 1] += (count - rem);
+      } else {
+        nums.add(last);
+      }
+      final finalAvg = nums.reduce((a, b) => a + b) ~/ count;
+
+      final isMissing = random.nextBool();
+      if (isMissing) {
+        final hideIdx = random.nextInt(count);
+        final ans = nums[hideIdx];
+        final remaining = [...nums]..removeAt(hideIdx);
+        final text =
+            'The average of $count numbers is $finalAvg. 7 of them are ${remaining.join(', ')}. Find the remaining number.';
+        return Question(
+          topic: Topic.averages,
+          difficulty: Difficulty.genius,
+          displayText: text,
+          operands: [count, finalAvg, ...remaining, ans, 2],
+          correctAnswer: ans,
+        );
+      } else {
+        final text = 'Average of ${nums.join(', ')} = ?';
+        return Question(
+          topic: Topic.averages,
+          difficulty: Difficulty.genius,
+          displayText: text,
+          operands: [...nums, finalAvg, 3],
+          correctAnswer: finalAvg,
+        );
+      }
     }
   }
 }

@@ -34,9 +34,21 @@ class CubesGenerator extends QuestionGenerator {
           DifficultyRanges.cubesHardMin,
           DifficultyRanges.cubesHardMax,
         ),
+      Difficulty.expert => (
+          DifficultyRanges.cubesExpertMin,
+          DifficultyRanges.cubesExpertMax,
+        ),
+      Difficulty.genius => (
+          DifficultyRanges.cubesGeniusMin,
+          DifficultyRanges.cubesGeniusMax,
+        ),
       Difficulty.mixed =>
         throw ArgumentError('Cannot generate Difficulty.mixed directly'),
     };
+
+    final excludeMultiplesOfTen = difficulty == Difficulty.hard ||
+        difficulty == Difficulty.expert ||
+        difficulty == Difficulty.genius;
 
     Question q;
     int tries = 0;
@@ -44,7 +56,7 @@ class CubesGenerator extends QuestionGenerator {
       int n;
       do {
         n = min + random.nextInt(max - min + 1);
-      } while (difficulty == Difficulty.hard && n % 10 == 0);
+      } while (excludeMultiplesOfTen && n % 10 == 0);
 
       final pat = patternOf(difficulty, [n, 3]);
       q = Question(

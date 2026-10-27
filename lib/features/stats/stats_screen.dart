@@ -486,8 +486,8 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
           ),
           const SizedBox(height: 14),
 
-          // Three bars for Easy, Medium, Hard
-          ...Difficulty.values.map((diff) {
+          // Bars for concrete difficulties (Easy, Medium, Hard, Expert, Genius)
+          ...Difficulty.concreteDifficulties.map((diff) {
             final rating = _topicSkillRatings[diff];
             final bucket = rating != null
                 ? engine.classifyBucket(rating)

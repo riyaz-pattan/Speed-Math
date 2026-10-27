@@ -350,6 +350,42 @@ void main() {
       }
     });
 
+    test('no duplicate questions within a standard 15-question session', () {
+      final picker = SmartQuestionPicker(
+        selectedTopics: [Topic.squares],
+        ratings: {},
+        fixedDifficulty: Difficulty.easy,
+        totalSessionQuestions: 15,
+        random: Random(123),
+      );
+
+      final asked = <String>{};
+      final attempts = <SessionAttempt>[];
+      Question? prev;
+
+      for (int i = 0; i < 15; i++) {
+        final res = picker.nextQuestion(
+          previousQuestion: prev,
+          recentAttempts: attempts,
+        );
+        expect(asked.contains(res.question.displayText), isFalse,
+            reason: 'Question ${res.question.displayText} was repeated at step $i');
+        asked.add(res.question.displayText);
+        attempts.add(
+          SessionAttempt(
+            question: res.question,
+            userAnswer: res.question.correctAnswer,
+            isCorrect: true,
+            isSkipped: false,
+            timeMs: 1500,
+            points: 10,
+          ),
+        );
+        prev = res.question;
+      }
+      expect(asked.length, 15);
+    });
+
     test('no back-to-back repeats for consecutive questions', () {
       final picker = SmartQuestionPicker(
         selectedTopics: [Topic.addition],

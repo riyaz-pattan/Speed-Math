@@ -7,8 +7,6 @@ import '../../core/ads/ad_service.dart';
 import '../../core/ads/interstitial_ad_manager.dart';
 import '../../core/ads/widgets/banner_ad_container.dart';
 import '../../core/enums/enums.dart';
-import '../../core/services/notification_service.dart';
-import '../../core/widgets/app_toast.dart';
 import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
 import '../../data/models/session.dart';
 import '../../data/repositories/report_repository.dart';
@@ -31,14 +29,11 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   Session? _lastSession;
   bool _isLoading = true;
-  Timer? _reminderCheckTimer;
-  String? _lastShownInAppReminderMinute;
 
   @override
   void initState() {
     super.initState();
     _loadLastSession();
-    _startReminderCheck();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(AdService.instance.initialize());
       unawaited(InterstitialAdManager.instance.init());
@@ -47,40 +42,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   void dispose() {
-    _reminderCheckTimer?.cancel();
     super.dispose();
-  }
-
-  void _startReminderCheck() {
-    _reminderCheckTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      final now = DateTime.now();
-      // Only evaluate on the exact zeroth second of each minute
-      if (now.second != 0) return;
-
-      final settings = ref.read(settingsRepositoryProvider);
-      if (!settings.remindersEnabled) return;
-
-      final parts = settings.reminderTime.split(':');
-      final remHour = parts.isNotEmpty ? (int.tryParse(parts[0]) ?? 19) : 19;
-      final remMin = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
-
-      final currentMinuteKey =
-          '${now.year}-${now.month}-${now.day}_${now.hour}:${now.minute}';
-      if (now.hour == remHour && now.minute == remMin) {
-        if (_lastShownInAppReminderMinute != currentMinuteKey) {
-          _lastShownInAppReminderMinute = currentMinuteKey;
-          AppToast.show(
-            context,
-            message:
-                '⏰ Daily practice reminder: Time for your speed math workout!',
-            type: AppToastType.info,
-          );
-          // If the app is actively open at reminder time, cancel today's system tray notification
-          ref.read(notificationServiceProvider).cancelNotification(100);
-        }
-      }
-    });
   }
 
   Future<void> _loadLastSession() async {
@@ -615,6 +577,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       (Topic.patternMultiplication, 'Fast multiplication by 11, 99'),
     ];
 
+    const algebraTopics = [
+      (Topic.linearEquations, '1, 2 & 3-variable linear systems'),
+      (Topic.quadraticEquations, 'Roots & competitive equation comparison'),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -629,6 +596,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         _buildTopicGroupHeader('Applied Maths', appliedMathsTopics.length),
         const SizedBox(height: 10),
         ...appliedMathsTopics.map((item) => _buildTopicCard(item.$1, item.$2)),
+        const SizedBox(height: 16),
+        _buildTopicGroupHeader('Algebra & Equations', algebraTopics.length),
+        const SizedBox(height: 10),
+        ...algebraTopics.map((item) => _buildTopicCard(item.$1, item.$2)),
         const SizedBox(height: 16),
         _buildTopicGroupHeader('Mental Shortcuts', mentalShortcutsTopics.length),
         const SizedBox(height: 10),

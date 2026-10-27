@@ -34,6 +34,14 @@ class SquareRootsGenerator extends QuestionGenerator {
           DifficultyRanges.squareRootsHardMin,
           DifficultyRanges.squareRootsHardMax,
         ),
+      Difficulty.expert => (
+          DifficultyRanges.squareRootsExpertMin,
+          DifficultyRanges.squareRootsExpertMax,
+        ),
+      Difficulty.genius => (
+          DifficultyRanges.squareRootsGeniusMin,
+          DifficultyRanges.squareRootsGeniusMax,
+        ),
       Difficulty.mixed =>
         throw ArgumentError('Cannot generate Difficulty.mixed directly'),
     };

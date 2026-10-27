@@ -22,10 +22,22 @@ class QuestionTextWidget extends StatelessWidget {
 
   /// Determines whether [text] is a word problem sentence or a math expression.
   static bool isSentence(String text) {
-    final stripped = text
-        .replaceAll(RegExp(r'\b(of|approx|ans|find|sum)\b', caseSensitive: false), '')
-        .replaceAll(RegExp(r'[0-9\+\-\−\×\*\÷\/\^\²\³\√\∛\≈\=\?\:\,\.\(\)\%_\s]'), '');
-    return RegExp(r'[a-zA-Z]{2,}').hasMatch(stripped);
+    // Math expressions and equations may contain single-variable letters (e.g., x, y, z)
+    // combined with coefficients, exponents, and operators.
+    // Replace non-alpha characters with spaces, then inspect whole words.
+    final wordsOnly = text.replaceAll(RegExp(r'[^a-zA-Z\s]'), ' ');
+    final words = wordsOnly.split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
+    for (final word in words) {
+      final lower = word.toLowerCase();
+      // Ignore common math abbreviations, labels, or short particles
+      if (['of', 'approx', 'ans', 'find', 'sum', 'i', 'ii', 'iii', 'iv', 'v'].contains(lower)) {
+        continue;
+      }
+      if (lower.length >= 2) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @override
@@ -39,6 +51,27 @@ class QuestionTextWidget extends StatelessWidget {
     try {
       // 1. Explicit font size specified (e.g. compact review list or history row)
       if (style?.fontSize != null) {
+        if (trimmed.contains('\n')) {
+          final lines = trimmed.split('\n');
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              for (int i = 0; i < lines.length; i++) ...[
+                if (i > 0) const SizedBox(height: 3),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: _buildTokenRow(
+                    _parseTokens(lines[i].trim()),
+                    effectiveStyle,
+                    style!.fontSize!,
+                    textAlign,
+                  ),
+                ),
+              ],
+            ],
+          );
+        }
         final tokens = _parseTokens(trimmed);
         return FittedBox(
           fit: BoxFit.scaleDown,
@@ -53,7 +86,9 @@ class QuestionTextWidget extends StatelessWidget {
               ? constraints.maxWidth
               : MediaQuery.sizeOf(context).width - 24;
 
-          if (isSentence(trimmed)) {
+          if (trimmed.contains('\n')) {
+            return _buildMultiLineWidget(trimmed, effectiveStyle, maxWidth, textAlign);
+          } else if (isSentence(trimmed)) {
             return _buildSentenceWidget(trimmed, effectiveStyle, maxWidth, textAlign);
           } else {
             return _buildExpressionWidget(trimmed, effectiveStyle, maxWidth, textAlign);
@@ -67,6 +102,45 @@ class QuestionTextWidget extends StatelessWidget {
       }
       return _buildFallback(trimmed, effectiveStyle);
     }
+  }
+
+  Widget _buildMultiLineWidget(
+    String text,
+    TextStyle style,
+    double maxWidth,
+    TextAlign align,
+  ) {
+    final lines = text.split('\n');
+    double bestSize = 26.0;
+
+    for (double size = 26.0; size >= 18.0; size -= 1.0) {
+      bool allFit = true;
+      for (final line in lines) {
+        final tokens = _parseTokens(line.trim());
+        if (_measureTokensWidth(tokens, style, size) > maxWidth) {
+          allFit = false;
+          break;
+        }
+      }
+      if (allFit) {
+        bestSize = size;
+        break;
+      }
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        for (int i = 0; i < lines.length; i++) ...[
+          if (i > 0) const SizedBox(height: 6),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: _buildTokenRow(_parseTokens(lines[i].trim()), style, bestSize, align),
+          ),
+        ],
+      ],
+    );
   }
 
   Widget _buildExpressionWidget(

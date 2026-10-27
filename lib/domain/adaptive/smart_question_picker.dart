@@ -62,6 +62,7 @@ class SmartQuestionPicker {
   int _dueMistakesServedCount = 0;
   bool _lastWasDueMistake = false;
   final Set<int> _servedMistakeIds = {};
+  final Set<String> _sessionAskedDisplayTexts = {};
 
   SmartQuestionPicker({
     required List<Topic> selectedTopics,
@@ -284,15 +285,23 @@ class SmartQuestionPicker {
       recentPatterns: recentPatterns,
     );
 
-    // 5. Generate question, avoiding previous question repeat
+    // 5. Generate question, avoiding session repeats
     final generator =
         QuestionGeneratorRegistry.getGenerator(chosenBucket.topic);
+    final askedInSession = <String>{
+      if (previousQuestion != null) previousQuestion.displayText,
+      if (recentAttempts != null)
+        for (final a in recentAttempts) a.question.displayText,
+      ..._sessionAskedDisplayTexts,
+    };
     final newQuestion = generator.generateUnique(
       difficulty: finalDifficulty,
       random: random,
       previousQuestion: previousQuestion,
+      excludedDisplayTexts: askedInSession,
       pattern: targetPattern,
     );
+    _sessionAskedDisplayTexts.add(newQuestion.displayText);
 
     return PickResult(
       question: newQuestion,

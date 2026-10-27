@@ -169,12 +169,16 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
     if (_skillRepository != null) {
       try {
         final allRatings = await _skillRepository.getAllRatingsMap();
+        if (!mounted) return;
         _runningSkillRatings.addAll(allRatings);
         final allPatternSkills =
             await _skillRepository.getAllPatternSkillsMap();
+        if (!mounted) return;
         _runningPatternSkills.addAll(allPatternSkills);
       } catch (_) {}
     }
+
+    if (!mounted) return;
 
     final isMistakes = state.config.kind == SessionKind.mistakes ||
         state.config.mode == PracticeMode.mistakes;
@@ -199,13 +203,15 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
         } catch (_) {}
       }
 
+      if (!mounted) return;
+
       final fixedDiff = state.config.difficulty == Difficulty.mixed
           ? null
           : state.config.difficulty;
       final picker = SmartQuestionPicker(
         selectedTopics: state.config.selectedTopics,
-        ratings: Map.from(_runningSkillRatings),
-        patternSkills: Map.from(_runningPatternSkills),
+        ratings: _runningSkillRatings,
+        patternSkills: _runningPatternSkills,
         dueMistakes: dueMistakes,
         random: _random,
         totalSessionQuestions: state.config.modeValue,
@@ -235,7 +241,7 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
         difficulty: state.config.difficulty,
         random: _random,
         focusWeakAreas: state.config.focusOnWeakAreas,
-        patternSkills: Map.from(_runningPatternSkills),
+        patternSkills: _runningPatternSkills,
       );
 
       // If user hasn't typed yet, refresh first question with pattern question
@@ -347,9 +353,58 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
   }
 
   /// Appends a digit to the current input, checking for auto-advance or wrong tries.
+  /// Selects active root input box for dual-root questions (0 or 1).
+  void selectInputBox(int index) {
+    if (state.activeInputBox != index) {
+      state = state.copyWith(activeInputBox: index);
+    }
+  }
+
+  /// Immediately records answer and advances for multiple-choice comparison questions.
+  void selectOption(String option) {
+    _ensureRunning();
+    if (state.status != PracticeSessionStatus.running || _isFinishing || _isFinished) return;
+    if (!state.currentQuestion.isMultipleChoice) return;
+
+    final options = state.currentQuestion.options!;
+    final selectedIndex = options.indexOf(option);
+    if (selectedIndex < 0) return;
+
+    state = state.copyWith(currentInput: option);
+
+    final isCorrect = option == state.currentQuestion.stringAnswer ||
+        selectedIndex == state.currentQuestion.correctAnswer;
+
+    if (isCorrect) {
+      _recordCorrectAndAdvance(userAnswer: selectedIndex);
+    } else {
+      _markWrongTry(userAnswer: selectedIndex);
+    }
+  }
+
+  /// Appends a digit to the current input, checking for auto-advance or wrong tries.
   void inputDigit(String digit) {
     _ensureRunning();
     if (state.status != PracticeSessionStatus.running || _isFinishing || _isFinished) return;
+
+    if (state.currentQuestion.isDualRootQuestion) {
+      final isBox0 = state.activeInputBox == 0;
+      final currentTarget = isBox0 ? state.currentInput : state.secondaryInput;
+      if (currentTarget.length >= 6) return;
+
+      final updatedTarget = currentTarget + digit;
+      if (isBox0) {
+        state = state.copyWith(currentInput: updatedTarget);
+      } else {
+        state = state.copyWith(secondaryInput: updatedTarget);
+      }
+
+      if (state.config.autoSubmit) {
+        _checkDualRootAutoSubmit();
+      }
+      return;
+    }
+
     if (state.currentInput.length >= 8) return; // Prevent overflow
 
     final newInput = state.currentInput + digit;
@@ -367,18 +422,36 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
       } else {
         final parsed = int.tryParse(newInput);
         if (parsed != null) {
-          final targetLength =
-              state.currentQuestion.correctAnswer.abs().toString().length;
+          final target = state.currentQuestion.correctAnswer;
+          final targetLength = target.abs().toString().length;
           final digitsOnly = newInput.replaceAll('-', '');
 
-          if (parsed == state.currentQuestion.correctAnswer) {
+          if (parsed == target) {
             _recordCorrectAndAdvance(userAnswer: parsed);
-          } else if (digitsOnly.length >= targetLength) {
+          } else if (digitsOnly.length >= targetLength && (target >= 0 || newInput.startsWith('-'))) {
             // Wrong answer reached target length: mark wrong internally, do NOT advance, keep input!
             _markWrongTry(userAnswer: parsed);
           }
         }
       }
+    }
+  }
+
+  void _checkDualRootAutoSubmit({bool isManualSubmit = false}) {
+    final r1 = int.tryParse(state.currentInput);
+    final r2 = int.tryParse(state.secondaryInput);
+    if (r1 == null || r2 == null) return;
+
+    final targetRoots = state.currentQuestion.rootAnswers;
+    if (targetRoots == null || targetRoots.length < 2) return;
+
+    final isUnorderedMatch = (r1 == targetRoots[0] && r2 == targetRoots[1]) ||
+        (r1 == targetRoots[1] && r2 == targetRoots[0]);
+
+    if (isUnorderedMatch) {
+      _recordCorrectAndAdvance(userAnswer: r1);
+    } else if (isManualSubmit) {
+      _markWrongTry(userAnswer: r1);
     }
   }
 
@@ -395,10 +468,48 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
   void inputMinus() {
     _ensureRunning();
     if (state.status != PracticeSessionStatus.running || _isFinishing || _isFinished) return;
+
+    if (state.currentQuestion.isDualRootQuestion) {
+      final isBox0 = state.activeInputBox == 0;
+      final currentTarget = isBox0 ? state.currentInput : state.secondaryInput;
+      final String updatedTarget;
+      if (currentTarget.isEmpty) {
+        updatedTarget = '-';
+      } else if (currentTarget == '-') {
+        updatedTarget = '';
+      } else if (currentTarget.startsWith('-')) {
+        updatedTarget = currentTarget.substring(1);
+      } else {
+        updatedTarget = '-$currentTarget';
+      }
+
+      if (isBox0) {
+        state = state.copyWith(currentInput: updatedTarget);
+      } else {
+        state = state.copyWith(secondaryInput: updatedTarget);
+      }
+
+      if (state.config.autoSubmit) {
+        _checkDualRootAutoSubmit();
+      }
+      return;
+    }
+
     if (state.currentInput.isEmpty) {
       state = state.copyWith(currentInput: '-');
     } else if (state.currentInput == '-') {
       state = state.copyWith(currentInput: '');
+    } else if (state.currentInput.startsWith('-')) {
+      state = state.copyWith(currentInput: state.currentInput.substring(1));
+    } else {
+      state = state.copyWith(currentInput: '-${state.currentInput}');
+    }
+
+    if (state.config.autoSubmit) {
+      final parsed = int.tryParse(state.currentInput);
+      if (parsed != null && parsed == state.currentQuestion.correctAnswer) {
+        _recordCorrectAndAdvance(userAnswer: parsed);
+      }
     }
   }
 
@@ -406,6 +517,21 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
   void deleteDigit() {
     _ensureRunning();
     if (state.status != PracticeSessionStatus.running || _isFinishing || _isFinished) return;
+
+    if (state.currentQuestion.isDualRootQuestion) {
+      final isBox0 = state.activeInputBox == 0;
+      final currentTarget = isBox0 ? state.currentInput : state.secondaryInput;
+      if (currentTarget.isNotEmpty) {
+        final updatedTarget = currentTarget.substring(0, currentTarget.length - 1);
+        if (isBox0) {
+          state = state.copyWith(currentInput: updatedTarget);
+        } else {
+          state = state.copyWith(secondaryInput: updatedTarget);
+        }
+      }
+      return;
+    }
+
     if (state.currentInput.isNotEmpty) {
       state = state.copyWith(
         currentInput:
@@ -418,6 +544,16 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
   void clearInput() {
     _ensureRunning();
     if (state.status != PracticeSessionStatus.running || _isFinishing || _isFinished) return;
+
+    if (state.currentQuestion.isDualRootQuestion) {
+      if (state.activeInputBox == 0) {
+        state = state.copyWith(currentInput: '');
+      } else {
+        state = state.copyWith(secondaryInput: '');
+      }
+      return;
+    }
+
     state = state.copyWith(currentInput: '');
   }
 
@@ -425,6 +561,19 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
   void submit() {
     _ensureRunning();
     if (state.status != PracticeSessionStatus.running || _isFinishing || _isFinished) return;
+
+    if (state.currentQuestion.isDualRootQuestion) {
+      if (state.activeInputBox == 0 &&
+          state.currentInput.isNotEmpty &&
+          state.currentInput != '-' &&
+          state.secondaryInput.isEmpty) {
+        selectInputBox(1);
+        return;
+      }
+      _checkDualRootAutoSubmit(isManualSubmit: true);
+      return;
+    }
+
     if (state.currentInput.isEmpty || state.currentInput == '-') return;
 
     if (state.currentQuestion.isFractionAnswer) {
@@ -500,11 +649,16 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
         timeMsIfCorrect: null,
       );
 
-      final patternKey = state.currentQuestion.pattern;
-      if (patternKey != null) {
+      final patternName = state.currentQuestion.pattern;
+      if (patternName != null) {
+        final patternKey = PatternSkill.makeKey(
+          state.currentQuestion.topic,
+          state.currentQuestion.difficulty,
+          patternName,
+        );
         final currentPattern = _runningPatternSkills[patternKey] ??
             PatternSkill(
-              pattern: patternKey,
+              pattern: patternName,
               topic: state.currentQuestion.topic,
               difficulty: state.currentQuestion.difficulty,
             );
@@ -521,8 +675,10 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
     state = state.copyWith(
       attempts: updatedAttempts,
       currentInput: '',
+      secondaryInput: '',
+      activeInputBox: 0,
       currentQuestionElapsedMs: 0,
-      feedback: isSkipped ? AnswerFeedback.skipped : AnswerFeedback.none,
+      feedback: AnswerFeedback.skipped,
       feedbackTick: state.feedbackTick + 1,
       clearWrongTry: true,
     );
@@ -639,11 +795,16 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
         timeMsIfCorrect: isCorrect ? timeMs : null,
       );
 
-      final patternKey = state.currentQuestion.pattern;
-      if (patternKey != null) {
+      final patternName = state.currentQuestion.pattern;
+      if (patternName != null) {
+        final patternKey = PatternSkill.makeKey(
+          state.currentQuestion.topic,
+          state.currentQuestion.difficulty,
+          patternName,
+        );
         final currentPattern = _runningPatternSkills[patternKey] ??
             PatternSkill(
-              pattern: patternKey,
+              pattern: patternName,
               topic: state.currentQuestion.topic,
               difficulty: state.currentQuestion.difficulty,
             );
@@ -664,6 +825,8 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
     state = state.copyWith(
       attempts: updatedAttempts,
       currentInput: '',
+      secondaryInput: '',
+      activeInputBox: 0,
       currentQuestionElapsedMs: 0,
       feedback: AnswerFeedback.correct,
       feedbackTick: state.feedbackTick + 1,
@@ -690,6 +853,8 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
       currentQuestion: nextQData.question,
       questionIndex: isInitial ? 1 : state.questionIndex + 1,
       currentInput: '',
+      secondaryInput: '',
+      activeInputBox: 0,
       currentQuestionElapsedMs: 0,
       clearWrongTry: true,
       currentQuestionIsReplay: nextQData.isReplayedMistake,
@@ -851,11 +1016,16 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
           timeMsIfCorrect: null,
         );
 
-        final patternKey = state.currentQuestion.pattern;
-        if (patternKey != null) {
+        final patternName = state.currentQuestion.pattern;
+        if (patternName != null) {
+          final patternKey = PatternSkill.makeKey(
+            state.currentQuestion.topic,
+            state.currentQuestion.difficulty,
+            patternName,
+          );
           final currentPattern = _runningPatternSkills[patternKey] ??
               PatternSkill(
-                pattern: patternKey,
+                pattern: patternName,
                 topic: state.currentQuestion.topic,
                 difficulty: state.currentQuestion.difficulty,
               );

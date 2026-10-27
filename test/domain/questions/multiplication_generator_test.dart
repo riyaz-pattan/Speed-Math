@@ -136,6 +136,90 @@ void main() {
       });
     });
 
+    group('Expert (3-digit × 3-digit)', () {
+      test('generates 1000 valid questions', () {
+        final random = Random(789);
+        Question? prev;
+        for (var i = 0; i < 1000; i++) {
+          final q = generator.generateUnique(
+            difficulty: Difficulty.expert,
+            random: random,
+            previousQuestion: prev,
+          );
+
+          expect(q.topic, Topic.multiplication);
+          expect(q.difficulty, Difficulty.expert);
+          expect(q.operands.length, 2);
+
+          final a = q.operands[0];
+          final b = q.operands[1];
+
+          expect(a, inInclusiveRange(100, 999));
+          expect(b, inInclusiveRange(100, 999));
+
+          expect(a, isNot(0));
+          expect(a, isNot(1));
+          expect(a, isNot(10));
+          expect(b, isNot(0));
+          expect(b, isNot(1));
+          expect(b, isNot(10));
+
+          expect(
+            a % 10 == 0 && b % 10 == 0,
+            isFalse,
+            reason: 'All numbers end in 0: $a, $b',
+          );
+
+          expect(q.correctAnswer, a * b);
+          expect(q.displayText, '$a × $b');
+
+          prev = q;
+        }
+      });
+    });
+
+    group('Genius (4-digit × 2-3 digit)', () {
+      test('generates 1000 valid questions', () {
+        final random = Random(101112);
+        Question? prev;
+        for (var i = 0; i < 1000; i++) {
+          final q = generator.generateUnique(
+            difficulty: Difficulty.genius,
+            random: random,
+            previousQuestion: prev,
+          );
+
+          expect(q.topic, Topic.multiplication);
+          expect(q.difficulty, Difficulty.genius);
+          expect(q.operands.length, 2);
+
+          final a = q.operands[0];
+          final b = q.operands[1];
+
+          expect(a, inInclusiveRange(1000, 9999));
+          expect(b, inInclusiveRange(25, 999));
+
+          expect(a, isNot(0));
+          expect(a, isNot(1));
+          expect(a, isNot(10));
+          expect(b, isNot(0));
+          expect(b, isNot(1));
+          expect(b, isNot(10));
+
+          expect(
+            a % 10 == 0 && b % 10 == 0,
+            isFalse,
+            reason: 'All numbers end in 0: $a, $b',
+          );
+
+          expect(q.correctAnswer, a * b);
+          expect(q.displayText, '$a × $b');
+
+          prev = q;
+        }
+      });
+    });
+
     test('same seed produces same questions', () {
       final q1 = generator.generate(
         difficulty: Difficulty.hard,

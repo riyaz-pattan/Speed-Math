@@ -11,6 +11,8 @@ import '../question_generator.dart';
 /// Easy:   2-digit + 2-digit
 /// Medium: 3-digit + 3-digit
 /// Hard:   three numbers, 3 to 4 digits each
+/// Expert: four numbers, 4 digits each
+/// Genius: four numbers, 4 to 5 digits each
 class AdditionGenerator extends QuestionGenerator {
   @override
   Topic get topic => Topic.addition;
@@ -33,6 +35,8 @@ class AdditionGenerator extends QuestionGenerator {
         Difficulty.easy => _generateEasy(random),
         Difficulty.medium => _generateMedium(random),
         Difficulty.hard => _generateHard(random),
+        Difficulty.expert => _generateExpert(random),
+        Difficulty.genius => _generateGenius(random),
         Difficulty.mixed => throw ArgumentError(
             'Cannot generate questions with Difficulty.mixed directly'),
       };
@@ -107,6 +111,58 @@ class AdditionGenerator extends QuestionGenerator {
       displayText: '$a + $b + $c',
       operands: [a, b, c],
       correctAnswer: a + b + c,
+    );
+  }
+
+  Question _generateExpert(Random random) {
+    int a, b, c, d;
+    do {
+      a = _randRange(random, DifficultyRanges.additionExpertMin,
+          DifficultyRanges.additionExpertMax);
+      b = _randRange(random, DifficultyRanges.additionExpertMin,
+          DifficultyRanges.additionExpertMax);
+      c = _randRange(random, DifficultyRanges.additionExpertMin,
+          DifficultyRanges.additionExpertMax);
+      d = _randRange(random, DifficultyRanges.additionExpertMin,
+          DifficultyRanges.additionExpertMax);
+    } while (_allEndInZero([a, b, c, d]) ||
+        _isTrivialAddend(a) ||
+        _isTrivialAddend(b) ||
+        _isTrivialAddend(c) ||
+        _isTrivialAddend(d));
+
+    return Question(
+      topic: Topic.addition,
+      difficulty: Difficulty.expert,
+      displayText: '$a + $b + $c + $d',
+      operands: [a, b, c, d],
+      correctAnswer: a + b + c + d,
+    );
+  }
+
+  Question _generateGenius(Random random) {
+    int a, b, c, d;
+    do {
+      a = _randRange(random, DifficultyRanges.additionGeniusMin,
+          DifficultyRanges.additionGeniusMax);
+      b = _randRange(random, DifficultyRanges.additionGeniusMin,
+          DifficultyRanges.additionGeniusMax);
+      c = _randRange(random, DifficultyRanges.additionGeniusMin,
+          DifficultyRanges.additionGeniusMax);
+      d = _randRange(random, DifficultyRanges.additionGeniusMin,
+          DifficultyRanges.additionGeniusMax);
+    } while (_allEndInZero([a, b, c, d]) ||
+        _isTrivialAddend(a) ||
+        _isTrivialAddend(b) ||
+        _isTrivialAddend(c) ||
+        _isTrivialAddend(d));
+
+    return Question(
+      topic: Topic.addition,
+      difficulty: Difficulty.genius,
+      displayText: '$a + $b + $c + $d',
+      operands: [a, b, c, d],
+      correctAnswer: a + b + c + d,
     );
   }
 

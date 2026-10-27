@@ -135,6 +135,8 @@ class LearnScreen extends ConsumerWidget {
               context.push('/learn/division');
             } else if (meta.id == 'squares_hub') {
               context.push('/learn/squares');
+            } else if (meta.id == 'quadratic_hub') {
+              context.push('/learn/quadratic');
             } else {
               context.push('/learn/${meta.id}');
             }

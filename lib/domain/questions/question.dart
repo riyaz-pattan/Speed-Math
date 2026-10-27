@@ -27,6 +27,15 @@ class Question {
   /// When non-null, the answer is compared as a string rather than an integer.
   final String? stringAnswer;
 
+  /// Optional dual root answers for quadratic root finding (e.g. [-3, 2]).
+  final List<int>? rootAnswers;
+
+  /// Optional multiple choice options for equation comparison (e.g. ['x > y', 'x < y', ...]).
+  final List<String>? options;
+
+  /// Optional subtitle or auxiliary prompt text (e.g. "Find the value of x" or equation II).
+  final String? subtitleText;
+
   const Question({
     required this.topic,
     required this.difficulty,
@@ -35,6 +44,9 @@ class Question {
     required this.correctAnswer,
     this.pattern,
     this.stringAnswer,
+    this.rootAnswers,
+    this.options,
+    this.subtitleText,
   });
 
   /// The canonical answer string: fraction string if available, else the integer.
@@ -43,6 +55,21 @@ class Question {
   /// Whether this question expects a fraction string answer (e.g. '1/8').
   bool get isFractionAnswer =>
       stringAnswer != null && stringAnswer!.contains('/');
+
+  /// Whether this question expects two roots to be entered.
+  bool get isDualRootQuestion =>
+      rootAnswers != null && rootAnswers!.length == 2;
+
+  /// Whether this question provides multiple-choice options (e.g. x > y).
+  bool get isMultipleChoice => options != null && options!.isNotEmpty;
+
+  /// Whether negative answers or minus signs are permitted on the keypad.
+  bool get allowsNegative =>
+      isDualRootQuestion ||
+      correctAnswer < 0 ||
+      (stringAnswer != null && stringAnswer!.startsWith('-')) ||
+      topic == Topic.linearEquations ||
+      topic == Topic.quadraticEquations;
 
   /// The first operand (for database storage as operand_a).
   String get operandA => operands.isNotEmpty ? operands[0].toString() : '';

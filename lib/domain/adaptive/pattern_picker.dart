@@ -52,6 +52,17 @@ class PatternPicker {
       }
     }
 
+    // Diversity constraint: Do not repeat the same pattern more than twice consecutively
+    if (recentPatterns != null && recentPatterns.length >= 2) {
+      final last2 = recentPatterns.sublist(recentPatterns.length - 2);
+      if (last2.every((p) => p == chosenPattern)) {
+        final others = patterns.where((p) => p != chosenPattern).toList();
+        if (others.isNotEmpty) {
+          chosenPattern = others[random.nextInt(others.length)];
+        }
+      }
+    }
+
     // Diversity rule: In any 10 questions in a row there must be at least 2 different patterns
     if (recentPatterns != null && recentPatterns.length >= 9) {
       final last9 = recentPatterns.sublist(recentPatterns.length - 9);

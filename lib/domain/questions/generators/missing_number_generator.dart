@@ -34,6 +34,8 @@ class MissingNumberGenerator extends QuestionGenerator {
         Difficulty.easy => _generateEasy(random, targetPattern: pattern),
         Difficulty.medium => _generateMedium(random, targetPattern: pattern),
         Difficulty.hard => _generateHard(random, targetPattern: pattern),
+        Difficulty.expert => _generateExpert(random, targetPattern: pattern),
+        Difficulty.genius => _generateGenius(random, targetPattern: pattern),
         Difficulty.mixed =>
           throw ArgumentError('Cannot generate Difficulty.mixed directly'),
       };
@@ -41,7 +43,7 @@ class MissingNumberGenerator extends QuestionGenerator {
       final pat = patternOf(difficulty, raw.operands);
       q = Question(
         topic: raw.topic,
-        difficulty: raw.difficulty,
+        difficulty: difficulty,
         displayText: raw.displayText,
         operands: raw.operands,
         correctAnswer: raw.correctAnswer,
@@ -199,6 +201,131 @@ class MissingNumberGenerator extends QuestionGenerator {
         topic: Topic.missingNumber,
         difficulty: Difficulty.hard,
         displayText: '(? $opSymbol $a) × $b = $c',
+        operands: [a, b, c, ans, 2],
+        correctAnswer: ans,
+      );
+    }
+  }
+
+  Question _generateExpert(Random random, {String? targetPattern}) {
+    // Expert: Multi-operation missing numbers: (? × a + b) ÷ c = d or (?² - a) = b with clean integer answers.
+    final form = 1 + random.nextInt(2);
+
+    if (form == 1) {
+      // (? × a ± b) ÷ c = d
+      final isMinus = random.nextBool();
+      final ans = 4 + random.nextInt(22); // 4..25
+      final a = 4 + random.nextInt(13); // 4..16
+      final c = 2 + random.nextInt(7); // 2..8
+
+      final int b;
+      final int d;
+      final String opSymbol;
+
+      if (isMinus) {
+        final prod = ans * a;
+        final maxK = max(1, (prod - 10) ~/ c);
+        final k = 1 + random.nextInt(min(5, maxK));
+        final rem = prod % c;
+        b = rem + (k * c);
+        if (prod > b) {
+          d = (prod - b) ~/ c;
+          opSymbol = '−';
+        } else {
+          final plusB = (c - ((ans * a) % c)) + (1 + random.nextInt(4)) * c;
+          d = (ans * a + plusB) ~/ c;
+          opSymbol = '+';
+          return Question(
+            topic: Topic.missingNumber,
+            difficulty: Difficulty.expert,
+            displayText: '(? × $a $opSymbol $plusB) ÷ $c = $d',
+            operands: [a, plusB, c, d, ans, 1],
+            correctAnswer: ans,
+          );
+        }
+      } else {
+        opSymbol = '+';
+        final rem = (ans * a) % c;
+        final base = rem == 0 ? 0 : (c - rem);
+        b = base + ((1 + random.nextInt(4)) * c);
+        d = (ans * a + b) ~/ c;
+      }
+
+      final text = '(? × $a $opSymbol $b) ÷ $c = $d';
+      return Question(
+        topic: Topic.missingNumber,
+        difficulty: Difficulty.expert,
+        displayText: text,
+        operands: [a, b, c, d, ans, 1],
+        correctAnswer: ans,
+      );
+    } else {
+      // (?² − a) = b or (?² + a) = b
+      final ans = 11 + random.nextInt(25); // 11..35 -> ?² in 121..1225
+      final isMinus = random.nextBool();
+      final a = 15 + random.nextInt(85); // 15..99
+      final b = isMinus ? (ans * ans - a) : (ans * ans + a);
+      final opSymbol = isMinus ? '−' : '+';
+
+      final text = '(?² $opSymbol $a) = $b';
+      return Question(
+        topic: Topic.missingNumber,
+        difficulty: Difficulty.expert,
+        displayText: text,
+        operands: [a, b, ans, 2],
+        correctAnswer: ans,
+      );
+    }
+  }
+
+  Question _generateGenius(Random random, {String? targetPattern}) {
+    // Genius: Complex missing numbers with parentheses, powers, and division: ((? + a) × b - c) ÷ d = e.
+    final form = 1 + random.nextInt(2);
+
+    if (form == 1) {
+      // ((? ± a) × b − c) ÷ d = e
+      final isMinusInner = random.nextBool();
+      final a = 5 + random.nextInt(20); // 5..24
+      final ans = isMinusInner ? (a + 5 + random.nextInt(25)) : (10 + random.nextInt(30));
+      final b = 3 + random.nextInt(7); // 3..9
+      final inner = isMinusInner ? (ans - a) * b : (ans + a) * b;
+
+      final c = 10 + random.nextInt(min(50, max(11, inner - 20)));
+      final target = inner - c;
+
+      final divisors = <int>[];
+      for (int i = 2; i <= 12; i++) {
+        if (target % i == 0) divisors.add(i);
+      }
+      final d = divisors.isNotEmpty ? divisors[random.nextInt(divisors.length)] : 2;
+      final adjC = inner - (target ~/ d * d);
+      final e = (inner - adjC) ~/ d;
+
+      final innerOp = isMinusInner ? '−' : '+';
+      final text = '((? $innerOp $a) × $b − $adjC) ÷ $d = $e';
+
+      return Question(
+        topic: Topic.missingNumber,
+        difficulty: Difficulty.genius,
+        displayText: text,
+        operands: [a, b, adjC, d, e, ans, 1],
+        correctAnswer: ans,
+      );
+    } else {
+      // Complex powers and division: (?² + a) ÷ b = c
+      final ans = 12 + random.nextInt(24); // 12..35 -> ans² in 144..1225
+      final b = 3 + random.nextInt(7); // 3..9
+      final sq = ans * ans;
+      final rem = sq % b;
+      final baseA = rem == 0 ? 0 : (b - rem);
+      final a = baseA + ((1 + random.nextInt(4)) * b);
+      final c = (sq + a) ~/ b;
+
+      final text = '(?² + $a) ÷ $b = $c';
+      return Question(
+        topic: Topic.missingNumber,
+        difficulty: Difficulty.genius,
+        displayText: text,
         operands: [a, b, c, ans, 2],
         correctAnswer: ans,
       );

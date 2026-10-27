@@ -52,7 +52,7 @@ class _FakeBatch implements Batch {
   }
 }
 
-class _FakeFreshDb implements Database {
+class _FakeFreshDb implements Database, Transaction {
   final List<Map<String, dynamic>> sessions = [];
   final List<Map<String, dynamic>> attempts = [];
   final List<Map<String, dynamic>> skillRatings = [];
@@ -64,6 +64,11 @@ class _FakeFreshDb implements Database {
 
   @override
   Batch batch() => _FakeBatch(this);
+
+  @override
+  Future<T> transaction<T>(Future<T> Function(Transaction txn) action, {bool? exclusive}) async {
+    return await action(this);
+  }
 
   @override
   Future<int> insert(
@@ -100,6 +105,47 @@ class _FakeFreshDb implements Database {
       }
     }
     return id;
+  }
+
+  @override
+  Future<int> delete(
+    String table, {
+    String? where,
+    List<Object?>? whereArgs,
+  }) async {
+    List<Map<String, dynamic>> targetList;
+    if (table == DatabaseHelper.tableSessions) {
+      targetList = sessions;
+    } else if (table == SkillRepository.tableSkillRatings) {
+      targetList = skillRatings;
+    } else if (table == DatabaseHelper.tableMistakeBank) {
+      targetList = mistakeBank;
+    } else {
+      targetList = attempts;
+    }
+
+    if (where == null || whereArgs == null) {
+      final len = targetList.length;
+      targetList.clear();
+      return len;
+    }
+
+    int removed = 0;
+    targetList.removeWhere((item) {
+      if (where == 'question_text = ?') {
+        if (item['question_text'] == whereArgs[0]) {
+          removed++;
+          return true;
+        }
+      } else if (where == 'id = ?') {
+        if (item['id'] == whereArgs[0]) {
+          removed++;
+          return true;
+        }
+      }
+      return false;
+    });
+    return removed;
   }
 
   @override
@@ -343,7 +389,8 @@ void main() {
       }
 
       // Question 2: wrong try then skip (auto finishes 2Q mode)
-      controller.inputDigit('9');
+      final wrongDigit = controller.state.currentQuestion.correctAnswer == 9 ? '8' : '9';
+      controller.inputDigit(wrongDigit);
       controller.skip();
 
       // Dual triggers calling finishSession

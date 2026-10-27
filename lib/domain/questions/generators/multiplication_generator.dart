@@ -11,6 +11,8 @@ import '../question_generator.dart';
 /// Easy:   2-digit × 1-digit
 /// Medium: 2-digit × 2-digit
 /// Hard:   3-digit × 2-digit
+/// Expert: 3-digit × 3-digit
+/// Genius: 4-digit × 2-3 digit
 class MultiplicationGenerator extends QuestionGenerator {
   @override
   Topic get topic => Topic.multiplication;
@@ -33,6 +35,8 @@ class MultiplicationGenerator extends QuestionGenerator {
         Difficulty.easy => _generateEasy(random),
         Difficulty.medium => _generateMedium(random),
         Difficulty.hard => _generateHard(random),
+        Difficulty.expert => _generateExpert(random),
+        Difficulty.genius => _generateGenius(random),
         Difficulty.mixed => throw ArgumentError(
             'Cannot generate questions with Difficulty.mixed directly'),
       };
@@ -100,6 +104,44 @@ class MultiplicationGenerator extends QuestionGenerator {
     return Question(
       topic: Topic.multiplication,
       difficulty: Difficulty.hard,
+      displayText: '$a × $b',
+      operands: [a, b],
+      correctAnswer: a * b,
+    );
+  }
+
+  Question _generateExpert(Random random) {
+    int a, b;
+    do {
+      a = _randRange(random, DifficultyRanges.multiplicationExpertAMin,
+          DifficultyRanges.multiplicationExpertAMax);
+      b = _randRange(random, DifficultyRanges.multiplicationExpertBMin,
+          DifficultyRanges.multiplicationExpertBMax);
+    } while (
+        _isTrivialFactor(a) || _isTrivialFactor(b) || _allEndInZero([a, b]));
+
+    return Question(
+      topic: Topic.multiplication,
+      difficulty: Difficulty.expert,
+      displayText: '$a × $b',
+      operands: [a, b],
+      correctAnswer: a * b,
+    );
+  }
+
+  Question _generateGenius(Random random) {
+    int a, b;
+    do {
+      a = _randRange(random, DifficultyRanges.multiplicationGeniusAMin,
+          DifficultyRanges.multiplicationGeniusAMax);
+      b = _randRange(random, DifficultyRanges.multiplicationGeniusBMin,
+          DifficultyRanges.multiplicationGeniusBMax);
+    } while (
+        _isTrivialFactor(a) || _isTrivialFactor(b) || _allEndInZero([a, b]));
+
+    return Question(
+      topic: Topic.multiplication,
+      difficulty: Difficulty.genius,
       displayText: '$a × $b',
       operands: [a, b],
       correctAnswer: a * b,

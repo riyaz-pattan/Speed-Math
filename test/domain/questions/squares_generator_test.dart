@@ -98,6 +98,61 @@ void main() {
       });
     });
 
+    group('Expert (100–150)', () {
+      test('generates 1000 valid questions', () {
+        final random = Random(789);
+        Question? prev;
+        for (var i = 0; i < 1000; i++) {
+          final q = generator.generateUnique(
+            difficulty: Difficulty.expert,
+            random: random,
+            previousQuestion: prev,
+          );
+
+          final n = q.operands[0];
+          expect(n, inInclusiveRange(100, 150));
+          expect(q.correctAnswer, n * n);
+          expect(q.displayText, '$n²');
+
+          prev = q;
+        }
+      });
+    });
+
+    group('Genius (150–200)', () {
+      test('generates 1000 valid questions', () {
+        final random = Random(101112);
+        Question? prev;
+        for (var i = 0; i < 1000; i++) {
+          final q = generator.generateUnique(
+            difficulty: Difficulty.genius,
+            random: random,
+            previousQuestion: prev,
+          );
+
+          final n = q.operands[0];
+          expect(n, inInclusiveRange(150, 200));
+          expect(q.correctAnswer, n * n);
+          expect(q.displayText, '$n²');
+
+          prev = q;
+        }
+      });
+    });
+
+    test('generateUnique avoids excluded session questions', () {
+      final random = Random(42);
+      final excluded = <String>{'10²'.toString(), '11²'.toString(), '12²'.toString()};
+      for (var i = 0; i < 50; i++) {
+        final q = generator.generateUnique(
+          difficulty: Difficulty.easy,
+          random: random,
+          excludedDisplayTexts: excluded,
+        );
+        expect(excluded.contains(q.displayText), isFalse);
+      }
+    });
+
     test('same seed produces same questions', () {
       final q1 = generator.generate(
         difficulty: Difficulty.hard,

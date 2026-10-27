@@ -20,6 +20,7 @@ import 'package:speed_math_with_ai/features/learn/division_hub_screen.dart';
 import 'package:speed_math_with_ai/features/learn/learn_screen.dart';
 import 'package:speed_math_with_ai/features/learn/lesson_screen.dart';
 import 'package:speed_math_with_ai/features/learn/multiplication_hub_screen.dart';
+import 'package:speed_math_with_ai/features/learn/quadratic_hub_screen.dart';
 import 'package:speed_math_with_ai/features/learn/squares_hub_screen.dart';
 import 'package:speed_math_with_ai/features/onboarding/first_run_setup_screen.dart';
 import 'package:speed_math_with_ai/features/settings/data_check_screen.dart';
@@ -136,6 +137,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SquaresHubScreen(),
       ),
       GoRoute(
+        path: '/learn/quadratic',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const QuadraticHubScreen(),
+      ),
+      GoRoute(
         path: '/learn/:lessonId',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) {
@@ -148,6 +154,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           }
           if (lessonId == 'squares_hub' || lessonId == 'squares') {
             return const SquaresHubScreen();
+          }
+          if (lessonId == 'quadratic_hub' || lessonId == 'quadratic') {
+            return const QuadraticHubScreen();
           }
           List<int>? operands;
           String? variantId;

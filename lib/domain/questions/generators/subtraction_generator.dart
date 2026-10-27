@@ -11,6 +11,8 @@ import '../question_generator.dart';
 /// Easy:   2-digit − 2-digit
 /// Medium: 3-digit − 3-digit
 /// Hard:   4-digit − 4-digit
+/// Expert: 5-digit − 5-digit
+/// Genius: 6-digit − 5-to-6-digit
 class SubtractionGenerator extends QuestionGenerator {
   @override
   Topic get topic => Topic.subtraction;
@@ -43,6 +45,8 @@ class SubtractionGenerator extends QuestionGenerator {
             Difficulty.medium,
           ),
         Difficulty.hard => _generateHard(random),
+        Difficulty.expert => _generateExpert(random),
+        Difficulty.genius => _generateGenius(random),
         Difficulty.mixed => throw ArgumentError(
             'Cannot generate questions with Difficulty.mixed directly'),
       };
@@ -100,6 +104,52 @@ class SubtractionGenerator extends QuestionGenerator {
     return Question(
       topic: Topic.subtraction,
       difficulty: Difficulty.hard,
+      displayText: '$a − $b',
+      operands: [a, b],
+      correctAnswer: a - b,
+    );
+  }
+
+  Question _generateExpert(Random random) {
+    int a, b;
+    do {
+      a = _randRange(random, DifficultyRanges.subtractionExpertMin,
+          DifficultyRanges.subtractionExpertMax);
+      b = _randRange(random, DifficultyRanges.subtractionExpertMin,
+          DifficultyRanges.subtractionExpertMax);
+      if (a < b) {
+        final temp = a;
+        a = b;
+        b = temp;
+      }
+    } while (b == 0 || a == b || _allEndInZero([a, b]));
+
+    return Question(
+      topic: Topic.subtraction,
+      difficulty: Difficulty.expert,
+      displayText: '$a − $b',
+      operands: [a, b],
+      correctAnswer: a - b,
+    );
+  }
+
+  Question _generateGenius(Random random) {
+    int a, b;
+    do {
+      a = _randRange(random, DifficultyRanges.subtractionGeniusMin,
+          DifficultyRanges.subtractionGeniusMax);
+      b = _randRange(random, DifficultyRanges.subtractionGeniusMin,
+          DifficultyRanges.subtractionGeniusMax);
+      if (a < b) {
+        final temp = a;
+        a = b;
+        b = temp;
+      }
+    } while (b == 0 || a == b || _allEndInZero([a, b]));
+
+    return Question(
+      topic: Topic.subtraction,
+      difficulty: Difficulty.genius,
       displayText: '$a − $b',
       operands: [a, b],
       correctAnswer: a - b,

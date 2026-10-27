@@ -50,6 +50,18 @@ void main() {
               expect(op, inInclusiveRange(DifficultyRanges.additionHardMin, DifficultyRanges.additionHardMax));
             }
             expect(q.correctAnswer, q.operands.reduce((a, b) => a + b));
+          } else if (difficulty == Difficulty.expert) {
+            expect(q.operands.length, DifficultyRanges.additionExpertAddendCount);
+            for (final op in q.operands) {
+              expect(op, inInclusiveRange(DifficultyRanges.additionExpertMin, DifficultyRanges.additionExpertMax));
+            }
+            expect(q.correctAnswer, q.operands.reduce((a, b) => a + b));
+          } else if (difficulty == Difficulty.genius) {
+            expect(q.operands.length, DifficultyRanges.additionGeniusAddendCount);
+            for (final op in q.operands) {
+              expect(op, inInclusiveRange(DifficultyRanges.additionGeniusMin, DifficultyRanges.additionGeniusMax));
+            }
+            expect(q.correctAnswer, q.operands.reduce((a, b) => a + b));
           }
           break;
 
@@ -70,6 +82,12 @@ void main() {
           } else if (difficulty == Difficulty.hard) {
             expect(a, inInclusiveRange(DifficultyRanges.subtractionHardMin, DifficultyRanges.subtractionHardMax));
             expect(b, inInclusiveRange(DifficultyRanges.subtractionHardMin, DifficultyRanges.subtractionHardMax));
+          } else if (difficulty == Difficulty.expert) {
+            expect(a, inInclusiveRange(DifficultyRanges.subtractionExpertMin, DifficultyRanges.subtractionExpertMax));
+            expect(b, inInclusiveRange(DifficultyRanges.subtractionExpertMin, DifficultyRanges.subtractionExpertMax));
+          } else if (difficulty == Difficulty.genius) {
+            expect(a, inInclusiveRange(DifficultyRanges.subtractionGeniusMin, DifficultyRanges.subtractionGeniusMax));
+            expect(b, inInclusiveRange(DifficultyRanges.subtractionGeniusMin, DifficultyRanges.subtractionGeniusMax));
           }
           break;
 
@@ -88,6 +106,12 @@ void main() {
           } else if (difficulty == Difficulty.hard) {
             expect(a, inInclusiveRange(DifficultyRanges.multiplicationHardAMin, DifficultyRanges.multiplicationHardAMax));
             expect(b, inInclusiveRange(DifficultyRanges.multiplicationHardBMin, DifficultyRanges.multiplicationHardBMax));
+          } else if (difficulty == Difficulty.expert) {
+            expect(a, inInclusiveRange(DifficultyRanges.multiplicationExpertAMin, DifficultyRanges.multiplicationExpertAMax));
+            expect(b, inInclusiveRange(DifficultyRanges.multiplicationExpertBMin, DifficultyRanges.multiplicationExpertBMax));
+          } else if (difficulty == Difficulty.genius) {
+            expect(a, inInclusiveRange(DifficultyRanges.multiplicationGeniusAMin, DifficultyRanges.multiplicationGeniusAMax));
+            expect(b, inInclusiveRange(DifficultyRanges.multiplicationGeniusBMin, DifficultyRanges.multiplicationGeniusBMax));
           }
           break;
 
@@ -114,6 +138,12 @@ void main() {
           } else if (difficulty == Difficulty.hard) {
             expect(dividend, inInclusiveRange(DifficultyRanges.divisionHardDividendMin, DifficultyRanges.divisionHardDividendMax));
             expect(divisor, inInclusiveRange(DifficultyRanges.divisionHardDivisorMin, DifficultyRanges.divisionHardDivisorMax));
+          } else if (difficulty == Difficulty.expert) {
+            expect(dividend, inInclusiveRange(DifficultyRanges.divisionExpertDividendMin, DifficultyRanges.divisionExpertDividendMax));
+            expect(divisor, inInclusiveRange(DifficultyRanges.divisionExpertDivisorMin, DifficultyRanges.divisionExpertDivisorMax));
+          } else if (difficulty == Difficulty.genius) {
+            expect(dividend, inInclusiveRange(DifficultyRanges.divisionGeniusDividendMin, DifficultyRanges.divisionGeniusDividendMax));
+            expect(divisor, inInclusiveRange(DifficultyRanges.divisionGeniusDivisorMin, DifficultyRanges.divisionGeniusDivisorMax));
           }
           break;
 
@@ -129,6 +159,10 @@ void main() {
           } else if (difficulty == Difficulty.hard) {
             expect(n, inInclusiveRange(DifficultyRanges.squaresHardMin, DifficultyRanges.squaresHardMax));
             expect(n % 10 != 0, isTrue, reason: 'Squares hard excludes multiples of 10');
+          } else if (difficulty == Difficulty.expert) {
+            expect(n, inInclusiveRange(DifficultyRanges.squaresExpertMin, DifficultyRanges.squaresExpertMax));
+          } else if (difficulty == Difficulty.genius) {
+            expect(n, inInclusiveRange(DifficultyRanges.squaresGeniusMin, DifficultyRanges.squaresGeniusMax));
           }
           break;
 
@@ -144,6 +178,12 @@ void main() {
           } else if (difficulty == Difficulty.hard) {
             expect(n, inInclusiveRange(DifficultyRanges.cubesHardMin, DifficultyRanges.cubesHardMax));
             expect(n % 10 != 0, isTrue, reason: 'Cubes hard excludes multiples of 10');
+          } else if (difficulty == Difficulty.expert) {
+            expect(n, inInclusiveRange(DifficultyRanges.cubesExpertMin, DifficultyRanges.cubesExpertMax));
+            expect(n % 10 != 0, isTrue, reason: 'Cubes expert excludes multiples of 10');
+          } else if (difficulty == Difficulty.genius) {
+            expect(n, inInclusiveRange(DifficultyRanges.cubesGeniusMin, DifficultyRanges.cubesGeniusMax));
+            expect(n % 10 != 0, isTrue, reason: 'Cubes genius excludes multiples of 10');
           }
           break;
 
@@ -160,6 +200,10 @@ void main() {
           } else if (difficulty == Difficulty.hard) {
             expect(root, inInclusiveRange(DifficultyRanges.squareRootsHardMin, DifficultyRanges.squareRootsHardMax));
             expect(root % 10 != 0, isTrue, reason: 'Square roots hard excludes multiples of 10');
+          } else if (difficulty == Difficulty.expert) {
+            expect(root, inInclusiveRange(DifficultyRanges.squareRootsExpertMin, DifficultyRanges.squareRootsExpertMax));
+          } else if (difficulty == Difficulty.genius) {
+            expect(root, inInclusiveRange(DifficultyRanges.squareRootsGeniusMin, DifficultyRanges.squareRootsGeniusMax));
           }
           break;
 
@@ -176,6 +220,12 @@ void main() {
           } else if (difficulty == Difficulty.hard) {
             expect(root, inInclusiveRange(DifficultyRanges.cubeRootsHardMin, DifficultyRanges.cubeRootsHardMax));
             expect(root % 10 != 0, isTrue, reason: 'Cube roots hard excludes multiples of 10');
+          } else if (difficulty == Difficulty.expert) {
+            expect(root, inInclusiveRange(DifficultyRanges.cubeRootsExpertMin, DifficultyRanges.cubeRootsExpertMax));
+            expect(root % 10 != 0, isTrue, reason: 'Cube roots expert excludes multiples of 10');
+          } else if (difficulty == Difficulty.genius) {
+            expect(root, inInclusiveRange(DifficultyRanges.cubeRootsGeniusMin, DifficultyRanges.cubeRootsGeniusMax));
+            expect(root % 10 != 0, isTrue, reason: 'Cube roots genius excludes multiples of 10');
           }
           break;
 
@@ -183,7 +233,6 @@ void main() {
           final base = q.operands[0];
           final power = q.operands[1];
           expect(base != 1 && base != 10, isTrue, reason: 'Exponents never base 1 or 10');
-          expect(q.correctAnswer <= DifficultyRanges.exponentsHardMaxResult, isTrue);
 
           int expectedResult = 1;
           for (var i = 0; i < power; i++) {
@@ -200,6 +249,11 @@ void main() {
           } else if (difficulty == Difficulty.hard) {
             expect(base, inInclusiveRange(DifficultyRanges.exponentsHardBaseMin, DifficultyRanges.exponentsHardBaseMax));
             expect(power, inInclusiveRange(DifficultyRanges.exponentsHardPowMin, DifficultyRanges.exponentsHardPowMax));
+            expect(q.correctAnswer <= DifficultyRanges.exponentsHardMaxResult, isTrue);
+          } else if (difficulty == Difficulty.expert) {
+            expect(q.correctAnswer <= DifficultyRanges.exponentsExpertMaxResult, isTrue);
+          } else if (difficulty == Difficulty.genius) {
+            expect(q.correctAnswer <= DifficultyRanges.exponentsGeniusMaxResult, isTrue);
           }
           break;
 
@@ -218,6 +272,11 @@ void main() {
         case Topic.powerOfFive:
         case Topic.patternMultiplication:
           expect(q.correctAnswer >= 0, isTrue);
+          break;
+
+        case Topic.linearEquations:
+        case Topic.quadraticEquations:
+          expect(q.displayText.isNotEmpty, isTrue);
           break;
 
         case Topic.mixed:
@@ -255,19 +314,76 @@ void main() {
               assertQuestionInRange(topic, difficulty, q);
 
               // Answer correctly to advance
-              final digits = q.correctAnswer.abs().toString().split('');
-              if (q.correctAnswer < 0) {
-                controller.inputMinus();
-              }
-              for (final digit in digits) {
-                controller.inputDigit(digit);
-              }
-              if (!controller.state.config.autoSubmit) {
-                controller.submit();
+              if (q.isMultipleChoice) {
+                controller.selectOption(q.targetAnswer);
+              } else if (q.isDualRootQuestion) {
+                final r1 = q.rootAnswers![0];
+                final r2 = q.rootAnswers![1];
+                controller.selectInputBox(0);
+                if (r1 < 0) controller.inputMinus();
+                for (final d in r1.abs().toString().split('')) {
+                  controller.inputDigit(d);
+                }
+                controller.selectInputBox(1);
+                if (r2 < 0) controller.inputMinus();
+                for (final d in r2.abs().toString().split('')) {
+                  controller.inputDigit(d);
+                }
+                if (!controller.state.config.autoSubmit) {
+                  controller.submit();
+                }
+              } else {
+                final digits = q.correctAnswer.abs().toString().split('');
+                if (q.correctAnswer < 0) {
+                  controller.inputMinus();
+                }
+                for (final digit in digits) {
+                  controller.inputDigit(digit);
+                }
+                if (!controller.state.config.autoSubmit) {
+                  controller.submit();
+                }
               }
             }
           });
         }
+      }
+    }
+
+    for (final difficulty in [Difficulty.expert, Difficulty.genius]) {
+      for (final mode in [PracticeMode.questions, PracticeMode.timer]) {
+        test('Session 100 questions stay strictly inside range table for squares • ${difficulty.name} (${mode.name})', () {
+          final config = PracticeConfig(
+            topic: Topic.squares,
+            difficulty: difficulty,
+            mode: mode,
+            modeValue: mode == PracticeMode.questions ? 100 : 60,
+            sessionSeed: 9999 + difficulty.index * 10 + mode.index,
+          );
+
+          final controller = PracticeSessionController(
+            config: config,
+            sessionRepository: sessionRepo,
+            attemptRepository: attemptRepo,
+            statsRepository: statsRepo,
+          );
+
+          controller.start();
+          assertQuestionInRange(Topic.squares, difficulty, controller.state.currentQuestion);
+
+          for (var i = 1; i < 100; i++) {
+            final q = controller.state.currentQuestion;
+            assertQuestionInRange(Topic.squares, difficulty, q);
+
+            final digits = q.correctAnswer.abs().toString().split('');
+            for (final digit in digits) {
+              controller.inputDigit(digit);
+            }
+            if (!controller.state.config.autoSubmit) {
+              controller.submit();
+            }
+          }
+        });
       }
     }
   });

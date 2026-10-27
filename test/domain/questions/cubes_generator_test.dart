@@ -98,6 +98,52 @@ void main() {
       });
     });
 
+    group('Expert (36–60, no multiples of 10)', () {
+      test('generates 1000 valid questions', () {
+        final random = Random(789);
+        Question? prev;
+        for (var i = 0; i < 1000; i++) {
+          final q = generator.generateUnique(
+            difficulty: Difficulty.expert,
+            random: random,
+            previousQuestion: prev,
+          );
+
+          expect(q.difficulty, Difficulty.expert);
+          final n = q.operands[0];
+          expect(n, inInclusiveRange(36, 60));
+          expect(n % 10, isNot(0), reason: 'Expert cubes must not be multiples of 10');
+          expect(q.correctAnswer, n * n * n);
+          expect(q.displayText, '$n³');
+
+          prev = q;
+        }
+      });
+    });
+
+    group('Genius (61–100, no multiples of 10)', () {
+      test('generates 1000 valid questions', () {
+        final random = Random(101112);
+        Question? prev;
+        for (var i = 0; i < 1000; i++) {
+          final q = generator.generateUnique(
+            difficulty: Difficulty.genius,
+            random: random,
+            previousQuestion: prev,
+          );
+
+          expect(q.difficulty, Difficulty.genius);
+          final n = q.operands[0];
+          expect(n, inInclusiveRange(61, 100));
+          expect(n % 10, isNot(0), reason: 'Genius cubes must not be multiples of 10');
+          expect(q.correctAnswer, n * n * n);
+          expect(q.displayText, '$n³');
+
+          prev = q;
+        }
+      });
+    });
+
     test('same seed produces same questions', () {
       final q1 = generator.generate(
         difficulty: Difficulty.hard,

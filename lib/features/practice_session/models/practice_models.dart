@@ -397,6 +397,8 @@ class PracticeSessionState {
   final Question currentQuestion;
   final int questionIndex; // 0-indexed count of questions presented
   final String currentInput;
+  final String secondaryInput; // For 2nd root input in dual-root questions
+  final int activeInputBox; // 0 = primary box, 1 = secondary box
   final List<SessionAttempt> attempts;
   final int timeRemainingMs; // For timer mode countdown
   final int totalElapsedMs; // Total active time (paused time excluded)
@@ -414,6 +416,8 @@ class PracticeSessionState {
     required this.currentQuestion,
     required this.questionIndex,
     required this.currentInput,
+    this.secondaryInput = '',
+    this.activeInputBox = 0,
     required this.attempts,
     required this.timeRemainingMs,
     required this.totalElapsedMs,
@@ -432,6 +436,8 @@ class PracticeSessionState {
     Question? currentQuestion,
     int? questionIndex,
     String? currentInput,
+    String? secondaryInput,
+    int? activeInputBox,
     List<SessionAttempt>? attempts,
     int? timeRemainingMs,
     int? totalElapsedMs,
@@ -451,6 +457,8 @@ class PracticeSessionState {
       currentQuestion: currentQuestion ?? this.currentQuestion,
       questionIndex: questionIndex ?? this.questionIndex,
       currentInput: currentInput ?? this.currentInput,
+      secondaryInput: secondaryInput ?? this.secondaryInput,
+      activeInputBox: activeInputBox ?? this.activeInputBox,
       attempts: attempts ?? this.attempts,
       timeRemainingMs: timeRemainingMs ?? this.timeRemainingMs,
       totalElapsedMs: totalElapsedMs ?? this.totalElapsedMs,

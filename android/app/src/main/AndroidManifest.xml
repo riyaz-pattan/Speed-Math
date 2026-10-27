@@ -1,23 +1,55 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission
         android:name="android.permission.VIBRATE"/>
+    <uses-permission
+        android:name="android.permission.WAKE_LOCK"/>
     <uses-permission
         android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission
         android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!--
+        SCHEDULE_EXACT_ALARM: user-grantable runtime permission (Android 12+).
+        Enables AlarmManager.setAlarmClock() through the flutter_local_notifications
+        exactAllowWhileIdle / alarmClock schedule modes.
+
+        USE_EXACT_ALARM is intentionally removed below — it requires a Google Play
+        restricted permission review and is only auto-approved for clock/calendar apps.
+        For a math education app, declaring it causes silent installation failures
+        and policy violations on real Play Store devices.
+    -->
     <uses-permission
         android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <!--
+        Explicitly strip USE_EXACT_ALARM even if a transitive dependency declares it.
+        tools:node="remove" prevents it from being merged into the final manifest.
+    -->
     <uses-permission
-        android:name="android.permission.USE_EXACT_ALARM"/>
+        android:name="android.permission.USE_EXACT_ALARM"
+        tools:node="remove"/>
     <application
         android:label="Mental Calculation Tricks"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!--
+            ScheduledNotificationReceiver: handles alarm broadcasts to show
+            the actual notification. Must remain exported="false" (app-internal).
+        -->
         <receiver
             android:exported="false"
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"/>
+        <!--
+            ScheduledNotificationBootReceiver: reschedules all pending alarms
+            after device reboot, app update, or quick-boot.
+
+            CRITICAL: Must be exported="true" so the Android system (a different UID)
+            can deliver BOOT_COMPLETED, MY_PACKAGE_REPLACED, and QUICKBOOT_POWERON
+            broadcasts to this receiver. With exported="false", the OS cannot deliver
+            these broadcasts and all scheduled notifications are permanently lost
+            after every device restart.
+        -->
         <receiver
-            android:exported="false"
+            android:exported="true"
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
             <intent-filter>
                 <action

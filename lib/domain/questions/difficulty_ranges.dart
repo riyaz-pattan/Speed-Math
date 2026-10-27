@@ -18,6 +18,16 @@ abstract final class DifficultyRanges {
   static const int additionHardMax = 9999;
   static const int additionHardAddendCount = 3;
 
+  // Expert: 4 numbers of 4 digits (1000..9999 each)
+  static const int additionExpertMin = 1000;
+  static const int additionExpertMax = 9999;
+  static const int additionExpertAddendCount = 4;
+
+  // Genius: 4 to 5 numbers of 4 to 5 digits (2000..99999 each)
+  static const int additionGeniusMin = 2000;
+  static const int additionGeniusMax = 99999;
+  static const int additionGeniusAddendCount = 4;
+
   // --- Subtraction ---
   // Easy: 2-digit - 2-digit (10..99 - 10..99, result >= 0)
   static const int subtractionEasyMin = 10;
@@ -30,6 +40,14 @@ abstract final class DifficultyRanges {
   // Hard: 4-digit - 4-digit (1000..9999 - 1000..9999, result >= 0)
   static const int subtractionHardMin = 1000;
   static const int subtractionHardMax = 9999;
+
+  // Expert: 5-digit - 5-digit (10000..99999 - 10000..99999, result >= 0)
+  static const int subtractionExpertMin = 10000;
+  static const int subtractionExpertMax = 99999;
+
+  // Genius: 6-digit - 5-to-6-digit (100000..999999 - 10000..999999, result >= 0)
+  static const int subtractionGeniusMin = 100000;
+  static const int subtractionGeniusMax = 999999;
 
   // --- Multiplication ---
   // Easy: 2-digit x 1-digit (10..99 x 2..9)
@@ -47,6 +65,18 @@ abstract final class DifficultyRanges {
   static const int multiplicationHardAMax = 999;
   static const int multiplicationHardBMin = 10;
   static const int multiplicationHardBMax = 99;
+
+  // Expert: 3-digit x 3-digit (100..999 x 100..999)
+  static const int multiplicationExpertAMin = 100;
+  static const int multiplicationExpertAMax = 999;
+  static const int multiplicationExpertBMin = 100;
+  static const int multiplicationExpertBMax = 999;
+
+  // Genius: 4-digit x 2-3 digit (1000..9999 x 25..999)
+  static const int multiplicationGeniusAMin = 1000;
+  static const int multiplicationGeniusAMax = 9999;
+  static const int multiplicationGeniusBMin = 25;
+  static const int multiplicationGeniusBMax = 999;
 
   // --- Division (always exact) ---
   // Easy: 2-digit / 1-digit (dividend 10..99, divisor 2..9)
@@ -76,6 +106,18 @@ abstract final class DifficultyRanges {
   static const int divisionHardDivisorMin = 10;
   static const int divisionHardDivisorMax = 99;
 
+  // Expert: 5-digit / 2-digit (dividend 10000..99999, divisor 15..99)
+  static const int divisionExpertDividendMin = 10000;
+  static const int divisionExpertDividendMax = 99999;
+  static const int divisionExpertDivisorMin = 15;
+  static const int divisionExpertDivisorMax = 99;
+
+  // Genius: 5-to-6-digit / 3-digit (dividend 10000..999999, divisor 100..999)
+  static const int divisionGeniusDividendMin = 10000;
+  static const int divisionGeniusDividendMax = 999999;
+  static const int divisionGeniusDivisorMin = 100;
+  static const int divisionGeniusDivisorMax = 999;
+
   // --- Squares (n²) ---
   // Easy: 2 to 20
   static const int squaresEasyMin = 2;
@@ -85,9 +127,17 @@ abstract final class DifficultyRanges {
   static const int squaresMediumMin = 21;
   static const int squaresMediumMax = 50;
 
-  // Hard: 51 to 99 (no multiples of 10)
+  // Hard: 51 to 100 (no multiples of 10)
   static const int squaresHardMin = 51;
-  static const int squaresHardMax = 99;
+  static const int squaresHardMax = 100;
+
+  // Expert: 100 to 150
+  static const int squaresExpertMin = 100;
+  static const int squaresExpertMax = 150;
+
+  // Genius: 150 to 200
+  static const int squaresGeniusMin = 150;
+  static const int squaresGeniusMax = 200;
 
   // --- Cubes (n³) ---
   // Easy: 2 to 10
@@ -102,6 +152,14 @@ abstract final class DifficultyRanges {
   static const int cubesHardMin = 21;
   static const int cubesHardMax = 35;
 
+  // Expert: 36 to 60 (no multiples of 10)
+  static const int cubesExpertMin = 36;
+  static const int cubesExpertMax = 60;
+
+  // Genius: 61 to 100 (no multiples of 10)
+  static const int cubesGeniusMin = 61;
+  static const int cubesGeniusMax = 100;
+
   // --- Square Roots (√n²) ---
   // Easy: root 2 to 20 (up to 20²)
   static const int squareRootsEasyMin = 2;
@@ -111,9 +169,17 @@ abstract final class DifficultyRanges {
   static const int squareRootsMediumMin = 21;
   static const int squareRootsMediumMax = 50;
 
-  // Hard: root 51 to 99 (51² to 99², no multiples of 10)
+  // Hard: root 51 to 100 (51² to 100², no multiples of 10)
   static const int squareRootsHardMin = 51;
-  static const int squareRootsHardMax = 99;
+  static const int squareRootsHardMax = 100;
+
+  // Expert: root 100 to 150
+  static const int squareRootsExpertMin = 100;
+  static const int squareRootsExpertMax = 150;
+
+  // Genius: root 150 to 200
+  static const int squareRootsGeniusMin = 150;
+  static const int squareRootsGeniusMax = 200;
 
   // --- Cube Roots (∛n³) ---
   // Easy: root 2 to 10
@@ -127,6 +193,14 @@ abstract final class DifficultyRanges {
   // Hard: root 21 to 35 (no multiples of 10)
   static const int cubeRootsHardMin = 21;
   static const int cubeRootsHardMax = 35;
+
+  // Expert: root 36 to 60 (no multiples of 10)
+  static const int cubeRootsExpertMin = 36;
+  static const int cubeRootsExpertMax = 60;
+
+  // Genius: root 61 to 100 (no multiples of 10)
+  static const int cubeRootsGeniusMin = 61;
+  static const int cubeRootsGeniusMax = 100;
 
   // --- Exponents (base^power) ---
   // Easy: base 2 to 9, power 2 to 3
@@ -147,6 +221,12 @@ abstract final class DifficultyRanges {
   static const int exponentsHardPowMin = 3;
   static const int exponentsHardPowMax = 6;
   static const int exponentsHardMaxResult = 1000000;
+
+  // Expert: higher powers and bases, result <= 5,000,000
+  static const int exponentsExpertMaxResult = 5000000;
+
+  // Genius: peak mental powers, result <= 50,000,000
+  static const int exponentsGeniusMaxResult = 50000000;
 
   // --- Percentages (x% of N) ---
   // Easy: x in [10, 20, 25, 50], N multiple of 20 up to 400

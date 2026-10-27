@@ -26,6 +26,13 @@ class PatternSkill {
     this.lastPracticedAt,
   });
 
+  /// Canonical key format for indexing pattern skills in memory maps.
+  static String makeKey(Topic topic, Difficulty difficulty, String pattern) =>
+      '${topic.name}:${difficulty.name}:$pattern';
+
+  /// The canonical map key for this instance.
+  String get fullKey => makeKey(topic, difficulty, pattern);
+
   Map<String, dynamic> toMap() {
     final map = <String, dynamic>{
       'topic': topic.name,

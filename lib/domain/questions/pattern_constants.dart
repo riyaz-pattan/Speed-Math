@@ -66,6 +66,14 @@ class PatternConstants {
   static const String sqHLowerHalf = 'sq_h_lower_half';
   static const String sqHUpperHalf = 'sq_h_upper_half';
 
+  static const String sqExpEndsIn5 = 'sq_exp_ends_in_5';
+  static const String sqExpLowerHalf = 'sq_exp_lower_half';
+  static const String sqExpUpperHalf = 'sq_exp_upper_half';
+
+  static const String sqGenEndsIn5 = 'sq_gen_ends_in_5';
+  static const String sqGenLowerHalf = 'sq_gen_lower_half';
+  static const String sqGenUpperHalf = 'sq_gen_upper_half';
+
   // --- CUBES PATTERNS ---
   static const String cubeELower = 'cube_e_lower';
   static const String cubeEUpper = 'cube_e_upper';
@@ -90,6 +98,14 @@ class PatternConstants {
   static const String sqrtHEndsIn5 = 'sqrt_h_ends_in_5';
   static const String sqrtHLower = 'sqrt_h_lower';
   static const String sqrtHUpper = 'sqrt_h_upper';
+
+  static const String sqrtExpEndsIn5 = 'sqrt_exp_ends_in_5';
+  static const String sqrtExpLower = 'sqrt_exp_lower';
+  static const String sqrtExpUpper = 'sqrt_exp_upper';
+
+  static const String sqrtGenEndsIn5 = 'sqrt_gen_ends_in_5';
+  static const String sqrtGenLower = 'sqrt_gen_lower';
+  static const String sqrtGenUpper = 'sqrt_gen_upper';
 
   // --- CUBE ROOTS PATTERNS ---
   static const String cbrtELower = 'cbrt_e_lower';
@@ -231,8 +247,41 @@ class PatternConstants {
   static const String patMulMEleven = 'pat_mul_m_eleven';
   static const String patMulHNinetyNine = 'pat_mul_h_ninetynine';
 
+  // Linear Equations
+  static const String linE1VarAdd = 'linear_1var_add';
+  static const String linE1VarMult = 'linear_1var_mult';
+  static const String linE1VarStep = 'linear_1var_step';
+  static const String linM2VarCompare = 'linear_2var_compare';
+  static const String linM2VarSolve = 'linear_2var_solve';
+  static const String linHSymmetricSum = 'linear_symmetric_sum';
+  static const String linH3VarElim = 'linear_3var_elimination';
+
+  // Quadratic Equations
+  static const String quadERoots = 'quad_e_roots';
+  static const String quadECompare = 'quad_e_compare';
+  static const String quadMRoots = 'quad_m_roots';
+  static const String quadMCompare = 'quad_m_compare';
+  static const String quadHRoots = 'quad_h_roots';
+  static const String quadHCompare = 'quad_h_compare';
+  static const String quadRootFinding = 'quad_root_finding';
+  static const String quadComparison = 'quad_comparison';
+
   /// Returns all available patterns for a specific [topic] and [difficulty].
   static List<String> patternsFor(Topic topic, Difficulty difficulty) {
+    if (difficulty == Difficulty.expert || difficulty == Difficulty.genius) {
+      if (topic == Topic.squares) {
+        return difficulty == Difficulty.expert
+            ? [sqExpEndsIn5, sqExpLowerHalf, sqExpUpperHalf]
+            : [sqGenEndsIn5, sqGenLowerHalf, sqGenUpperHalf];
+      }
+      if (topic == Topic.squareRoots) {
+        return difficulty == Difficulty.expert
+            ? [sqrtExpEndsIn5, sqrtExpLower, sqrtExpUpper]
+            : [sqrtGenEndsIn5, sqrtGenLower, sqrtGenUpper];
+      }
+      return patternsFor(topic, Difficulty.hard);
+    }
+
     switch (topic) {
       case Topic.addition:
         switch (difficulty) {
@@ -242,7 +291,7 @@ class PatternConstants {
             return [addMNoCarry, addMOneCarry, addMTwoCarries, addMThreeCarries];
           case Difficulty.hard:
             return [addHFewCarries, addHManyCarries];
-          case Difficulty.mixed:
+          default:
             return [];
         }
       case Topic.subtraction:
@@ -253,7 +302,7 @@ class PatternConstants {
             return [subMNoBorrow, subMOneBorrow, subMTwoBorrows];
           case Difficulty.hard:
             return [subHFewBorrows, subHTwoBorrows, subHThreeBorrows];
-          case Difficulty.mixed:
+          default:
             return [];
         }
       case Topic.multiplication:
@@ -264,7 +313,7 @@ class PatternConstants {
             return [mulMSmallOnes, mulMMidOnes, mulMHighOnes];
           case Difficulty.hard:
             return [mulHSmallOnes, mulHMidOnes, mulHHighOnes];
-          case Difficulty.mixed:
+          default:
             return [];
         }
       case Topic.division:
@@ -275,7 +324,7 @@ class PatternConstants {
             return [divMSingleDigit, divMTwoDigit];
           case Difficulty.hard:
             return [divHSmallDivisor, divHMidDivisor, divHLargeDivisor];
-          case Difficulty.mixed:
+          default:
             return [];
         }
       case Topic.squares:
@@ -286,7 +335,7 @@ class PatternConstants {
             return [sqMEndsIn5, sqMLowerHalf, sqMUpperHalf];
           case Difficulty.hard:
             return [sqHEndsIn5, sqHLowerHalf, sqHUpperHalf];
-          case Difficulty.mixed:
+          default:
             return [];
         }
       case Topic.cubes:
@@ -297,7 +346,7 @@ class PatternConstants {
             return [cubeMEndsIn5, cubeMLower, cubeMUpper];
           case Difficulty.hard:
             return [cubeHEndsIn5, cubeHLower, cubeHUpper];
-          case Difficulty.mixed:
+          default:
             return [];
         }
       case Topic.squareRoots:
@@ -308,7 +357,7 @@ class PatternConstants {
             return [sqrtMEndsIn5, sqrtMLower, sqrtMUpper];
           case Difficulty.hard:
             return [sqrtHEndsIn5, sqrtHLower, sqrtHUpper];
-          case Difficulty.mixed:
+          default:
             return [];
         }
       case Topic.cubeRoots:
@@ -319,7 +368,7 @@ class PatternConstants {
             return [cbrtMEndsIn5, cbrtMLower, cbrtMUpper];
           case Difficulty.hard:
             return [cbrtHEndsIn5, cbrtHLower, cbrtHUpper];
-          case Difficulty.mixed:
+          default:
             return [];
         }
       case Topic.exponents:
@@ -330,7 +379,7 @@ class PatternConstants {
             return [expMLowPower, expMHighPower];
           case Difficulty.hard:
             return [expHSmallBase, expHLargeBase];
-          case Difficulty.mixed:
+          default:
             return [];
         }
       case Topic.percentages:
@@ -341,7 +390,7 @@ class PatternConstants {
             return [pctMQuarterMult, pctMTenthMult, pctMFifthMult];
           case Difficulty.hard:
             return [pctHAddition, pctHSubtraction];
-          case Difficulty.mixed:
+          default:
             return [];
         }
       case Topic.fractions:
@@ -358,7 +407,7 @@ class PatternConstants {
             ];
           case Difficulty.hard:
             return [fracHAddition, fracHSubtraction, fracHMixedSimp];
-          case Difficulty.mixed:
+          default:
             return [];
         }
       case Topic.simplification:
@@ -369,7 +418,7 @@ class PatternConstants {
             return [simpMBrackets, simpMTwoOps];
           case Difficulty.hard:
             return [simpHSquareDivMul, simpHSquareAddSub];
-          case Difficulty.mixed:
+          default:
             return [];
         }
       case Topic.averages:
@@ -380,7 +429,7 @@ class PatternConstants {
             return [avgMTwoDigit, avgMMixedDigits, avgMJoinLeave, avgMOneRemoved];
           case Difficulty.hard:
             return [avgHFindMissing, avgHWeighted, avgHMemberReplaced];
-          case Difficulty.mixed:
+          default:
             return [];
         }
       case Topic.missingNumber:
@@ -391,7 +440,7 @@ class PatternConstants {
             return [misMMultiplication, misMDivision, misMSubtraction];
           case Difficulty.hard:
             return [misHLinear, misHBrackets];
-          case Difficulty.mixed:
+          default:
             return [];
         }
       case Topic.numberSeries:
@@ -419,7 +468,7 @@ class PatternConstants {
               numHSquareCubeDiff,
               numHAlternatingOps,
             ];
-          case Difficulty.mixed:
+          default:
             return [];
         }
       case Topic.approximation:
@@ -430,7 +479,7 @@ class PatternConstants {
             return [approxMPercent, approxMSquareRoot, approxMThreeOps];
           case Difficulty.hard:
             return [approxHCompoundPercent, approxHPowersDiv];
-          case Difficulty.mixed:
+          default:
             return [];
         }
       case Topic.mixed:
@@ -440,49 +489,63 @@ class PatternConstants {
           case Difficulty.easy: return [frRecEUnit];
           case Difficulty.medium: return [frRecMUnit];
           case Difficulty.hard: return [frRecHUnit];
-          case Difficulty.mixed: return [];
+          default: return [];
         }
       case Topic.derivedFractions:
         switch (difficulty) {
           case Difficulty.easy: return [frDerEMultiple];
           case Difficulty.medium: return [frDerMMultiple];
           case Difficulty.hard: return [frDerHMultiple];
-          case Difficulty.mixed: return [];
+          default: return [];
         }
       case Topic.fractionPercentages:
         switch (difficulty) {
           case Difficulty.easy: return [frPctESimple];
           case Difficulty.medium: return [frPctMModerate];
           case Difficulty.hard: return [frPctHComplex];
-          case Difficulty.mixed: return [];
+          default: return [];
         }
       case Topic.basePercentages:
         switch (difficulty) {
           case Difficulty.easy: return [basePctESimple];
           case Difficulty.medium: return [basePctMModerate];
           case Difficulty.hard: return [basePctHComplex];
-          case Difficulty.mixed: return [];
+          default: return [];
         }
       case Topic.splitPercentages:
         switch (difficulty) {
           case Difficulty.easy: return [splitPctEFive];
           case Difficulty.medium: return [splitPctMDouble];
           case Difficulty.hard: return [splitPctHNonRound];
-          case Difficulty.mixed: return [];
+          default: return [];
         }
       case Topic.powerOfFive:
         switch (difficulty) {
           case Difficulty.easy: return [pow5ETimesFive];
           case Difficulty.medium: return [pow5MTwentyFive];
           case Difficulty.hard: return [pow5HOneTwentyFive];
-          case Difficulty.mixed: return [];
+          default: return [];
         }
       case Topic.patternMultiplication:
         switch (difficulty) {
           case Difficulty.easy: return [patMulEEleven];
           case Difficulty.medium: return [patMulMEleven];
           case Difficulty.hard: return [patMulHNinetyNine];
-          case Difficulty.mixed: return [];
+          default: return [];
+        }
+      case Topic.linearEquations:
+        switch (difficulty) {
+          case Difficulty.easy: return [linE1VarAdd, linE1VarMult, linE1VarStep];
+          case Difficulty.medium: return [linM2VarCompare, linM2VarSolve];
+          case Difficulty.hard: return [linHSymmetricSum, linH3VarElim];
+          default: return [];
+        }
+      case Topic.quadraticEquations:
+        switch (difficulty) {
+          case Difficulty.easy: return [quadERoots, quadECompare, quadRootFinding];
+          case Difficulty.medium: return [quadMRoots, quadMCompare, quadComparison];
+          case Difficulty.hard: return [quadHRoots, quadHCompare];
+          default: return [];
         }
     }
   }
@@ -669,6 +732,25 @@ class PatternConstants {
     approxMThreeOps: 'Three operations with friendly rounding',
     approxHCompoundPercent: 'Multi-term estimation with percentage and division',
     approxHPowersDiv: 'Multi-term with squares, division, and products',
+
+    // Linear Equations
+    linE1VarAdd: '1-variable linear addition (x + b = c)',
+    linE1VarMult: '1-variable linear multiplication (ax = b)',
+    linE1VarStep: '2-step 1-variable linear equation (ax + b = c)',
+    linM2VarCompare: '2-variable linear system comparison',
+    linM2VarSolve: '2-variable linear system solution',
+    linHSymmetricSum: 'Symmetric linear system (ax + by = c, bx + ay = d)',
+    linH3VarElim: '3-variable linear system elimination',
+
+    // Quadratic Equations
+    quadERoots: 'Standard quadratic root finding (x² + bx + c = 0)',
+    quadECompare: 'Simple quadratic comparison (x vs y)',
+    quadMRoots: 'Quadratic roots with coefficient a > 1',
+    quadMCompare: 'Quadratic vs quadratic comparison',
+    quadHRoots: 'Advanced quadratic roots',
+    quadHCompare: 'Competitive exam equation comparison & CND',
+    quadRootFinding: 'Find roots of quadratic equation',
+    quadComparison: 'Compare roots of two equations',
   };
 
   /// Pure function that recomputes the pattern from topic, difficulty, and operands.
@@ -678,6 +760,30 @@ class PatternConstants {
     List<int> operands,
   ) {
     if (operands.isEmpty) return 'default';
+
+    if (difficulty == Difficulty.expert || difficulty == Difficulty.genius) {
+      if (topic == Topic.squares) {
+        final base = operands[0];
+        if (difficulty == Difficulty.expert) {
+          if (base % 10 == 5) return sqExpEndsIn5;
+          return base <= 125 ? sqExpLowerHalf : sqExpUpperHalf;
+        } else {
+          if (base % 10 == 5) return sqGenEndsIn5;
+          return base <= 175 ? sqGenLowerHalf : sqGenUpperHalf;
+        }
+      }
+      if (topic == Topic.squareRoots) {
+        final root = operands.length > 1 ? operands[1] : operands[0];
+        if (difficulty == Difficulty.expert) {
+          if (root % 10 == 5) return sqrtExpEndsIn5;
+          return root <= 125 ? sqrtExpLower : sqrtExpUpper;
+        } else {
+          if (root % 10 == 5) return sqrtGenEndsIn5;
+          return root <= 175 ? sqrtGenLower : sqrtGenUpper;
+        }
+      }
+      return patternOf(topic, Difficulty.hard, operands);
+    }
 
     switch (topic) {
       case Topic.addition:
@@ -694,7 +800,7 @@ class PatternConstants {
             return addMThreeCarries;
           case Difficulty.hard:
             return carries <= 2 ? addHFewCarries : addHManyCarries;
-          case Difficulty.mixed:
+          default:
             return addENoCarry;
         }
 
@@ -713,7 +819,7 @@ class PatternConstants {
             if (borrows <= 1) return subHFewBorrows;
             if (borrows == 2) return subHTwoBorrows;
             return subHThreeBorrows;
-          case Difficulty.mixed:
+          default:
             return subENoBorrow;
         }
 
@@ -738,7 +844,7 @@ class PatternConstants {
             if (ones <= 3) return mulHSmallOnes;
             if (ones <= 6) return mulHMidOnes;
             return mulHHighOnes;
-          case Difficulty.mixed:
+          default:
             return mulESmallDigit;
         }
 
@@ -755,7 +861,7 @@ class PatternConstants {
             if (divisor <= 30) return divHSmallDivisor;
             if (divisor <= 60) return divHMidDivisor;
             return divHLargeDivisor;
-          case Difficulty.mixed:
+          default:
             return divESmallDivisor;
         }
 
@@ -771,7 +877,7 @@ class PatternConstants {
           case Difficulty.hard:
             if (base % 10 == 5) return sqHEndsIn5;
             return base <= 75 ? sqHLowerHalf : sqHUpperHalf;
-          case Difficulty.mixed:
+          default:
             return sqELowerHalf;
         }
 
@@ -786,7 +892,7 @@ class PatternConstants {
           case Difficulty.hard:
             if (base % 10 == 5) return cubeHEndsIn5;
             return base <= 28 ? cubeHLower : cubeHUpper;
-          case Difficulty.mixed:
+          default:
             return cubeELower;
         }
 
@@ -804,7 +910,7 @@ class PatternConstants {
           case Difficulty.hard:
             if (root % 10 == 5) return sqrtHEndsIn5;
             return root <= 75 ? sqrtHLower : sqrtHUpper;
-          case Difficulty.mixed:
+          default:
             return sqrtELower;
         }
 
@@ -821,7 +927,7 @@ class PatternConstants {
           case Difficulty.hard:
             if (root % 10 == 5) return cbrtHEndsIn5;
             return root <= 28 ? cbrtHLower : cbrtHUpper;
-          case Difficulty.mixed:
+          default:
             return cbrtELower;
         }
 
@@ -835,7 +941,7 @@ class PatternConstants {
             return power <= 3 ? expMLowPower : expMHighPower;
           case Difficulty.hard:
             return base <= 5 ? expHSmallBase : expHLargeBase;
-          case Difficulty.mixed:
+          default:
             return expESquared;
         }
 
@@ -851,7 +957,7 @@ class PatternConstants {
           case Difficulty.hard:
             final isMinus = operands.length > 4 && operands[4] == 1;
             return isMinus ? pctHSubtraction : pctHAddition;
-          case Difficulty.mixed:
+          default:
             return pctETenFifty;
         }
 
@@ -873,7 +979,7 @@ class PatternConstants {
             if (fType == 6) return fracHMixedSimp;
             final isMinus = operands.length > 6 && operands[6] == 1;
             return isMinus ? fracHSubtraction : fracHAddition;
-          case Difficulty.mixed:
+          default:
             return fracESmallDenom;
         }
 
@@ -888,7 +994,7 @@ class PatternConstants {
             return (form == 1 || form == 2) ? simpMBrackets : simpMTwoOps;
           case Difficulty.hard:
             return form == 1 ? simpHSquareDivMul : simpHSquareAddSub;
-          case Difficulty.mixed:
+          default:
             return simpEAddMul;
         }
 
@@ -913,7 +1019,7 @@ class PatternConstants {
             if (aType == 2) return avgHWeighted;
             if (aType == 3) return avgHMemberReplaced;
             return avgHFindMissing;
-          case Difficulty.mixed:
+          default:
             return avgECloseSpread;
         }
 
@@ -930,7 +1036,7 @@ class PatternConstants {
             return misMSubtraction;
           case Difficulty.hard:
             return op == 1 ? misHLinear : misHBrackets;
-          case Difficulty.mixed:
+          default:
             return misEAddition;
         }
 
@@ -954,7 +1060,7 @@ class PatternConstants {
             if (ruleId == 2) return numHGrowingMul;
             if (ruleId == 3) return numHSquareCubeDiff;
             return numHAlternatingOps;
-          case Difficulty.mixed:
+          default:
             return numEConstantDiff;
         }
 
@@ -969,7 +1075,7 @@ class PatternConstants {
             return approxMThreeOps;
           case Difficulty.hard:
             return typeId == 1 ? approxHCompoundPercent : approxHPowersDiv;
-          case Difficulty.mixed:
+          default:
             return approxEProduct;
         }
 
@@ -980,49 +1086,63 @@ class PatternConstants {
           case Difficulty.easy: return frRecEUnit;
           case Difficulty.medium: return frRecMUnit;
           case Difficulty.hard: return frRecHUnit;
-          case Difficulty.mixed: return frRecEUnit;
+          default: return frRecEUnit;
         }
       case Topic.derivedFractions:
         switch (difficulty) {
           case Difficulty.easy: return frDerEMultiple;
           case Difficulty.medium: return frDerMMultiple;
           case Difficulty.hard: return frDerHMultiple;
-          case Difficulty.mixed: return frDerEMultiple;
+          default: return frDerEMultiple;
         }
       case Topic.fractionPercentages:
         switch (difficulty) {
           case Difficulty.easy: return frPctESimple;
           case Difficulty.medium: return frPctMModerate;
           case Difficulty.hard: return frPctHComplex;
-          case Difficulty.mixed: return frPctESimple;
+          default: return frPctESimple;
         }
       case Topic.basePercentages:
         switch (difficulty) {
           case Difficulty.easy: return basePctESimple;
           case Difficulty.medium: return basePctMModerate;
           case Difficulty.hard: return basePctHComplex;
-          case Difficulty.mixed: return basePctESimple;
+          default: return basePctESimple;
         }
       case Topic.splitPercentages:
         switch (difficulty) {
           case Difficulty.easy: return splitPctEFive;
           case Difficulty.medium: return splitPctMDouble;
           case Difficulty.hard: return splitPctHNonRound;
-          case Difficulty.mixed: return splitPctEFive;
+          default: return splitPctEFive;
         }
       case Topic.powerOfFive:
         switch (difficulty) {
           case Difficulty.easy: return pow5ETimesFive;
           case Difficulty.medium: return pow5MTwentyFive;
           case Difficulty.hard: return pow5HOneTwentyFive;
-          case Difficulty.mixed: return pow5ETimesFive;
+          default: return pow5ETimesFive;
         }
       case Topic.patternMultiplication:
         switch (difficulty) {
           case Difficulty.easy: return patMulEEleven;
           case Difficulty.medium: return patMulMEleven;
           case Difficulty.hard: return patMulHNinetyNine;
-          case Difficulty.mixed: return patMulEEleven;
+          default: return patMulEEleven;
+        }
+      case Topic.linearEquations:
+        switch (difficulty) {
+          case Difficulty.easy: return linE1VarStep;
+          case Difficulty.medium: return linM2VarSolve;
+          case Difficulty.hard: return linH3VarElim;
+          default: return linE1VarStep;
+        }
+      case Topic.quadraticEquations:
+        switch (difficulty) {
+          case Difficulty.easy: return quadERoots;
+          case Difficulty.medium: return quadMCompare;
+          case Difficulty.hard: return quadHCompare;
+          default: return quadERoots;
         }
     }
   }

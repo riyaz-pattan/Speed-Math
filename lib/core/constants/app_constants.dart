@@ -20,6 +20,12 @@ abstract final class AppConstants {
   /// Multiplier applied to score for hard difficulty.
   static const double hardDifficultyMultiplier = 2.0;
 
+  /// Multiplier applied to score for expert difficulty.
+  static const double expertDifficultyMultiplier = 2.5;
+
+  /// Multiplier applied to score for genius difficulty.
+  static const double geniusDifficultyMultiplier = 3.0;
+
   /// Maximum speed bonus points awarded for fast correct answers.
   static const int maxSpeedBonus = 5;
 
@@ -28,6 +34,8 @@ abstract final class AppConstants {
     Difficulty.easy: easyDifficultyMultiplier,
     Difficulty.medium: mediumDifficultyMultiplier,
     Difficulty.hard: hardDifficultyMultiplier,
+    Difficulty.expert: expertDifficultyMultiplier,
+    Difficulty.genius: geniusDifficultyMultiplier,
   };
 
   // --- Target Times (in milliseconds) ---
@@ -57,7 +65,9 @@ abstract final class AppConstants {
     Topic.squares: {
       Difficulty.easy: 4000,    // 1–20 squared
       Difficulty.medium: 8000,  // 21–50 squared
-      Difficulty.hard: 14000,   // 51–99 squared
+      Difficulty.hard: 14000,   // 51–100 squared
+      Difficulty.expert: 20000, // 100–150 squared
+      Difficulty.genius: 26000, // 150–200 squared
     },
     Topic.cubes: {
       Difficulty.easy: 5000,    // 2–10 cubed
@@ -67,7 +77,9 @@ abstract final class AppConstants {
     Topic.squareRoots: {
       Difficulty.easy: 5000,    // √(1–20²)
       Difficulty.medium: 10000, // √(21–50²)
-      Difficulty.hard: 16000,   // √(51–99²)
+      Difficulty.hard: 16000,   // √(51–100²)
+      Difficulty.expert: 22000, // √(100–150²)
+      Difficulty.genius: 28000, // √(150–200²)
     },
     Topic.cubeRoots: {
       Difficulty.easy: 6000,    // ∛(2–10³)
@@ -149,11 +161,33 @@ abstract final class AppConstants {
       Difficulty.medium: 7000,  // 2-digit × 11 with carry, × 99
       Difficulty.hard: 12000,   // 3-digit × 11, × 101, × 99
     },
+    Topic.linearEquations: {
+      Difficulty.easy: 6000,    // 1-variable linear equations
+      Difficulty.medium: 14000, // 2-variable linear systems
+      Difficulty.hard: 22000,   // 3-variable linear systems & symmetric
+    },
+    Topic.quadraticEquations: {
+      Difficulty.easy: 10000,   // standard roots or simple comparison
+      Difficulty.medium: 18000, // fractional / coefficient roots & comparison
+      Difficulty.hard: 25000,   // large constant / 5-choice comparison
+    },
   };
 
   /// Returns the target time in milliseconds for the given topic and difficulty.
   static int getTargetTimeMs(Topic topic, Difficulty difficulty) {
-    return targetTimesMs[topic]?[difficulty] ?? 5000;
+    final topicMap = targetTimesMs[topic];
+    if (topicMap != null && topicMap.containsKey(difficulty)) {
+      return topicMap[difficulty]!;
+    }
+    if (difficulty == Difficulty.expert) {
+      final hardTime = topicMap?[Difficulty.hard] ?? 14000;
+      return (hardTime * 1.35).round();
+    }
+    if (difficulty == Difficulty.genius) {
+      final hardTime = topicMap?[Difficulty.hard] ?? 14000;
+      return (hardTime * 1.75).round();
+    }
+    return 5000;
   }
 
   // --- Practice Mode Options ---

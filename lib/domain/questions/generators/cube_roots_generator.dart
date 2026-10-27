@@ -34,9 +34,21 @@ class CubeRootsGenerator extends QuestionGenerator {
           DifficultyRanges.cubeRootsHardMin,
           DifficultyRanges.cubeRootsHardMax,
         ),
+      Difficulty.expert => (
+          DifficultyRanges.cubeRootsExpertMin,
+          DifficultyRanges.cubeRootsExpertMax,
+        ),
+      Difficulty.genius => (
+          DifficultyRanges.cubeRootsGeniusMin,
+          DifficultyRanges.cubeRootsGeniusMax,
+        ),
       Difficulty.mixed =>
         throw ArgumentError('Cannot generate Difficulty.mixed directly'),
     };
+
+    final excludeMultiplesOfTen = difficulty == Difficulty.hard ||
+        difficulty == Difficulty.expert ||
+        difficulty == Difficulty.genius;
 
     Question q;
     int tries = 0;
@@ -44,7 +56,7 @@ class CubeRootsGenerator extends QuestionGenerator {
       int n;
       do {
         n = min + random.nextInt(max - min + 1);
-      } while (difficulty == Difficulty.hard && n % 10 == 0);
+      } while (excludeMultiplesOfTen && n % 10 == 0);
 
       final pat = patternOf(difficulty, [n * n * n, n]);
       q = Question(

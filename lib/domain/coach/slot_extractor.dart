@@ -45,6 +45,17 @@ abstract final class SlotExtractor {
         text.contains('next number')) {
       return Topic.numberSeries;
     }
+    if (text.contains('linear equation') ||
+        text.contains('linear equations') ||
+        text.contains('linear')) {
+      return Topic.linearEquations;
+    }
+    if (text.contains('quadratic equation') ||
+        text.contains('quadratic equations') ||
+        text.contains('quadratic') ||
+        text.contains('quadratics')) {
+      return Topic.quadraticEquations;
+    }
 
     final words = text.split(' ');
     for (final word in words) {

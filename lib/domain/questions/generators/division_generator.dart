@@ -13,6 +13,8 @@ import '../question_generator.dart';
 /// Easy:   2-digit ÷ 1-digit
 /// Medium: 3-digit ÷ 1-digit, or 2-digit ÷ 2-digit (randomly chosen)
 /// Hard:   4-digit ÷ 2-digit
+/// Expert: 5-digit ÷ 2-digit
+/// Genius: 5-to-6-digit ÷ 3-digit
 class DivisionGenerator extends QuestionGenerator {
   @override
   Topic get topic => Topic.division;
@@ -35,6 +37,8 @@ class DivisionGenerator extends QuestionGenerator {
         Difficulty.easy => _generateEasy(random),
         Difficulty.medium => _generateMedium(random, pattern: pattern),
         Difficulty.hard => _generateHard(random),
+        Difficulty.expert => _generateExpert(random),
+        Difficulty.genius => _generateGenius(random),
         Difficulty.mixed => throw ArgumentError(
             'Cannot generate questions with Difficulty.mixed directly'),
       };
@@ -172,6 +176,78 @@ class DivisionGenerator extends QuestionGenerator {
       return Question(
         topic: Topic.division,
         difficulty: Difficulty.hard,
+        displayText: '$dividend ÷ $divisor',
+        operands: [dividend, divisor],
+        correctAnswer: quotient,
+      );
+    }
+  }
+
+  /// Expert: 5-digit ÷ 2-digit (dividend 10000-99999, divisor 15-99)
+  Question _generateExpert(Random random) {
+    while (true) {
+      final divisor = _randRange(
+        random,
+        DifficultyRanges.divisionExpertDivisorMin,
+        DifficultyRanges.divisionExpertDivisorMax,
+      );
+      final minQ =
+          (DifficultyRanges.divisionExpertDividendMin / divisor).ceil();
+      final maxQ =
+          (DifficultyRanges.divisionExpertDividendMax / divisor).floor();
+      if (minQ > maxQ) continue;
+      final quotient = _randRange(random, minQ, maxQ);
+      final dividend = quotient * divisor;
+      if (dividend < DifficultyRanges.divisionExpertDividendMin ||
+          dividend > DifficultyRanges.divisionExpertDividendMax) {
+        continue;
+      }
+      if (_isTrivialDivision(dividend, divisor)) {
+        continue;
+      }
+      if (_allEndInZero([dividend, divisor])) {
+        continue;
+      }
+
+      return Question(
+        topic: Topic.division,
+        difficulty: Difficulty.expert,
+        displayText: '$dividend ÷ $divisor',
+        operands: [dividend, divisor],
+        correctAnswer: quotient,
+      );
+    }
+  }
+
+  /// Genius: 5-to-6-digit ÷ 3-digit (dividend 10000-999999, divisor 100-999)
+  Question _generateGenius(Random random) {
+    while (true) {
+      final divisor = _randRange(
+        random,
+        DifficultyRanges.divisionGeniusDivisorMin,
+        DifficultyRanges.divisionGeniusDivisorMax,
+      );
+      final minQ =
+          (DifficultyRanges.divisionGeniusDividendMin / divisor).ceil();
+      final maxQ =
+          (DifficultyRanges.divisionGeniusDividendMax / divisor).floor();
+      if (minQ > maxQ) continue;
+      final quotient = _randRange(random, minQ, maxQ);
+      final dividend = quotient * divisor;
+      if (dividend < DifficultyRanges.divisionGeniusDividendMin ||
+          dividend > DifficultyRanges.divisionGeniusDividendMax) {
+        continue;
+      }
+      if (_isTrivialDivision(dividend, divisor)) {
+        continue;
+      }
+      if (_allEndInZero([dividend, divisor])) {
+        continue;
+      }
+
+      return Question(
+        topic: Topic.division,
+        difficulty: Difficulty.genius,
         displayText: '$dividend ÷ $divisor',
         operands: [dividend, divisor],
         correctAnswer: quotient,

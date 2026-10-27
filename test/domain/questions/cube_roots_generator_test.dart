@@ -98,6 +98,54 @@ void main() {
       });
     });
 
+    group('Expert (36 to 60, no multiples of 10 for root)', () {
+      test('generates 1000 valid questions, all perfect cubes, no multiples of 10', () {
+        final random = Random(789);
+        Question? prev;
+        for (var i = 0; i < 1000; i++) {
+          final q = generator.generateUnique(
+            difficulty: Difficulty.expert,
+            random: random,
+            previousQuestion: prev,
+          );
+
+          expect(q.topic, Topic.cubeRoots);
+          expect(q.difficulty, Difficulty.expert);
+          final root = q.correctAnswer;
+          expect(root, inInclusiveRange(36, 60));
+          expect(root % 10, isNot(0), reason: 'Expert cube roots must not be multiples of 10');
+          final cube = root * root * root;
+          expect(q.displayText, '³√$cube');
+
+          prev = q;
+        }
+      });
+    });
+
+    group('Genius (61 to 100, no multiples of 10 for root)', () {
+      test('generates 1000 valid questions, all perfect cubes, no multiples of 10', () {
+        final random = Random(101112);
+        Question? prev;
+        for (var i = 0; i < 1000; i++) {
+          final q = generator.generateUnique(
+            difficulty: Difficulty.genius,
+            random: random,
+            previousQuestion: prev,
+          );
+
+          expect(q.topic, Topic.cubeRoots);
+          expect(q.difficulty, Difficulty.genius);
+          final root = q.correctAnswer;
+          expect(root, inInclusiveRange(61, 100));
+          expect(root % 10, isNot(0), reason: 'Genius cube roots must not be multiples of 10');
+          final cube = root * root * root;
+          expect(q.displayText, '³√$cube');
+
+          prev = q;
+        }
+      });
+    });
+
     test('same seed produces same questions', () {
       final q1 = generator.generate(
         difficulty: Difficulty.hard,

@@ -11,7 +11,6 @@ import '../../core/constants/habit_constants.dart';
 import '../../core/enums/enums.dart';
 import '../../core/services/notification_service.dart';
 import '../../core/widgets/app_toast.dart';
-import '../../core/widgets/notification_explanation_dialog.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../practice_session/models/practice_models.dart';
 
@@ -565,7 +564,7 @@ class _FirstRunSetupScreenState extends ConsumerState<FirstRunSetupScreen> {
         ),
         const SizedBox(height: 6),
         const Text(
-          'Set a time for a gentle check-in to protect your streak. If you already practiced today, the reminder is skipped automatically.',
+          'Set a time for a daily check-in to practice mental math and build your speed.',
           style: TextStyle(
             fontSize: 13.5,
             color: AppTheme.textSecondary,
@@ -608,11 +607,14 @@ class _FirstRunSetupScreenState extends ConsumerState<FirstRunSetupScreen> {
                     onChanged: (val) async {
                       HapticFeedback.selectionClick();
                       if (val) {
-                        final allowed = await NotificationExplanationDialog.show(context);
-                        if (allowed) {
-                          final notif = ref.read(notificationServiceProvider);
-                          final granted = await notif.requestPermission();
-                          setState(() => _remindersEnabled = granted);
+                        final notif = ref.read(notificationServiceProvider);
+                        final granted = await notif.requestPermission();
+                        setState(() => _remindersEnabled = granted);
+                        if (granted) {
+                          final canExact = await notif.canScheduleExactAlarms();
+                          if (!canExact) {
+                            await notif.openExactAlarmSettings();
+                          }
                         }
                       } else {
                         setState(() => _remindersEnabled = false);

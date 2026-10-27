@@ -42,6 +42,38 @@ class FractionPercentagesGenerator extends QuestionGenerator {
     ['6.25', 1, 16, 1, 6],   // base = 16k
   ];
 
+  static const _expert = [
+    ['7.69', 1, 13, 2, 12],
+    ['15.38', 2, 13, 2, 10],
+    ['7.14', 1, 14, 2, 12],
+    ['21.43', 3, 14, 2, 10],
+    ['6.67', 1, 15, 2, 12],
+    ['18.75', 3, 16, 2, 10],
+    ['31.25', 5, 16, 2, 8],
+    ['43.75', 7, 16, 2, 8],
+    ['56.25', 9, 16, 2, 8],
+    ['112.5', 9, 8, 2, 12],
+    ['137.5', 11, 8, 2, 10],
+    ['162.5', 13, 8, 2, 10],
+    ['116.67', 7, 6, 2, 12],
+  ];
+
+  static const _genius = [
+    ['5.88', 1, 17, 2, 10],
+    ['11.76', 2, 17, 2, 8],
+    ['5.26', 1, 19, 2, 10],
+    ['10.53', 2, 19, 2, 8],
+    ['5.56', 1, 18, 2, 10],
+    ['27.78', 5, 18, 2, 8],
+    ['4.17', 1, 24, 2, 10],
+    ['20.83', 5, 24, 2, 8],
+    ['216.67', 13, 6, 2, 10],
+    ['262.5', 21, 8, 2, 8],
+    ['337.5', 27, 8, 2, 8],
+    ['214.28', 15, 7, 2, 10],
+    ['241.67', 29, 12, 2, 8],
+  ];
+
   @override
   Question generate({
     required Difficulty difficulty,
@@ -53,6 +85,8 @@ class FractionPercentagesGenerator extends QuestionGenerator {
       Difficulty.easy => _easy,
       Difficulty.medium => _medium,
       Difficulty.hard => _hard,
+      Difficulty.expert => _expert,
+      Difficulty.genius => _genius,
       Difficulty.mixed =>
         throw ArgumentError('Cannot generate Difficulty.mixed directly'),
     };

@@ -31,6 +31,8 @@ class PercentagesGenerator extends QuestionGenerator {
         Difficulty.easy => _generateEasy(random, targetPattern: pattern),
         Difficulty.medium => _generateMedium(random, targetPattern: pattern),
         Difficulty.hard => _generateHard(random, targetPattern: pattern),
+        Difficulty.expert => _generateExpert(random, targetPattern: pattern),
+        Difficulty.genius => _generateGenius(random, targetPattern: pattern),
         Difficulty.mixed =>
           throw ArgumentError('Cannot generate Difficulty.mixed directly'),
       };
@@ -38,7 +40,7 @@ class PercentagesGenerator extends QuestionGenerator {
       final pat = patternOf(difficulty, raw.operands);
       q = Question(
         topic: raw.topic,
-        difficulty: raw.difficulty,
+        difficulty: difficulty,
         displayText: raw.displayText,
         operands: raw.operands,
         correctAnswer: raw.correctAnswer,
@@ -165,5 +167,160 @@ class PercentagesGenerator extends QuestionGenerator {
       operands: [x, a, y, b, isMinus ? 1 : 0],
       correctAnswer: ans,
     );
+  }
+
+  Question _generateExpert(Random random, {String? targetPattern}) {
+    final useFractional = random.nextBool();
+
+    if (useFractional) {
+      // Fractional percentages like 12.5%, 37.5%, 16.67%, 83.33%, 33.33%, 66.67%
+      const fractions = [
+        ('12.5%', 1, 8),
+        ('37.5%', 3, 8),
+        ('62.5%', 5, 8),
+        ('87.5%', 7, 8),
+        ('16.67%', 1, 6),
+        ('83.33%', 5, 6),
+        ('33.33%', 1, 3),
+        ('66.67%', 2, 3),
+      ];
+
+      final f1 = fractions[random.nextInt(fractions.length)];
+      final f2 = fractions[random.nextInt(fractions.length)];
+
+      final k1 = 15 + random.nextInt(85);
+      final k2 = 15 + random.nextInt(85);
+
+      var base1 = f1.$3 * k1;
+      var base2 = f2.$3 * k2;
+
+      var part1 = f1.$2 * k1;
+      var part2 = f2.$2 * k2;
+
+      var lbl1 = f1.$1;
+      var lbl2 = f2.$1;
+
+      final isMinus = random.nextBool();
+      if (isMinus && part1 <= part2) {
+        final tmpBase = base1; base1 = base2; base2 = tmpBase;
+        final tmpPart = part1; part1 = part2; part2 = tmpPart;
+        final tmpLbl = lbl1; lbl1 = lbl2; lbl2 = tmpLbl;
+      }
+
+      final opSymbol = (isMinus && part1 > part2) ? '−' : '+';
+      final ans = opSymbol == '−' ? part1 - part2 : part1 + part2;
+      final text = '$lbl1 of $base1 $opSymbol $lbl2 of $base2';
+
+      return Question(
+        topic: Topic.percentages,
+        difficulty: Difficulty.expert,
+        displayText: text,
+        operands: [base1, base2, ans],
+        correctAnswer: ans,
+      );
+    } else {
+      // 3-term percentage expressions: x% of A + y% of B - z% of C (multiples of 5 or 10, bases 100..2000)
+      final a = (5 + random.nextInt(96)) * 20; // 100..2000
+      final b = (5 + random.nextInt(96)) * 20;
+      final c = (5 + random.nextInt(96)) * 20;
+
+      final x = 5 * (1 + random.nextInt(19)); // 5..95
+      final y = 5 * (1 + random.nextInt(19));
+      final z = 5 * (1 + random.nextInt(19));
+
+      final partA = (x * a) ~/ 100;
+      final partB = (y * b) ~/ 100;
+      final partC = (z * c) ~/ 100;
+
+      final isMinus = random.nextBool();
+      final String opSymbol;
+      final int ans;
+
+      if (isMinus && (partA + partB > partC)) {
+        opSymbol = '−';
+        ans = partA + partB - partC;
+      } else {
+        opSymbol = '+';
+        ans = partA + partB + partC;
+      }
+
+      final text = '$x% of $a + $y% of $b $opSymbol $z% of $c';
+      return Question(
+        topic: Topic.percentages,
+        difficulty: Difficulty.expert,
+        displayText: text,
+        operands: [x, a, y, b, z, c, ans],
+        correctAnswer: ans,
+      );
+    }
+  }
+
+  Question _generateGenius(Random random, {String? targetPattern}) {
+    final type = random.nextInt(2);
+
+    if (type == 0) {
+      // Complex multi-term combination: (x% of A) * (y% of B) / C
+      final c1 = 2 + random.nextInt(7); // 2..8
+      final c2 = 2 + random.nextInt(7); // 2..8
+      final c = c1 * c2;
+
+      final k1 = 3 + random.nextInt(12);
+      final k2 = 3 + random.nextInt(12);
+
+      final partA = k1 * c1;
+      final partB = k2 * c2;
+
+      const pctOptions = [10, 20, 25, 40, 50];
+      final x = pctOptions[random.nextInt(pctOptions.length)];
+      final a = (partA * 100) ~/ x;
+
+      final y = pctOptions[random.nextInt(pctOptions.length)];
+      final b = (partB * 100) ~/ y;
+
+      final ans = k1 * k2;
+      final text = '($x% of $a) × ($y% of $b) ÷ $c';
+
+      return Question(
+        topic: Topic.percentages,
+        difficulty: Difficulty.genius,
+        displayText: text,
+        operands: [x, a, y, b, c, ans],
+        correctAnswer: ans,
+      );
+    } else {
+      // 3-term tricky percentage arithmetic with bases up to 5000
+      final a = (20 + random.nextInt(81)) * 50; // 1000..5000
+      final b = (20 + random.nextInt(81)) * 50;
+      final c = (20 + random.nextInt(81)) * 50;
+
+      final x = 5 * (1 + random.nextInt(19));
+      final y = 5 * (1 + random.nextInt(19));
+      final z = 5 * (1 + random.nextInt(19));
+
+      final partA = (x * a) ~/ 100;
+      final partB = (y * b) ~/ 100;
+      final partC = (z * c) ~/ 100;
+
+      final isMinus = random.nextBool();
+      final String opSymbol;
+      final int ans;
+
+      if (isMinus && (partA + partB > partC)) {
+        opSymbol = '−';
+        ans = partA + partB - partC;
+      } else {
+        opSymbol = '+';
+        ans = partA + partB + partC;
+      }
+
+      final text = '$x% of $a + $y% of $b $opSymbol $z% of $c';
+      return Question(
+        topic: Topic.percentages,
+        difficulty: Difficulty.genius,
+        displayText: text,
+        operands: [x, a, y, b, z, c, ans],
+        correctAnswer: ans,
+      );
+    }
   }
 }

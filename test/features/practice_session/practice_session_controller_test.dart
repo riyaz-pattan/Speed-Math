@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speed_math_with_ai/core/enums/enums.dart';
 import 'package:speed_math_with_ai/core/services/sound_service.dart';
 import 'package:speed_math_with_ai/data/models/attempt.dart';
@@ -8,6 +9,7 @@ import 'package:speed_math_with_ai/data/repositories/session_repository.dart';
 import 'package:speed_math_with_ai/data/repositories/mistake_repository.dart';
 import 'package:speed_math_with_ai/data/repositories/skill_repository.dart';
 import 'package:speed_math_with_ai/data/repositories/stats_repository.dart';
+import 'package:speed_math_with_ai/domain/adaptive/pattern_skill.dart';
 import 'package:speed_math_with_ai/domain/adaptive/skill_rating.dart';
 import 'package:speed_math_with_ai/domain/questions/question.dart';
 import 'package:speed_math_with_ai/features/practice_session/controllers/practice_session_controller.dart';
@@ -138,6 +140,17 @@ class FakeSkillRepository extends SkillRepository {
     ratings[key] = rating;
     return 1;
   }
+
+  @override
+  Future<void> saveRatingsAndPatternSkills(
+    List<SkillRating> skillRatings,
+    List<PatternSkill> patternSkills,
+  ) async {
+    for (final rating in skillRatings) {
+      final key = '${rating.topic.name}:${rating.difficulty.name}';
+      ratings[key] = rating;
+    }
+  }
 }
 
 class FakeMistakeRepository extends MistakeRepository {
@@ -180,9 +193,16 @@ class FakeMistakeRepository extends MistakeRepository {
 
   @override
   Future<int> getMistakeCount() async => recordedMistakes.length;
+
+  @override
+  Future<bool> clearMistakeByQuestionText(String questionText) async {
+    recordedMistakes.removeWhere((q) => q.displayText == questionText);
+    return true;
+  }
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late FakeSessionRepository fakeSessionRepo;
   late FakeAttemptRepository fakeAttemptRepo;
   late FakeStatsRepository fakeStatsRepo;
@@ -191,6 +211,7 @@ void main() {
   late FakeMistakeRepository fakeMistakeRepo;
 
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     fakeSessionRepo = FakeSessionRepository();
     fakeAttemptRepo = FakeAttemptRepository();
     fakeStatsRepo = FakeStatsRepository();

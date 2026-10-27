@@ -38,13 +38,15 @@ class NumberSeriesGenerator extends QuestionGenerator {
         Difficulty.easy => _generateEasy(random),
         Difficulty.medium => _generateMedium(random),
         Difficulty.hard => _generateHard(random),
+        Difficulty.expert => _generateExpert(random),
+        Difficulty.genius => _generateGenius(random),
         Difficulty.mixed => _generateEasy(random),
       };
 
       final pat = patternOf(difficulty, raw.operands);
       q = Question(
         topic: raw.topic,
-        difficulty: raw.difficulty,
+        difficulty: difficulty,
         displayText: raw.displayText,
         operands: raw.operands,
         correctAnswer: raw.correctAnswer,
@@ -182,7 +184,7 @@ class NumberSeriesGenerator extends QuestionGenerator {
         final mult = 2;
         final k = 1 + random.nextInt(3);
         final isAdd = random.nextBool();
-        int cur = 2 + random.nextInt(5);
+        int cur = isAdd ? (2 + random.nextInt(5)) : (4 + random.nextInt(5));
         series.add(cur);
         for (int i = 0; i < 5; i++) {
           cur = isAdd ? (cur * mult + k) : (cur * mult - k);
@@ -193,7 +195,7 @@ class NumberSeriesGenerator extends QuestionGenerator {
       case 4:
         // n^2 ± k
         final startN = 2 + random.nextInt(8);
-        final k = 1 + random.nextInt(4);
+        final k = 1 + random.nextInt(3);
         final isAdd = random.nextBool();
         for (int i = 0; i < 5; i++) {
           final n = startN + i;
@@ -300,6 +302,132 @@ class NumberSeriesGenerator extends QuestionGenerator {
     return Question(
       topic: Topic.numberSeries,
       difficulty: Difficulty.hard,
+      displayText: text,
+      operands: [...series, rule],
+      correctAnswer: answer,
+    );
+  }
+
+  Question _generateExpert(Random random) {
+    // Expert: Polynomial 2nd-order difference series, alternating operations (+a, ×2, +b, ×2), or square/cube step combinations.
+    final rule = 1 + random.nextInt(3);
+    final List<int> series = [];
+
+    switch (rule) {
+      case 1:
+        // 2nd-order difference series (diffs grow by constant k)
+        int cur = 5 + random.nextInt(25);
+        int d = 3 + random.nextInt(8);
+        final k = 2 + random.nextInt(4); // 2nd difference
+        series.add(cur);
+        for (int i = 0; i < 5; i++) {
+          cur += d;
+          series.add(cur);
+          d += k;
+        }
+        break;
+
+      case 2:
+        // Alternating operations: +a, ×2, +b, ×2, +c
+        final a = 2 + random.nextInt(4);
+        final b = a + 2 + random.nextInt(3);
+        final c = b + 2 + random.nextInt(3);
+        int cur = 3 + random.nextInt(6);
+        series.add(cur);
+        cur += a; series.add(cur);
+        cur *= 2; series.add(cur);
+        cur += b; series.add(cur);
+        cur *= 2; series.add(cur);
+        cur += c; series.add(cur);
+        break;
+
+      default:
+        // Square/cube step combinations
+        final useCubes = random.nextBool();
+        int cur = 10 + random.nextInt(30);
+        final startN = 2 + random.nextInt(3);
+        series.add(cur);
+        for (int i = 0; i < 5; i++) {
+          final n = startN + i;
+          cur += useCubes ? (n * n * n) : (n * n);
+          series.add(cur);
+        }
+        break;
+    }
+
+    final candidateIndices = [series.length - 1, series.length - 2, series.length ~/ 2];
+    final missingIndex = candidateIndices[random.nextInt(candidateIndices.length)];
+    final answer = series[missingIndex];
+
+    final displayTokens = List<String>.generate(series.length, (i) {
+      return i == missingIndex ? '?' : series[i].toString();
+    });
+    final text = displayTokens.join(', ');
+
+    return Question(
+      topic: Topic.numberSeries,
+      difficulty: Difficulty.expert,
+      displayText: text,
+      operands: [...series, rule],
+      correctAnswer: answer,
+    );
+  }
+
+  Question _generateGenius(Random random) {
+    // Genius: Complex series: n³ ± n, interleaved geometric-arithmetic series, Fibonacci-type sequences with large numbers (terms up to 500000).
+    final rule = 1 + random.nextInt(3);
+    final List<int> series = [];
+
+    switch (rule) {
+      case 1:
+        // n³ ± n
+        final isMinus = random.nextBool();
+        final startN = 2 + random.nextInt(5); // 2..6
+        for (int i = 0; i < 6; i++) {
+          final n = startN + i;
+          final val = isMinus ? (n * n * n - n) : (n * n * n + n);
+          series.add(val);
+        }
+        break;
+
+      case 2:
+        // Interleaved geometric-arithmetic series
+        int curA = 3 + random.nextInt(6); // 3..8
+        final r = 2 + random.nextInt(2); // 2 or 3
+        int curB = 40 + random.nextInt(50); // 40..89
+        final diffB = 15 + random.nextInt(25);
+        for (int i = 0; i < 3; i++) {
+          series.add(curA);
+          series.add(curB);
+          curA *= r;
+          curB += diffB;
+        }
+        break;
+
+      default:
+        // Fibonacci-type sequence with large numbers (<= 500000)
+        final a = 150 + random.nextInt(300);
+        final b = 250 + random.nextInt(400);
+        series.add(a);
+        series.add(b);
+        for (int i = 2; i < 7; i++) {
+          series.add(series[i - 1] + series[i - 2]);
+        }
+        break;
+    }
+
+    final candidateIndices = [series.length - 1, series.length - 2, series.length ~/ 2];
+    final missingIndex = candidateIndices[random.nextInt(candidateIndices.length)];
+    final answer = series[missingIndex];
+
+    final displayTokens = List<String>.generate(series.length, (i) {
+      return i == missingIndex ? '?' : series[i].toString();
+    });
+    final text = displayTokens.join(', ');
+
+    return Question(
+      topic: Topic.numberSeries,
+      difficulty: Difficulty.genius,
       displayText: text,
       operands: [...series, rule],
       correctAnswer: answer,

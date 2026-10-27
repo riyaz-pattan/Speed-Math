@@ -124,6 +124,8 @@ class AppTheme {
   static const Color splitPercentagesColor = Color(0xFF059669); // Emerald-600
   static const Color powerOfFiveColor = Color(0xFFEA580C); // Orange-600
   static const Color patternMultiplicationColor = Color(0xFF2563EB); // Blue-600
+  static const Color linearEquationsColor = Color(0xFF0D9488); // Teal-600
+  static const Color quadraticEquationsColor = Color(0xFF6366F1); // Indigo-500
 
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [primaryColor, violetAccent],
@@ -157,6 +159,8 @@ class AppTheme {
       Topic.splitPercentages => splitPercentagesColor,
       Topic.powerOfFive => powerOfFiveColor,
       Topic.patternMultiplication => patternMultiplicationColor,
+      Topic.linearEquations => linearEquationsColor,
+      Topic.quadraticEquations => quadraticEquationsColor,
     };
   }
 
@@ -195,6 +199,8 @@ class AppTheme {
       Topic.splitPercentages => Icons.tune_rounded,
       Topic.powerOfFive => Icons.star_rounded,
       Topic.patternMultiplication => Icons.grid_4x4_rounded,
+      Topic.linearEquations => Icons.linear_scale_rounded,
+      Topic.quadraticEquations => Icons.calculate_rounded,
     };
   }
 

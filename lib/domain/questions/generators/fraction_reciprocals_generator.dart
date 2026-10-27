@@ -41,6 +41,34 @@ class FractionReciprocalsGenerator extends QuestionGenerator {
     ['6.25', 1, 16],
   ];
 
+  static const _expert = [
+    ['7.69', 1, 13],
+    ['7.14', 1, 14],
+    ['6.67', 1, 15],
+    ['6.25', 1, 16],
+    ['5.88', 1, 17],
+    ['5.56', 1, 18],
+    ['5.26', 1, 19],
+    ['4.76', 1, 21],
+    ['4.55', 1, 22],
+    ['4.17', 1, 24],
+    ['4', 1, 25],
+  ];
+
+  static const _genius = [
+    ['4.35', 1, 23],
+    ['3.85', 1, 26],
+    ['3.70', 1, 27],
+    ['3.57', 1, 28],
+    ['3.45', 1, 29],
+    ['3.23', 1, 31],
+    ['3.125', 1, 32],
+    ['2.70', 1, 37],
+    ['2.5', 1, 40],
+    ['2.08', 1, 48],
+    ['2', 1, 50],
+  ];
+
   @override
   Question generate({
     required Difficulty difficulty,
@@ -52,6 +80,8 @@ class FractionReciprocalsGenerator extends QuestionGenerator {
       Difficulty.easy => _easy,
       Difficulty.medium => _medium,
       Difficulty.hard => _hard,
+      Difficulty.expert => _expert,
+      Difficulty.genius => _genius,
       Difficulty.mixed =>
         throw ArgumentError('Cannot generate Difficulty.mixed directly'),
     };

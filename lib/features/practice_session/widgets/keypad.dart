@@ -48,6 +48,7 @@ List<List<KeypadKeyData>> getKeypadLayout({
   required KeypadStyle style,
   required bool showSubmit,
   bool showSlash = false,
+  bool showMinus = false,
 }) {
   final List<List<KeypadKeyData>> digitRows;
   switch (style) {
@@ -91,11 +92,27 @@ List<List<KeypadKeyData>> getKeypadLayout({
       break;
   }
 
-  final bottomRow = [
-    const KeypadKeyData.backspace(),
-    const KeypadKeyData.digit('0'),
-    showSubmit ? const KeypadKeyData.submit() : const KeypadKeyData.empty(),
-  ];
+  final List<KeypadKeyData> bottomRow;
+  if (showMinus) {
+    bottomRow = showSubmit
+        ? [
+            const KeypadKeyData.minus(),
+            const KeypadKeyData.digit('0'),
+            const KeypadKeyData.backspace(),
+            const KeypadKeyData.submit(),
+          ]
+        : [
+            const KeypadKeyData.minus(),
+            const KeypadKeyData.digit('0'),
+            const KeypadKeyData.backspace(),
+          ];
+  } else {
+    bottomRow = [
+      const KeypadKeyData.backspace(),
+      const KeypadKeyData.digit('0'),
+      showSubmit ? const KeypadKeyData.submit() : const KeypadKeyData.empty(),
+    ];
+  }
 
   return [...digitRows, bottomRow];
 }
@@ -175,6 +192,7 @@ class MathKeypad extends StatelessWidget {
   final KeypadStyle style;
   final bool showSubmit;
   final bool showSlash;
+  final bool showMinus;
   final bool hapticsEnabled;
   final VibrationStrength vibrationStrength;
   final HapticService? hapticService;
@@ -190,6 +208,7 @@ class MathKeypad extends StatelessWidget {
     this.style = KeypadStyle.phone,
     this.showSubmit = false,
     this.showSlash = false,
+    this.showMinus = false,
     this.hapticsEnabled = true,
     this.vibrationStrength = VibrationStrength.medium,
     this.hapticService,
@@ -216,7 +235,11 @@ class MathKeypad extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final layout = showSlash
         ? getFractionKeypadLayout(style: style, showSubmit: showSubmit)
-        : getKeypadLayout(style: style, showSubmit: showSubmit);
+        : getKeypadLayout(
+            style: style,
+            showSubmit: showSubmit,
+            showMinus: showMinus,
+          );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

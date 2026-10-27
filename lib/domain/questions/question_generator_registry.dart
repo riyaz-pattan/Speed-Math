@@ -22,6 +22,8 @@ import 'generators/split_percentages_generator.dart';
 import 'generators/square_roots_generator.dart';
 import 'generators/squares_generator.dart';
 import 'generators/subtraction_generator.dart';
+import 'generators/linear_equations_generator.dart';
+import 'generators/quadratic_equations_generator.dart';
 import 'question_generator.dart';
 
 /// Single registry that maps [Topic] to the correct [QuestionGenerator].
@@ -54,6 +56,8 @@ class QuestionGeneratorRegistry {
     Topic.splitPercentages: SplitPercentagesGenerator(),
     Topic.powerOfFive: PowerOfFiveGenerator(),
     Topic.patternMultiplication: PatternMultiplicationGenerator(),
+    Topic.linearEquations: LinearEquationsGenerator(),
+    Topic.quadraticEquations: QuadraticEquationsGenerator(),
   };
 
   /// Returns the generator for the given [topic].

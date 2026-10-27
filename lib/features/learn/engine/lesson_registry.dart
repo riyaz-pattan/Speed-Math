@@ -566,6 +566,24 @@ class LessonRegistry {
         return pool[rng.nextInt(pool.length)];
       },
     ),
+
+    // ── Algebra & Equations Hub ───────────────────────────────────────────
+    LessonMeta(
+      id: 'quadratic_hub',
+      title: 'Quadratic & Linear Equations',
+      category: 'Algebra & Equations',
+      durationLabel: 'Handbook & Sign Tricks',
+      relatedTopic: Topic.quadraticEquations,
+      icon: Icons.functions_rounded,
+      iconColor: const Color(0xFF6366F1), // Indigo
+      whyItWorks:
+          'Sign table analysis and the 2-second CND rule let you determine root relations and signs without full factorization.',
+      commonMistake:
+          'Confusing x² = 16 (±4) with y = √16 (+4), or dividing by leading coefficients instead of cross-multiplying.',
+      featuredOperands: const [1, -5, 6],
+      builder: AddInPartsBuilder.build,
+      generateOperands: (rng) => [1, -5, 6],
+    ),
   ];
 
   /// Returns lessons in the given category.
@@ -592,5 +610,6 @@ class LessonRegistry {
     'Arithmetic',
     'Powers & Roots',
     'Applied Maths',
+    'Algebra & Equations',
   ];
 }

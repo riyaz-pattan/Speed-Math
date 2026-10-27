@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
@@ -43,13 +45,23 @@ class PracticeSessionScreen extends ConsumerStatefulWidget {
 }
 
 class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   int _lastFeedbackTick = 0;
   bool _hasNavigated = false;
   int _lastAttemptCount = 0;
   _SpeedTagInfo? _speedTag;
   Timer? _speedTagTimer;
   bool _fractionHintDismissed = false;
+
+  // Top Answer Celebration & Feedback Animation
+  late final AnimationController _feedbackAnimController;
+  late final Animation<double> _feedbackScaleAnim;
+  late final Animation<Offset> _feedbackSlideAnim;
+  late final AnimationController _shakeAnimController;
+  late final AnimationController _celebrationAnimController;
+  AnswerFeedback? _activeFeedback;
+  int _feedbackStreak = 0;
+  Timer? _feedbackDismissTimer;
 
   int _computeStreak(List<SessionAttempt> attempts, bool currentHasWrongTry) {
     if (currentHasWrongTry) return 0;
@@ -69,8 +81,37 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WakelockService.enable();
-    // Start session immediately
-    ref.read(practiceSessionControllerProvider(widget.config).notifier).start();
+
+    // Feedback animations setup
+    _feedbackAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+      reverseDuration: const Duration(milliseconds: 180),
+    );
+    _feedbackScaleAnim = CurvedAnimation(
+      parent: _feedbackAnimController,
+      curve: Curves.easeOutBack,
+      reverseCurve: Curves.easeIn,
+    );
+    _feedbackSlideAnim = Tween<Offset>(
+      begin: const Offset(0, -0.6),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _feedbackAnimController,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeIn,
+    ));
+
+    _shakeAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 360),
+    );
+
+    _celebrationAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 650),
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref
@@ -83,9 +124,12 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
   @override
   void dispose() {
     _speedTagTimer?.cancel();
+    _feedbackDismissTimer?.cancel();
+    _feedbackAnimController.dispose();
+    _shakeAnimController.dispose();
+    _celebrationAnimController.dispose();
     WakelockService.disable();
     WidgetsBinding.instance.removeObserver(this);
-    ref.invalidate(practiceSessionControllerProvider(widget.config));
     super.dispose();
   }
 
@@ -102,6 +146,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
     AnswerFeedback feedback, {
     required bool hapticsEnabled,
     required VibrationStrength vibrationStrength,
+    int streak = 0,
   }) {
     if (feedback == AnswerFeedback.none) return;
 
@@ -111,8 +156,38 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
         haptic.correctAnswer(strength: vibrationStrength);
       } else if (feedback == AnswerFeedback.wrong) {
         haptic.wrongAnswer(strength: vibrationStrength);
+      } else if (feedback == AnswerFeedback.skipped) {
+        haptic.keyPress(strength: vibrationStrength);
       }
     }
+
+    _showTopFeedbackAnimation(feedback, streak: streak);
+  }
+
+  void _showTopFeedbackAnimation(AnswerFeedback feedback, {int streak = 0}) {
+    if (!mounted) return;
+    _feedbackDismissTimer?.cancel();
+    setState(() {
+      _activeFeedback = feedback;
+      _feedbackStreak = streak;
+    });
+
+    _feedbackAnimController.forward(from: 0.0);
+    if (feedback == AnswerFeedback.correct) {
+      _celebrationAnimController.forward(from: 0.0);
+    } else if (feedback == AnswerFeedback.wrong) {
+      _shakeAnimController.forward(from: 0.0);
+    }
+
+    _feedbackDismissTimer = Timer(const Duration(milliseconds: 750), () {
+      if (mounted) {
+        _feedbackAnimController.reverse().then((_) {
+          if (mounted && _feedbackAnimController.status == AnimationStatus.dismissed) {
+            setState(() => _activeFeedback = null);
+          }
+        });
+      }
+    });
   }
 
   void _navigateToResults(PracticeResultData resultData) {
@@ -260,10 +335,12 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
       (prev, next) {
         if (next.feedbackTick != _lastFeedbackTick) {
           _lastFeedbackTick = next.feedbackTick;
+          final currentStreak = _computeStreak(next.attempts, next.currentQuestionHasWrongTry);
           _triggerFeedback(
             next.feedback,
             hapticsEnabled: settings.hapticsEnabled,
             vibrationStrength: settings.vibrationStrength,
+            streak: currentStreak,
           );
         }
 
@@ -457,31 +534,209 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                     ),
                   ],
 
-                  // Thumb-friendly keypad at bottom
-                  MathKeypad(
-                    onDigitPressed: controller.inputDigit,
-                    onBackspacePressed: controller.deleteDigit,
-                    onSubmitPressed: controller.submit,
-                    onMinusPressed: controller.inputMinus,
-                    style: settings.keypadStyle,
-                    showSubmit: !settings.autoSubmit,
-                    showSlash: false,
-                    hapticsEnabled: settings.hapticsEnabled,
-                    vibrationStrength: settings.vibrationStrength,
-                    hapticService: ref.read(hapticServiceProvider),
-                    soundEnabled: settings.soundEnabled,
-                  ),
+                  // Input area: multiple choice buttons or numeric keypad
+                  if (state.currentQuestion.isMultipleChoice)
+                    _buildMultipleChoiceKeypad(
+                      state: state,
+                      controller: controller,
+                      colorScheme: colorScheme,
+                      topicColor: topicColor,
+                      settings: settings,
+                      hapticService: ref.read(hapticServiceProvider),
+                    )
+                  else
+                    MathKeypad(
+                      onDigitPressed: controller.inputDigit,
+                      onBackspacePressed: controller.deleteDigit,
+                      onSubmitPressed: controller.submit,
+                      onMinusPressed: controller.inputMinus,
+                      style: settings.keypadStyle,
+                      showSubmit: !settings.autoSubmit,
+                      showSlash: state.currentQuestion.isFractionAnswer,
+                      showMinus: state.currentQuestion.allowsNegative,
+                      hapticsEnabled: settings.hapticsEnabled,
+                      vibrationStrength: settings.vibrationStrength,
+                      hapticService: ref.read(hapticServiceProvider),
+                      soundEnabled: settings.soundEnabled,
+                    ),
                   const SizedBox(height: 8),
                 ],
               ),
 
               // Paused overlay to conceal question
               if (isPaused) _buildPausedOverlay(controller, colorScheme),
+
+              // Top Answer Celebration & Feedback Animation
+              if (_activeFeedback != null)
+                Positioned(
+                  top: 8,
+                  left: 16,
+                  right: 16,
+                  child: _buildTopFeedbackBanner(),
+                ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildTopFeedbackBanner() {
+    final isCorrect = _activeFeedback == AnswerFeedback.correct;
+    final isSkipped = _activeFeedback == AnswerFeedback.skipped;
+    final isWrong = _activeFeedback == AnswerFeedback.wrong;
+
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: Listenable.merge([
+          _feedbackAnimController,
+          _shakeAnimController,
+          _celebrationAnimController,
+        ]),
+        builder: (context, child) {
+          final shakeX = isWrong
+              ? sin(_shakeAnimController.value * 4 * pi) * 6.0
+              : 0.0;
+
+          final List<Color> gradientColors;
+          final Color borderColor;
+          final Color shadowColor;
+          final IconData iconData;
+          final String feedbackText;
+
+          if (isCorrect) {
+            gradientColors = const [Color(0xFF059669), Color(0xFF10B981)];
+            borderColor = const Color(0xFF6EE7B7).withValues(alpha: 0.6);
+            shadowColor = const Color(0xFF10B981).withValues(alpha: 0.35);
+            iconData = _feedbackStreak >= 3
+                ? Icons.local_fire_department_rounded
+                : Icons.check_circle_rounded;
+            feedbackText = _feedbackStreak >= 3
+                ? 'Correct! 🔥 $_feedbackStreak streak'
+                : 'Correct! ✨';
+          } else if (isSkipped) {
+            gradientColors = const [Color(0xFF334155), Color(0xFF475569)];
+            borderColor = const Color(0xFF94A3B8).withValues(alpha: 0.6);
+            shadowColor = const Color(0xFF334155).withValues(alpha: 0.35);
+            iconData = Icons.redo_rounded;
+            feedbackText = 'Skipped ↷';
+          } else {
+            gradientColors = const [Color(0xFFDC2626), Color(0xFFEF4444)];
+            borderColor = const Color(0xFFFCA5A5).withValues(alpha: 0.6);
+            shadowColor = const Color(0xFFEF4444).withValues(alpha: 0.35);
+            iconData = Icons.close_rounded;
+            feedbackText = 'Try again ✕';
+          }
+
+          return Transform.translate(
+            offset: Offset(shakeX, 0),
+            child: SlideTransition(
+              position: _feedbackSlideAnim,
+              child: ScaleTransition(
+                scale: _feedbackScaleAnim,
+                child: FadeTransition(
+                  opacity: _feedbackAnimController,
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      clipBehavior: Clip.none,
+                      children: [
+                        // Decorative sparkles celebration for correct answer
+                        if (isCorrect)
+                          ..._buildCelebrationSparkles(_celebrationAnimController.value),
+
+                        // The main feedback pill
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: gradientColors,
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: borderColor,
+                              width: 1.2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: shadowColor,
+                                blurRadius: 12,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                iconData,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                feedbackText,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  List<Widget> _buildCelebrationSparkles(double progress) {
+    if (progress <= 0 || progress >= 1.0) return const [];
+
+    final opacity = progress < 0.5 ? 1.0 : (1.0 - (progress - 0.5) * 2).clamp(0.0, 1.0);
+    final distance = 14.0 + progress * 22.0;
+    const angles = [0.0, pi / 3, 2 * pi / 3, pi, 4 * pi / 3, 5 * pi / 3];
+    const colors = [
+      Colors.amberAccent,
+      Color(0xFF34D399),
+      Colors.yellowAccent,
+      Color(0xFF6EE7B7),
+      Colors.amber,
+      Color(0xFFA7F3D0),
+    ];
+
+    return List.generate(angles.length, (i) {
+      final angle = angles[i];
+      final dx = cos(angle) * (distance * 2.2);
+      final dy = sin(angle) * distance;
+
+      return Positioned(
+        left: dx + 45,
+        top: dy,
+        child: Opacity(
+          opacity: opacity,
+          child: Transform.scale(
+            scale: (1.0 - (progress - 0.5).abs() * 0.8).clamp(0.2, 1.2),
+            child: Icon(
+              Icons.star_rounded,
+              size: (i % 2 == 0) ? 12 : 8,
+              color: colors[i],
+            ),
+          ),
+        ),
+      );
+    });
   }
 
   Widget _buildTopProgressBar({
@@ -934,6 +1189,25 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                       ],
                     ],
                   ),
+                  if (state.currentQuestion.subtitleText != null) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: activeColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        state.currentQuestion.subtitleText!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: activeColor,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 14),
 
                   // Measured, responsive question text
@@ -944,51 +1218,107 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                   const SizedBox(height: 16),
 
                   // Answer display box
-                  Container(
-                    constraints: const BoxConstraints(
-                      minWidth: 200,
-                      maxWidth: 280,
-                      minHeight: 58,
-                      maxHeight: 58,
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: state.currentInput.isNotEmpty
-                            ? topicColor
-                            : const Color(0xFFCBD5E1),
-                        width: state.currentInput.isNotEmpty ? 2 : 1.5,
+                  if (state.currentQuestion.isMultipleChoice)
+                    Container(
+                      constraints: const BoxConstraints(
+                        minWidth: 200,
+                        maxWidth: 320,
+                        minHeight: 52,
+                        maxHeight: 52,
                       ),
-                    ),
-                    child: Center(
-                      child: state.currentInput.isEmpty
-                          ? Text(
-                              state.currentQuestion.isFractionAnswer
-                                  ? '? / ?'
-                                  : 'Type your answer',
-                              style: TextStyle(
-                                fontSize: state.currentQuestion.isFractionAnswer ? 22 : 16,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF94A3B8),
-                                letterSpacing: state.currentQuestion.isFractionAnswer ? 2.0 : 0.2,
-                              ),
-                            )
-                          : FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                state.currentInput,
-                                style: const TextStyle(
-                                  fontSize: 34,
-                                  fontWeight: FontWeight.w900,
-                                  color: Color(0xFF0F172A),
-                                  letterSpacing: 1.0,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: state.currentInput.isNotEmpty
+                              ? topicColor
+                              : const Color(0xFFCBD5E1),
+                          width: state.currentInput.isNotEmpty ? 2 : 1.5,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          state.currentInput.isEmpty
+                              ? 'Select relationship below'
+                              : state.currentInput,
+                          style: TextStyle(
+                            fontSize: state.currentInput.isEmpty ? 14 : 20,
+                            fontWeight: FontWeight.w700,
+                            color: state.currentInput.isEmpty
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF0F172A),
+                          ),
+                        ),
+                      ),
+                    )
+                  else if (state.currentQuestion.isDualRootQuestion)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildRootInputBox(
+                          label: AppStrings.root1,
+                          value: state.currentInput,
+                          isActive: state.activeInputBox == 0,
+                          topicColor: topicColor,
+                          onTap: () => controller.selectInputBox(0),
+                        ),
+                        const SizedBox(width: 14),
+                        _buildRootInputBox(
+                          label: AppStrings.root2,
+                          value: state.secondaryInput,
+                          isActive: state.activeInputBox == 1,
+                          topicColor: topicColor,
+                          onTap: () => controller.selectInputBox(1),
+                        ),
+                      ],
+                    )
+                  else
+                    Container(
+                      constraints: const BoxConstraints(
+                        minWidth: 200,
+                        maxWidth: 280,
+                        minHeight: 58,
+                        maxHeight: 58,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: state.currentInput.isNotEmpty
+                              ? topicColor
+                              : const Color(0xFFCBD5E1),
+                          width: state.currentInput.isNotEmpty ? 2 : 1.5,
+                        ),
+                      ),
+                      child: Center(
+                        child: state.currentInput.isEmpty
+                            ? Text(
+                                state.currentQuestion.isFractionAnswer
+                                    ? '? / ?'
+                                    : 'Type your answer',
+                                style: TextStyle(
+                                  fontSize: state.currentQuestion.isFractionAnswer ? 22 : 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF94A3B8),
+                                  letterSpacing: state.currentQuestion.isFractionAnswer ? 2.0 : 0.2,
+                                ),
+                              )
+                            : FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  state.currentInput,
+                                  style: const TextStyle(
+                                    fontSize: 34,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF0F172A),
+                                    letterSpacing: 1.0,
+                                  ),
                                 ),
                               ),
-                            ),
+                      ),
                     ),
-                  ),
 
                   // Speed tag (Lightning / On pace / Steady) for 600ms
                   Padding(
@@ -1179,6 +1509,236 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen>
                 label: const Text(
                   AppStrings.quit,
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMultipleChoiceKeypad({
+    required PracticeSessionState state,
+    required PracticeSessionController controller,
+    required ColorScheme colorScheme,
+    required Color topicColor,
+    required dynamic settings,
+    required HapticService? hapticService,
+  }) {
+    final options = state.currentQuestion.options ?? [];
+    if (options.isEmpty) return const SizedBox.shrink();
+
+    void onSelect(String option) {
+      if (settings.hapticsEnabled == true) {
+        if (hapticService != null) {
+          hapticService.keyPress(strength: settings.vibrationStrength);
+        } else {
+          HapticFeedback.selectionClick();
+        }
+      }
+      if (settings.soundEnabled == true) {
+        SystemSound.play(SystemSoundType.click);
+      }
+      controller.selectOption(option);
+    }
+
+    if (options.length == 5) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: _buildChoiceButton(
+                    label: options[0],
+                    isSelected: state.currentInput == options[0],
+                    colorScheme: colorScheme,
+                    topicColor: topicColor,
+                    onTap: () => onSelect(options[0]),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildChoiceButton(
+                    label: options[1],
+                    isSelected: state.currentInput == options[1],
+                    colorScheme: colorScheme,
+                    topicColor: topicColor,
+                    onTap: () => onSelect(options[1]),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildChoiceButton(
+                    label: options[2],
+                    isSelected: state.currentInput == options[2],
+                    colorScheme: colorScheme,
+                    topicColor: topicColor,
+                    onTap: () => onSelect(options[2]),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildChoiceButton(
+                    label: options[3],
+                    isSelected: state.currentInput == options[3],
+                    colorScheme: colorScheme,
+                    topicColor: topicColor,
+                    onTap: () => onSelect(options[3]),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: _buildChoiceButton(
+                label: options[4],
+                isSelected: state.currentInput == options[4],
+                colorScheme: colorScheme,
+                topicColor: topicColor,
+                onTap: () => onSelect(options[4]),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: options.map((option) {
+          return SizedBox(
+            width: (MediaQuery.of(context).size.width - 40) / 2,
+            child: _buildChoiceButton(
+              label: option,
+              isSelected: state.currentInput == option,
+              colorScheme: colorScheme,
+              topicColor: topicColor,
+              onTap: () => onSelect(option),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildChoiceButton({
+    required String label,
+    required bool isSelected,
+    required ColorScheme colorScheme,
+    required Color topicColor,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: isSelected
+          ? topicColor
+          : colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          height: 52,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isSelected
+                  ? topicColor
+                  : colorScheme.outlineVariant.withValues(alpha: 0.5),
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: label.length > 8 ? 14 : 18,
+              fontWeight: FontWeight.w700,
+              color: isSelected ? Colors.white : colorScheme.onSurface,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRootInputBox({
+    required String label,
+    required String value,
+    required bool isActive,
+    required Color topicColor,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        constraints: const BoxConstraints(
+          minWidth: 105,
+          maxWidth: 140,
+          minHeight: 52,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: isActive
+              ? topicColor.withValues(alpha: 0.08)
+              : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isActive ? topicColor : const Color(0xFFCBD5E1),
+            width: isActive ? 2.5 : 1.5,
+          ),
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: topicColor.withValues(alpha: 0.15),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                height: 1.1,
+                fontWeight: FontWeight.w700,
+                color: isActive ? topicColor : const Color(0xFF64748B),
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 2),
+            SizedBox(
+              height: 24,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  value.isEmpty ? '?' : value,
+                  style: TextStyle(
+                    fontSize: 22,
+                    height: 1.1,
+                    fontWeight: FontWeight.w900,
+                    color: value.isEmpty
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF0F172A),
+                  ),
                 ),
               ),
             ),

@@ -25,7 +25,9 @@ enum Topic {
   basePercentages(symbol: '100+'),
   splitPercentages(symbol: '%+'),
   powerOfFive(symbol: '×5'),
-  patternMultiplication(symbol: '×11');
+  patternMultiplication(symbol: '×11'),
+  linearEquations(symbol: 'x+y'),
+  quadraticEquations(symbol: 'x²');
 
   const Topic({required this.symbol});
 
@@ -56,6 +58,8 @@ enum Topic {
     Topic.splitPercentages => AppStrings.splitPercentages,
     Topic.powerOfFive => AppStrings.powerOfFive,
     Topic.patternMultiplication => AppStrings.patternMultiplication,
+    Topic.linearEquations => AppStrings.linearEquations,
+    Topic.quadraticEquations => AppStrings.quadraticEquations,
   };
 
   /// The standard math drill topics (excludes mixed/smart topics).
@@ -68,13 +72,15 @@ enum TopicGroup {
   arithmetic,
   powersAndRoots,
   appliedMaths,
-  mentalShortcuts;
+  mentalShortcuts,
+  algebra;
 
   String get displayName => switch (this) {
     TopicGroup.arithmetic => 'Arithmetic',
     TopicGroup.powersAndRoots => 'Powers & Roots',
     TopicGroup.appliedMaths => 'Applied Maths',
     TopicGroup.mentalShortcuts => 'Mental Shortcuts',
+    TopicGroup.algebra => 'Algebra & Equations',
   };
 
   List<Topic> get topics => switch (this) {
@@ -109,6 +115,10 @@ enum TopicGroup {
       Topic.powerOfFive,
       Topic.patternMultiplication,
     ],
+    TopicGroup.algebra => const [
+      Topic.linearEquations,
+      Topic.quadraticEquations,
+    ],
   };
 }
 
@@ -117,6 +127,8 @@ enum Difficulty {
   easy(multiplier: 1.0),
   medium(multiplier: 1.5),
   hard(multiplier: 2.0),
+  expert(multiplier: 2.5),
+  genius(multiplier: 3.0),
   mixed(multiplier: 1.0);
 
   const Difficulty({required this.multiplier});
@@ -127,8 +139,14 @@ enum Difficulty {
     Difficulty.easy => AppStrings.easy,
     Difficulty.medium => AppStrings.medium,
     Difficulty.hard => AppStrings.hard,
+    Difficulty.expert => AppStrings.expert,
+    Difficulty.genius => AppStrings.genius,
     Difficulty.mixed => AppStrings.adaptive,
   };
+
+  /// The concrete practice difficulties available for explicit user selection.
+  static List<Difficulty> get concreteDifficulties =>
+      values.where((d) => d != Difficulty.mixed).toList();
 }
 
 /// Practice mode options: timed session vs fixed question count session.

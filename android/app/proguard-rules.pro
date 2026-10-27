@@ -29,6 +29,11 @@
 -keepclassmembers class com.dexterous.flutterlocalnotifications.models.** { *; }
 -dontwarn com.dexterous.flutterlocalnotifications.**
 
+# Preserve resource IDs for dynamically queried notification drawables
+-keepclassmembers class **.R$* {
+    public static <fields>;
+}
+
 # Gson used by flutter_local_notifications
 -keep class com.google.gson.** { *; }
 -keep class * extends com.google.gson.TypeAdapter
@@ -37,7 +42,9 @@
     @com.google.gson.annotations.SerializedName <fields>;
 }
 
-# Flutter Timezone
+# Flutter Timezone (both new and legacy package namespaces)
+-keep class net.wolverinebeach.flutter_timezone.** { *; }
+-dontwarn net.wolverinebeach.flutter_timezone.**
 -keep class net.jonhanson.flutter_timezone.** { *; }
 -dontwarn net.jonhanson.flutter_timezone.**
 

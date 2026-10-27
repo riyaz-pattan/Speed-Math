@@ -45,6 +45,8 @@ class FractionsGenerator extends QuestionGenerator {
         Difficulty.easy => _generateEasy(random, targetPattern: pattern),
         Difficulty.medium => _generateMedium(random, targetPattern: pattern),
         Difficulty.hard => _generateHard(random, targetPattern: pattern),
+        Difficulty.expert => _generateExpert(random, targetPattern: pattern),
+        Difficulty.genius => _generateGenius(random, targetPattern: pattern),
         Difficulty.mixed =>
           throw ArgumentError('Cannot generate Difficulty.mixed directly'),
       };
@@ -52,7 +54,7 @@ class FractionsGenerator extends QuestionGenerator {
       final pat = patternOf(difficulty, raw.operands);
       q = Question(
         topic: raw.topic,
-        difficulty: raw.difficulty,
+        difficulty: difficulty,
         displayText: raw.displayText,
         operands: raw.operands,
         correctAnswer: raw.correctAnswer,
@@ -281,5 +283,156 @@ class FractionsGenerator extends QuestionGenerator {
       operands: [a, b, n, c, d, m, isMinus ? 1 : 0],
       correctAnswer: ans,
     );
+  }
+
+  int _pickCoprime(Random random, int b) {
+    final coprimes = <int>[];
+    for (int i = 1; i < b; i++) {
+      if (gcd(i, b) == 1) coprimes.add(i);
+    }
+    return coprimes[random.nextInt(coprimes.length)];
+  }
+
+  Question _generateExpert(Random random, {String? targetPattern}) {
+    // 3-fraction expressions: a/b of N + c/d of M - e/f of P, denominators in 2..16
+    final b = 2 + random.nextInt(15); // 2..16
+    final d = 2 + random.nextInt(15);
+    final f = 2 + random.nextInt(15);
+
+    final a = _pickCoprime(random, b);
+    final c = _pickCoprime(random, d);
+    final e = _pickCoprime(random, f);
+
+    final kB = 10 + random.nextInt(35);
+    final kD = 10 + random.nextInt(35);
+    final kF = 10 + random.nextInt(35);
+
+    final n = kB * b;
+    final m = kD * d;
+    final p = kF * f;
+
+    final term1 = a * kB;
+    final term2 = c * kD;
+    final term3 = e * kF;
+
+    final isMinus = random.nextBool();
+    final String op2Symbol;
+    final int ans;
+
+    if (isMinus && (term1 + term2 > term3)) {
+      op2Symbol = '−';
+      ans = term1 + term2 - term3;
+    } else {
+      op2Symbol = '+';
+      ans = term1 + term2 + term3;
+    }
+
+    final text = '$a/$b of $n + $c/$d of $m $op2Symbol $e/$f of $p';
+    return Question(
+      topic: Topic.fractions,
+      difficulty: Difficulty.expert,
+      displayText: text,
+      operands: [a, b, n, c, d, m, e, f, p, ans],
+      correctAnswer: ans,
+    );
+  }
+
+  Question _generateGenius(Random random, {String? targetPattern}) {
+    // 3 to 4 fractions with denominators in 3..20, including mixed fraction parts
+    final useMixed = random.nextBool();
+
+    if (useMixed) {
+      // Mixed fraction parts: w1 n1/d1 × M + a/b of N - w2 n2/d2 × P
+      final d1 = 3 + random.nextInt(18); // 3..20
+      final b = 3 + random.nextInt(18);
+      final d2 = 3 + random.nextInt(18);
+
+      final n1 = _pickCoprime(random, d1);
+      final a = _pickCoprime(random, b);
+      final n2 = _pickCoprime(random, d2);
+
+      final w1 = 1 + random.nextInt(4);
+      final w2 = 1 + random.nextInt(3);
+
+      final k1 = 3 + random.nextInt(15);
+      final k2 = 5 + random.nextInt(25);
+      final k3 = 2 + random.nextInt(10);
+
+      final m = k1 * d1;
+      final n = k2 * b;
+      final p = k3 * d2;
+
+      final term1 = (w1 * d1 + n1) * k1;
+      final term2 = a * k2;
+      final term3 = (w2 * d2 + n2) * k3;
+
+      final isMinus = random.nextBool();
+      final String op2Symbol;
+      final int ans;
+
+      if (isMinus && (term1 + term2 > term3)) {
+        op2Symbol = '−';
+        ans = term1 + term2 - term3;
+      } else {
+        op2Symbol = '+';
+        ans = term1 + term2 + term3;
+      }
+
+      final text = '$w1 $n1/$d1 × $m + $a/$b of $n $op2Symbol $w2 $n2/$d2 × $p';
+      return Question(
+        topic: Topic.fractions,
+        difficulty: Difficulty.genius,
+        displayText: text,
+        operands: [w1, n1, d1, m, a, b, n, w2, n2, d2, p, ans],
+        correctAnswer: ans,
+      );
+    } else {
+      // 4 fractions with denominators in 3..20
+      final b = 3 + random.nextInt(18); // 3..20
+      final d = 3 + random.nextInt(18);
+      final f = 3 + random.nextInt(18);
+      final h = 3 + random.nextInt(18);
+
+      final a = _pickCoprime(random, b);
+      final c = _pickCoprime(random, d);
+      final e = _pickCoprime(random, f);
+      final g = _pickCoprime(random, h);
+
+      final kB = 5 + random.nextInt(25);
+      final kD = 5 + random.nextInt(25);
+      final kF = 5 + random.nextInt(25);
+      final kH = 5 + random.nextInt(25);
+
+      final n = kB * b;
+      final m = kD * d;
+      final p = kF * f;
+      final qVal = kH * h;
+
+      final term1 = a * kB;
+      final term2 = c * kD;
+      final term3 = e * kF;
+      final term4 = g * kH;
+
+      final isMinus = random.nextBool();
+      final String op2Symbol;
+      final int ans;
+
+      if (isMinus && (term1 + term2 > term3)) {
+        op2Symbol = '−';
+        ans = term1 + term2 - term3 + term4;
+      } else {
+        op2Symbol = '+';
+        ans = term1 + term2 + term3 + term4;
+      }
+
+      final text = '$a/$b of $n + $c/$d of $m $op2Symbol $e/$f of $p + $g/$h of $qVal';
+      return Question(
+        topic: Topic.fractions,
+        difficulty: Difficulty.genius,
+        displayText: text,
+        operands: [a, b, n, c, d, m, e, f, p, g, h, qVal, ans],
+        correctAnswer: ans,
+      );
+    }
   }
 }

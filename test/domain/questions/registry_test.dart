@@ -52,12 +52,15 @@ void main() {
       );
     });
 
-    test('all 9 standard topics are registered', () {
+    test('all non-mixed topics are registered', () {
       final registered = QuestionGeneratorRegistry.registeredTopics;
       for (final topic in Topic.standardTopics) {
         expect(registered, contains(topic));
       }
-      expect(registered.length, 9);
+      for (final topic in Topic.values.where((t) => t != Topic.mixed)) {
+        expect(registered, contains(topic));
+      }
+      expect(registered.length, Topic.values.length - 1);
       expect(registered, isNot(contains(Topic.mixed)));
     });
   });

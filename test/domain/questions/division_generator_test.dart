@@ -190,6 +190,80 @@ void main() {
       });
     });
 
+    group('Expert (5-digit ÷ 2-digit)', () {
+      test('generates 1000 valid questions', () {
+        final random = Random(789);
+        Question? prev;
+        for (var i = 0; i < 1000; i++) {
+          final q = generator.generateUnique(
+            difficulty: Difficulty.expert,
+            random: random,
+            previousQuestion: prev,
+          );
+
+          expect(q.topic, Topic.division);
+          expect(q.difficulty, Difficulty.expert);
+          expect(q.operands.length, 2);
+
+          final dividend = q.operands[0];
+          final divisor = q.operands[1];
+
+          expect(dividend, inInclusiveRange(10000, 99999));
+          expect(divisor, inInclusiveRange(15, 99));
+
+          expect(
+            dividend % 10 == 0 && divisor % 10 == 0,
+            isFalse,
+            reason: 'All numbers end in 0: $dividend, $divisor',
+          );
+
+          expect(dividend % divisor, 0);
+          expect(q.correctAnswer, dividend ~/ divisor);
+          expect(q.correctAnswer, greaterThan(0));
+          expect(q.displayText, '$dividend ÷ $divisor');
+
+          prev = q;
+        }
+      });
+    });
+
+    group('Genius (5-to-6 digit ÷ 3-digit)', () {
+      test('generates 1000 valid questions', () {
+        final random = Random(101112);
+        Question? prev;
+        for (var i = 0; i < 1000; i++) {
+          final q = generator.generateUnique(
+            difficulty: Difficulty.genius,
+            random: random,
+            previousQuestion: prev,
+          );
+
+          expect(q.topic, Topic.division);
+          expect(q.difficulty, Difficulty.genius);
+          expect(q.operands.length, 2);
+
+          final dividend = q.operands[0];
+          final divisor = q.operands[1];
+
+          expect(dividend, inInclusiveRange(10000, 999999));
+          expect(divisor, inInclusiveRange(100, 999));
+
+          expect(
+            dividend % 10 == 0 && divisor % 10 == 0,
+            isFalse,
+            reason: 'All numbers end in 0: $dividend, $divisor',
+          );
+
+          expect(dividend % divisor, 0);
+          expect(q.correctAnswer, dividend ~/ divisor);
+          expect(q.correctAnswer, greaterThan(0));
+          expect(q.displayText, '$dividend ÷ $divisor');
+
+          prev = q;
+        }
+      });
+    });
+
     test('same seed produces same questions', () {
       final q1 = generator.generate(
         difficulty: Difficulty.easy,

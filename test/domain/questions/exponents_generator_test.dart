@@ -131,6 +131,72 @@ void main() {
       });
     });
 
+    group('Expert (higher powers and bases, result <= 5,000,000)', () {
+      test('generates 1000 valid questions, never >5,000,000, never base 1 or 10', () {
+        final random = Random(789);
+        Question? prev;
+        for (var i = 0; i < 1000; i++) {
+          final q = generator.generateUnique(
+            difficulty: Difficulty.expert,
+            random: random,
+            previousQuestion: prev,
+          );
+
+          expect(q.topic, Topic.exponents);
+          expect(q.difficulty, Difficulty.expert);
+          final base = q.operands[0];
+          final power = q.operands[1];
+
+          expect(base, isNot(1), reason: 'Exponents must never use base 1');
+          expect(base, isNot(10), reason: 'Exponents must never use base 10');
+
+          int expected = 1;
+          for (var p = 0; p < power; p++) {
+            expected *= base;
+          }
+          expect(q.correctAnswer, expected);
+          expect(q.correctAnswer, lessThanOrEqualTo(5000000),
+              reason: 'Result must never exceed 5,000,000');
+          expect(q.displayText, '$base^$power');
+
+          prev = q;
+        }
+      });
+    });
+
+    group('Genius (peak mental powers, result <= 50,000,000)', () {
+      test('generates 1000 valid questions, never >50,000,000, never base 1 or 10', () {
+        final random = Random(101112);
+        Question? prev;
+        for (var i = 0; i < 1000; i++) {
+          final q = generator.generateUnique(
+            difficulty: Difficulty.genius,
+            random: random,
+            previousQuestion: prev,
+          );
+
+          expect(q.topic, Topic.exponents);
+          expect(q.difficulty, Difficulty.genius);
+          final base = q.operands[0];
+          final power = q.operands[1];
+
+          expect(base, isNot(1), reason: 'Exponents must never use base 1');
+          expect(base, isNot(10), reason: 'Exponents must never use base 10');
+
+          int expected = 1;
+          for (var p = 0; p < power; p++) {
+            expected *= base;
+          }
+          expect(q.correctAnswer, expected);
+          expect(q.correctAnswer, lessThanOrEqualTo(50000000),
+              reason: 'Result must never exceed 50,000,000');
+          expect(q.displayText, '$base^$power');
+
+          prev = q;
+        }
+      });
+    });
+
     test('same seed produces same questions', () {
       final q1 = generator.generate(
         difficulty: Difficulty.hard,

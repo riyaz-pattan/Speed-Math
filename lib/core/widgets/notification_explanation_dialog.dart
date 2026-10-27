@@ -70,7 +70,7 @@ class NotificationExplanationDialog extends StatelessWidget {
           _FeaturePoint(
             icon: Icons.notifications_none_rounded,
             title: 'At most one per day',
-            subtitle: 'Skipped automatically when you are already active today.',
+            subtitle: 'You choose exactly which days and what time.',
           ),
           SizedBox(height: 10),
           _FeaturePoint(
