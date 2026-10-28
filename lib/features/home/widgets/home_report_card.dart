@@ -106,7 +106,7 @@ class HomeReportCard extends ConsumerWidget {
         };
 
         return TactileCard(
-          onTap: () => context.push('/report'),
+          onTap: () => context.go('/report'),
           borderColor: scoreColor.withValues(alpha: 0.25),
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -260,7 +260,7 @@ class HomeReportCard extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => context.push('/report'),
+                      onPressed: () => context.go('/report'),
                       icon: const Icon(Icons.insights_rounded, size: 16),
                       label: const FittedBox(
                         fit: BoxFit.scaleDown,

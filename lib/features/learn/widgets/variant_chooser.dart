@@ -23,21 +23,26 @@ class VariantChooser extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.canvasBackground,
-      appBar: AppBar(
-        title: Text(meta.title),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: onBack,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) onBack();
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.canvasBackground,
+        appBar: AppBar(
+          title: Text(meta.title),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            onPressed: onBack,
+          ),
         ),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               Text(
                 'Choose a trick variant:',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -157,6 +162,7 @@ class VariantChooser extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }

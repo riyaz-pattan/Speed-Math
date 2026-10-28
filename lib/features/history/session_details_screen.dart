@@ -9,6 +9,7 @@ import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
 import '../../data/models/attempt.dart';
 import '../../data/models/session.dart';
 import '../../data/repositories/attempt_repository.dart';
+import '../learn/engine/lesson_registry.dart';
 
 /// Screen displaying in-depth review of a single completed or partial session,
 /// including all individual attempts and highlighting the slowest question.
@@ -87,18 +88,38 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
             ? 'Mistakes practice'
             : '${session.topic.displayName} - ${session.difficulty.displayName}';
 
-    return Scaffold(
-      backgroundColor: AppTheme.canvasBackground,
-      body: Column(
-        children: [
-          ScreenHeader(
-            title: screenTitle,
-            subtitle: _formatDate(session.startedAt),
-            leading: HeaderIconButton(
-              icon: Icons.arrow_back_rounded,
-              onPressed: () => context.pop(),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/home');
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.canvasBackground,
+        body: SafeArea(
+          top: true,
+          bottom: false,
+          child: Column(
+            children: [
+              ScreenHeader(
+              title: screenTitle,
+              subtitle: _formatDate(session.startedAt),
+              leading: HeaderIconButton(
+                icon: Icons.arrow_back_rounded,
+                onPressed: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/home');
+                  }
+                },
+              ),
             ),
-          ),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -184,7 +205,9 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
           ),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildOverviewCard(Session session) {
@@ -363,6 +386,23 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
     final isCorrect = attempt.isCorrect;
     final isSkipped = attempt.isSkipped;
 
+    // Show "Learn this trick" only for wrong answers, skipped answers, or the slowest answer
+    final shouldShowTrick = (!isCorrect || isSkipped || isSlowest);
+
+    final ops = <int>[];
+    final a = int.tryParse(attempt.operandA);
+    if (a != null) ops.add(a);
+    final b = int.tryParse(attempt.operandB);
+    if (b != null) ops.add(b);
+
+    final matched = shouldShowTrick
+        ? LessonRegistry.findLessonForQuestion(
+            topic: attempt.topic,
+            operands: ops,
+            pattern: attempt.pattern ?? '',
+          )
+        : null;
+
     final Color statusColor;
     final IconData statusIcon;
 
@@ -440,6 +480,29 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                         fontSize: 12,
                         color: AppTheme.warningColor,
                         fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                if (matched != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 5),
+                    child: GestureDetector(
+                      onTap: () {
+                        context.push(
+                          '/learn/${matched.lesson.id}',
+                          extra: {
+                            'operands': matched.operands,
+                            'variantId': matched.variantId,
+                          },
+                        );
+                      },
+                      child: const Text(
+                        'Learn this trick →',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.primaryColor,
+                        ),
                       ),
                     ),
                   ),

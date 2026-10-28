@@ -42,6 +42,7 @@ abstract final class AppStrings {
   static const String close = 'Close';
   static const String done = 'Done';
   static const String next = 'Next';
+  static const String pressAgainToExit = 'Press again to exit';
 
   // Difficulty
   static const String easy = 'Easy';

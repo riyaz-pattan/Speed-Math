@@ -153,14 +153,14 @@ void main() {
       await tester.tap(find.text('20'));
       await tester.pumpAndSettle();
 
-      // Button updates to Practice these (20)
-      expect(find.text('${AppStrings.practiceThese} (20)'), findsOneWidget);
+      // Button updates to Practice 20 questions
+      expect(find.text('Practice 20 questions'), findsOneWidget);
 
       // Tap All (25)
       await tester.tap(find.byKey(const ValueKey('count_chip_50')));
       await tester.pumpAndSettle();
 
-      expect(find.text('${AppStrings.practiceThese} (25)'), findsOneWidget);
+      expect(find.text('Practice 25 questions'), findsOneWidget);
     });
 
     testWidgets('swipe to dismiss removes mistake and shows undo snackbar', (tester) async {

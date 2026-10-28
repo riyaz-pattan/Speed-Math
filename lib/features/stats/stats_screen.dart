@@ -6,6 +6,7 @@ import '../../core/ads/widgets/banner_ad_container.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/enums/enums.dart';
 import '../../core/strings/app_strings.dart';
+import 'package:speed_math_with_ai/core/widgets/double_back_exit_scope.dart';
 import 'package:speed_math_with_ai/core/widgets/empty_state_view.dart';
 import 'package:speed_math_with_ai/core/widgets/screen_header.dart';
 import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
@@ -46,9 +47,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     if (!_initialized) {
       final settings = ref.read(settingsRepositoryProvider);
       var topic = settings.lastTopic;
-      if (topic == Topic.mixed) topic = Topic.addition;
       var diff = settings.lastDifficulty;
-      if (diff == Difficulty.mixed) diff = Difficulty.easy;
       var mode = settings.lastMode;
       if (mode == PracticeMode.smart || mode == PracticeMode.mistakes) {
         mode = PracticeMode.questions;
@@ -101,7 +100,9 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
         _selectedModeValue,
       );
 
-      final skillsFuture = skillRepo.getRatingsForTopic(_selectedTopic);
+      final skillsFuture = _selectedTopic == Topic.mixed
+          ? skillRepo.getAllRatings()
+          : skillRepo.getRatingsForTopic(_selectedTopic);
 
       final results = await Future.wait([
         bestSessionFuture,
@@ -115,8 +116,32 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
 
       final skillsList = results[4] as List<SkillRating>;
       final skillsMap = <Difficulty, SkillRating>{};
-      for (final s in skillsList) {
-        skillsMap[s.difficulty] = s;
+
+      if (_selectedTopic == Topic.mixed) {
+        for (final diff in Difficulty.concreteDifficulties) {
+          final diffRatings =
+              skillsList.where((r) => r.difficulty == diff).toList();
+          if (diffRatings.isNotEmpty) {
+            final totalAttempts =
+                diffRatings.fold<int>(0, (sum, r) => sum + r.attemptsCount);
+            final withAttempts =
+                diffRatings.where((r) => r.attemptsCount > 0).toList();
+            final avgMastery = withAttempts.isNotEmpty
+                ? withAttempts.fold<double>(0.0, (sum, r) => sum + r.mastery) /
+                    withAttempts.length
+                : 0.5;
+            skillsMap[diff] = SkillRating(
+              topic: Topic.mixed,
+              difficulty: diff,
+              mastery: avgMastery,
+              attemptsCount: totalAttempts,
+            );
+          }
+        }
+      } else {
+        for (final s in skillsList) {
+          skillsMap[s.difficulty] = s;
+        }
       }
 
       setState(() {
@@ -198,91 +223,95 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Scaffold(
-      backgroundColor: AppTheme.canvasBackground,
-      body: Column(
-        children: [
-          ScreenHeader(
-            title: AppStrings.stats,
-            subtitle: 'Performance metrics & growth',
-            actions: [
-              HeaderIconButton(
-                icon: Icons.history_rounded,
-                tooltip: 'History',
-                onPressed: () => context.push('/history'),
-              ),
-            ],
-          ),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _loadStats,
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                children: [
-                  // Top filter controls
-                  _buildFilterSelectors(colorScheme),
-                  const SizedBox(height: 16),
-
-                  // Skill Level Card for selected topic
-                  _buildSkillLevelCard(colorScheme),
-                  const SizedBox(height: 16),
-
-              if (_isLoading)
-                const SizedBox(
-                  height: 200,
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else ...[
-                // High Scores & Best Times Cards
-                _buildSummaryCards(colorScheme),
-                const SizedBox(height: 20),
-
-                // History Line Graph
-                Text(
-                  'Progress Trend',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                HistoryLineGraph(completedSessions: _historySessions),
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    'Showing single-topic drills. Mixed practice is tracked in your Performance Report.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: colorScheme.onSurfaceVariant,
-                      fontStyle: FontStyle.italic,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // "View all sessions" button
-                OutlinedButton.icon(
+    return DoubleBackExitScope(
+      child: Scaffold(
+        backgroundColor: AppTheme.canvasBackground,
+        body: Column(
+          children: [
+            ScreenHeader(
+              title: AppStrings.stats,
+              subtitle: 'Performance metrics & growth',
+              actions: [
+                HeaderIconButton(
+                  icon: Icons.history_rounded,
+                  tooltip: 'History',
                   onPressed: () => context.push('/history'),
-                  icon: const Icon(Icons.list_alt_rounded),
-                  label: const Text('View All Sessions'),
-                  style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
                 ),
-                const SizedBox(height: 20),
               ],
-            ],
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _loadStats,
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  children: [
+                    // Top filter controls
+                    _buildFilterSelectors(colorScheme),
+                    const SizedBox(height: 16),
+
+                    // Skill Level Card for selected topic
+                    _buildSkillLevelCard(colorScheme),
+                    const SizedBox(height: 16),
+
+                if (_isLoading)
+                  const SizedBox(
+                    height: 200,
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else ...[
+                  // High Scores & Best Times Cards
+                  _buildSummaryCards(colorScheme),
+                  const SizedBox(height: 20),
+
+                  // History Line Graph
+                  Text(
+                    'Progress Trend',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  HistoryLineGraph(completedSessions: _historySessions),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      _selectedTopic == Topic.mixed
+                          ? 'Showing trends for Mixed Topics (${_selectedDifficulty.displayName}).'
+                          : 'Showing trends for ${_selectedTopic.displayName} (${_selectedDifficulty.displayName}).',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant,
+                        fontStyle: FontStyle.italic,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // "View all sessions" button
+                  OutlinedButton.icon(
+                    onPressed: () => context.push('/history'),
+                    icon: const Icon(Icons.list_alt_rounded),
+                    label: const Text('View All Sessions'),
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ],
+            ),
           ),
         ),
-      ),
-      if (!_isLoading) const BannerAdContainer(),
-    ],
+        if (!_isLoading) const BannerAdContainer(),
+      ],
+    ),
   ),
 );
   }
@@ -291,11 +320,14 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Topic chips (Standard topics only for single-topic drills)
+        // Topic chips (Including Mixed Topics)
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
-            children: Topic.standardTopics.map((t) {
+            children: [
+              Topic.mixed,
+              ...Topic.standardTopics,
+            ].map((t) {
               final isSelected = _selectedTopic == t;
               final topicColor = AppTheme.getTopicColor(t);
               return Padding(
@@ -343,7 +375,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
         // Difficulty & Mode & Value row
         Row(
           children: [
-            // Difficulty dropdown (Easy, Medium, Hard only)
+            // Difficulty dropdown (Auto, Easy, Medium, Hard, Expert, Genius)
             Expanded(
               child: InputDecorator(
                 decoration: InputDecoration(
@@ -356,11 +388,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                     value: _selectedDifficulty,
                     isDense: true,
                     isExpanded: true,
-                    items: const [
-                      Difficulty.easy,
-                      Difficulty.medium,
-                      Difficulty.hard,
-                    ].map((d) {
+                    items: Difficulty.allWithAuto.map((d) {
                       return DropdownMenuItem(
                         value: d,
                         child: Text(d.displayName, style: const TextStyle(fontSize: 13)),

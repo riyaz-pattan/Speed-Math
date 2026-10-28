@@ -141,12 +141,22 @@ enum Difficulty {
     Difficulty.hard => AppStrings.hard,
     Difficulty.expert => AppStrings.expert,
     Difficulty.genius => AppStrings.genius,
-    Difficulty.mixed => AppStrings.adaptive,
+    Difficulty.mixed => AppStrings.auto,
   };
 
   /// The concrete practice difficulties available for explicit user selection.
   static List<Difficulty> get concreteDifficulties =>
       values.where((d) => d != Difficulty.mixed).toList();
+
+  /// All practice difficulties including Auto.
+  static List<Difficulty> get allWithAuto => const [
+        Difficulty.mixed,
+        Difficulty.easy,
+        Difficulty.medium,
+        Difficulty.hard,
+        Difficulty.expert,
+        Difficulty.genius,
+      ];
 }
 
 /// Practice mode options: timed session vs fixed question count session.

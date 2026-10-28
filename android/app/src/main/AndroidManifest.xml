@@ -30,7 +30,8 @@
     <application
         android:label="Mental Calculation Tricks"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:enableOnBackInvokedCallback="true">
         <!--
             ScheduledNotificationReceiver: handles alarm broadcasts to show
             the actual notification. Must remain exported="false" (app-internal).

@@ -3,26 +3,55 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:speed_math_with_ai/app/theme.dart';
 import 'package:speed_math_with_ai/core/strings/app_strings.dart';
+import 'package:speed_math_with_ai/core/widgets/double_back_exit_scope.dart';
 
-class AppShell extends ConsumerWidget {
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({
     super.key,
     required this.child,
+    this.nowProvider,
   });
 
   final Widget child;
+  final DateTime Function()? nowProvider;
+
+  @override
+  ConsumerState<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends ConsumerState<AppShell> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.nowProvider != null) {
+      DoubleBackExitService.instance.nowProvider = widget.nowProvider;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant AppShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.nowProvider != null) {
+      DoubleBackExitService.instance.nowProvider = widget.nowProvider;
+    }
+  }
 
   int _calculateSelectedIndex(BuildContext context) {
-    final location = GoRouterState.of(context).uri.path;
-    if (location.startsWith('/home')) return 0;
-    if (location.startsWith('/practice')) return 1;
-    if (location.startsWith('/stats')) return 2;
-    if (location.startsWith('/report')) return 3;
-    if (location.startsWith('/settings')) return 4;
+    try {
+      final location = GoRouterState.of(context).uri.path;
+      if (location.startsWith('/home')) return 0;
+      if (location.startsWith('/practice')) return 1;
+      if (location.startsWith('/stats')) return 2;
+      if (location.startsWith('/report')) return 3;
+      if (location.startsWith('/settings')) return 4;
+    } catch (_) {}
     return 0;
   }
 
   void _onDestinationSelected(BuildContext context, int index) {
+    DoubleBackExitService.instance.reset();
+    final router = GoRouter.maybeOf(context);
+    if (router == null) return;
     switch (index) {
       case 0:
         context.go('/home');
@@ -43,41 +72,68 @@ class AppShell extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    if (widget.nowProvider != null) {
+      DoubleBackExitService.instance.nowProvider = widget.nowProvider;
+    }
     final selectedIndex = _calculateSelectedIndex(context);
 
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: _AnimatedPillBottomNavBar(
-        selectedIndex: selectedIndex,
-        onItemSelected: (index) => _onDestinationSelected(context, index),
-        items: const [
-          _NavBarItemData(
-            icon: Icons.home_outlined,
-            selectedIcon: Icons.home_rounded,
-            label: AppStrings.tabHome,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        DoubleBackExitService.instance.handleBackPress(context);
+      },
+      child: NotificationListener<NavigationNotification>(
+        onNotification: (notification) {
+          // When the inner navigator (_shellNavigatorKey) has only 1 route, it dispatches
+          // canHandlePop: false. We intercept this so that Android does not disable
+          // framework back handling and kill the app.
+          if (!notification.canHandlePop) {
+            const NavigationNotification(canHandlePop: true).dispatch(context);
+            return true;
+          }
+          return false;
+        },
+        child: Scaffold(
+          backgroundColor: AppTheme.canvasBackground,
+          body: SafeArea(
+            top: true,
+            bottom: false,
+            child: widget.child,
           ),
-          _NavBarItemData(
-            icon: Icons.calculate_outlined,
-            selectedIcon: Icons.calculate_rounded,
-            label: AppStrings.tabPractice,
-          ),
-          _NavBarItemData(
-            icon: Icons.bar_chart_outlined,
-            selectedIcon: Icons.bar_chart_rounded,
-            label: AppStrings.tabStats,
-          ),
-          _NavBarItemData(
-            icon: Icons.insights_outlined,
-            selectedIcon: Icons.insights_rounded,
-            label: AppStrings.tabReport,
-          ),
-          _NavBarItemData(
-            icon: Icons.settings_outlined,
-            selectedIcon: Icons.settings_rounded,
-            label: AppStrings.tabSettings,
-          ),
-        ],
+          bottomNavigationBar: _AnimatedPillBottomNavBar(
+            selectedIndex: selectedIndex,
+            onItemSelected: (index) => _onDestinationSelected(context, index),
+            items: const [
+            _NavBarItemData(
+              icon: Icons.home_outlined,
+              selectedIcon: Icons.home_rounded,
+              label: AppStrings.tabHome,
+            ),
+            _NavBarItemData(
+              icon: Icons.calculate_outlined,
+              selectedIcon: Icons.calculate_rounded,
+              label: AppStrings.tabPractice,
+            ),
+            _NavBarItemData(
+              icon: Icons.bar_chart_outlined,
+              selectedIcon: Icons.bar_chart_rounded,
+              label: AppStrings.tabStats,
+            ),
+            _NavBarItemData(
+              icon: Icons.insights_outlined,
+              selectedIcon: Icons.insights_rounded,
+              label: AppStrings.tabReport,
+            ),
+            _NavBarItemData(
+              icon: Icons.settings_outlined,
+              selectedIcon: Icons.settings_rounded,
+              label: AppStrings.tabSettings,
+            ),
+          ],
+        ),
+      ),
       ),
     );
   }

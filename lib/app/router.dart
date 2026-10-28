@@ -22,10 +22,28 @@ import 'package:speed_math_with_ai/features/learn/lesson_screen.dart';
 import 'package:speed_math_with_ai/features/learn/multiplication_hub_screen.dart';
 import 'package:speed_math_with_ai/features/learn/quadratic_hub_screen.dart';
 import 'package:speed_math_with_ai/features/learn/squares_hub_screen.dart';
+import 'package:speed_math_with_ai/core/widgets/double_back_exit_scope.dart';
 import 'package:speed_math_with_ai/features/onboarding/first_run_setup_screen.dart';
 import 'package:speed_math_with_ai/features/settings/data_check_screen.dart';
 import 'package:speed_math_with_ai/features/settings/settings_screen.dart';
 import 'package:speed_math_with_ai/features/stats/stats_screen.dart';
+
+class _DoubleBackResetObserver extends NavigatorObserver {
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    DoubleBackExitService.instance.reset();
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    DoubleBackExitService.instance.reset();
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    DoubleBackExitService.instance.reset();
+  }
+}
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -34,6 +52,9 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/splash',
+    observers: [
+      _DoubleBackResetObserver(),
+    ],
     routes: [
       GoRoute(
         path: '/splash',
@@ -46,6 +67,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
+        observers: [
+          _DoubleBackResetObserver(),
+        ],
         builder: (context, state, child) => AppShell(child: child),
         routes: [
           GoRoute(
@@ -70,13 +94,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/settings',
             builder: (context, state) => const SettingsScreen(),
           ),
-          if (kDebugMode)
-            GoRoute(
-              path: '/settings/data-check',
-              builder: (context, state) => const DataCheckScreen(),
-            ),
         ],
       ),
+      if (kDebugMode)
+        GoRoute(
+          path: '/settings/data-check',
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (context, state) => const DataCheckScreen(),
+        ),
       GoRoute(
         path: '/practice/session',
         parentNavigatorKey: _rootNavigatorKey,

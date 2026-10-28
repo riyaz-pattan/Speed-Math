@@ -48,7 +48,7 @@ void main() {
     });
 
     test('default settings have correct initial values', () {
-      expect(repository.themeMode, ThemeMode.system);
+      expect(repository.themeMode, ThemeMode.light);
       expect(repository.keypadStyle, KeypadStyle.phone);
       expect(repository.autoSubmit, true);
       expect(repository.autoAdvance, true);
@@ -82,26 +82,21 @@ void main() {
       expect(repository.autoAdvance, true);
     });
 
-    test('themeMode persists and reads back correctly', () async {
-      await repository.setThemeMode(ThemeMode.dark);
-      expect(repository.themeMode, ThemeMode.dark);
-
-      // Verify a new instance reading same prefs gets dark
-      final freshRepo = SettingsRepository(prefs);
-      expect(freshRepo.themeMode, ThemeMode.dark);
-
+    test('themeMode is always ThemeMode.light (light mode only)', () async {
       await repository.setThemeMode(ThemeMode.light);
       expect(repository.themeMode, ThemeMode.light);
-      expect(SettingsRepository(prefs).themeMode, ThemeMode.light);
+
+      final freshRepo = SettingsRepository(prefs);
+      expect(freshRepo.themeMode, ThemeMode.light);
     });
 
-    test('ThemeModeNotifier updates state and saves to repository', () async {
+    test('ThemeModeNotifier is always ThemeMode.light', () async {
       final notifier = ThemeModeNotifier(repository);
-      expect(notifier.state, ThemeMode.system);
+      expect(notifier.state, ThemeMode.light);
 
-      await notifier.setThemeMode(ThemeMode.dark);
-      expect(notifier.state, ThemeMode.dark);
-      expect(repository.themeMode, ThemeMode.dark);
+      await notifier.setThemeMode(ThemeMode.light);
+      expect(notifier.state, ThemeMode.light);
+      expect(repository.themeMode, ThemeMode.light);
     });
 
     test('toggling auto-advance persists correctly', () async {
@@ -220,7 +215,7 @@ void main() {
       expect(fakeDb.attempts, isEmpty);
 
       // Settings must remain intact
-      expect(repository.themeMode, ThemeMode.dark);
+      expect(repository.themeMode, ThemeMode.light);
       expect(repository.soundEnabled, true);
       expect(repository.hapticsEnabled, false);
       expect(repository.autoAdvance, false);

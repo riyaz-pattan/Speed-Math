@@ -246,11 +246,14 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
       },
       child: Scaffold(
         backgroundColor: AppTheme.canvasBackground,
-        body: Column(
-          children: [
-            ScreenHeader(
-              title: 'Adaptive Coach',
-              subtitle: 'On-device practice assistant',
+        body: SafeArea(
+          top: true,
+          bottom: false,
+          child: Column(
+            children: [
+              ScreenHeader(
+                title: 'Adaptive Coach',
+                subtitle: 'On-device practice assistant',
               leading: HeaderIconButton(
                 icon: Icons.arrow_back_rounded,
                 onPressed: () {
@@ -337,7 +340,8 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
         ],
       ),
     ),
-  );
+  ),
+);
   }
 
   Widget _buildStarterCards() {

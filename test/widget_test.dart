@@ -8,7 +8,9 @@ import 'package:speed_math_with_ai/data/repositories/settings_repository.dart';
 
 void main() {
   testWidgets('App smoke test - loads splash screen', (WidgetTester tester) async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({
+      'onboarding_done': true,
+    });
     final prefs = await SharedPreferences.getInstance();
 
     await tester.pumpWidget(
@@ -24,7 +26,8 @@ void main() {
     expect(find.text(AppStrings.appName), findsOneWidget);
 
     // Advance 2 seconds for splash transition
-    await tester.pumpAndSettle(const Duration(seconds: 2));
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump(const Duration(milliseconds: 500));
 
     // After 2 seconds, navigated to /home and displays Home
     expect(find.text(AppStrings.home), findsWidgets);

@@ -15,6 +15,7 @@ import '../../data/repositories/mistake_repository.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../domain/adaptive/mistake_entry.dart';
 import '../../domain/questions/session_random.dart';
+import '../learn/engine/lesson_registry.dart';
 import '../practice_session/models/practice_models.dart';
 
 /// Screen displaying all questions currently stored in the spaced repetition mistake system.
@@ -151,39 +152,61 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
     final filtered = _filteredMistakes;
     final allMistakes = _mistakes ?? [];
 
-    return Scaffold(
-      backgroundColor: AppTheme.canvasBackground,
-      body: Column(
-        children: [
-          ScreenHeader(
-            title: AppStrings.myMistakes,
-            subtitle: 'Spaced repetition mistake drills',
-            leading: HeaderIconButton(
-              icon: Icons.arrow_back_rounded,
-              onPressed: () => context.pop(),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/home');
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.canvasBackground,
+        body: SafeArea(
+          top: true,
+          bottom: false,
+          child: Column(
+            children: [
+              ScreenHeader(
+                title: AppStrings.myMistakes,
+              subtitle: 'Spaced repetition mistake drills',
+              leading: HeaderIconButton(
+                icon: Icons.arrow_back_rounded,
+                onPressed: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/home');
+                  }
+                },
+              ),
             ),
-          ),
-          Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : allMistakes.isEmpty
-                    ? _buildEmptyState()
-                    : Column(
-                        children: [
-                          _buildTopicFilterBar(allMistakes),
-                          Expanded(
-                            child: filtered.isEmpty
-                                ? _buildEmptyFilteredState()
-                                : _buildMistakesList(filtered),
-                          ),
-                        ],
-                      ),
-          ),
-        ],
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : allMistakes.isEmpty
+                      ? _buildEmptyState()
+                      : Column(
+                          children: [
+                            _buildTopicFilterBar(allMistakes),
+                            Expanded(
+                              child: filtered.isEmpty
+                                  ? _buildEmptyFilteredState()
+                                  : _buildMistakesList(filtered),
+                            ),
+                          ],
+                        ),
+            ),
+          ],
+        ),
       ),
       bottomNavigationBar: (!_loading && filtered.isNotEmpty)
-          ? _buildBottomBar(filtered)
-          : null,
+            ? _buildBottomBar(filtered)
+            : null,
+      ),
     );
   }
 
@@ -439,6 +462,37 @@ class _MistakesScreenState extends ConsumerState<MistakesScreen> {
                         fontWeight: FontWeight.w700,
                         color: topicColor,
                       ),
+                    ),
+                    Builder(
+                      builder: (ctx) {
+                        final matched = LessonRegistry.findLessonForQuestion(
+                          topic: mistake.topic,
+                          operands: mistake.operands,
+                        );
+                        if (matched == null) return const SizedBox.shrink();
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: GestureDetector(
+                            onTap: () {
+                              ctx.push(
+                                '/learn/${matched.lesson.id}',
+                                extra: {
+                                  'operands': matched.operands,
+                                  'variantId': matched.variantId,
+                                },
+                              );
+                            },
+                            child: const Text(
+                              'Learn this trick →',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.primaryColor,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),

@@ -194,8 +194,8 @@ abstract final class AppConstants {
   /// Available duration options in seconds for Timer Mode.
   static const List<int> timerModeOptions = [60, 120, 180, 300, 600];
 
-  /// Default duration in seconds for Timer Mode.
-  static const int defaultTimerDuration = 120;
+  /// Default duration in seconds for Timer Mode (1 minute).
+  static const int defaultTimerDuration = 60;
 
   /// Available question count options for Question Mode.
   static const List<int> questionModeOptions = [10, 20, 30, 50];

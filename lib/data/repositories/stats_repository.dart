@@ -16,6 +16,13 @@ class StatsRepository {
   StatsRepository({DatabaseHelper? dbHelper})
       : _dbHelper = dbHelper ?? DatabaseHelper.instance;
 
+  static String _kindCondition(Topic topic, Difficulty difficulty) {
+    if (topic == Topic.mixed || difficulty == Difficulty.mixed) {
+      return "(kind = 'mixed' OR kind = 'drill')";
+    }
+    return "kind = 'drill'";
+  }
+
   /// Returns the completed session with the highest score for the specified
   /// combination of [topic], [difficulty], [mode], and [modeValue].
   Future<Session?> getBestScoreSession(
@@ -24,12 +31,11 @@ class StatsRepository {
     PracticeMode mode,
     int modeValue,
   ) async {
-    if (topic == Topic.mixed || difficulty == Difficulty.mixed) return null;
     final db = await _dbHelper.database;
     final results = await db.query(
       DatabaseHelper.tableSessions,
       where:
-          "topic = ? AND difficulty = ? AND mode = ? AND mode_value = ? AND completed = 1 AND kind = 'drill'",
+          "topic = ? AND difficulty = ? AND mode = ? AND mode_value = ? AND completed = 1 AND ${_kindCondition(topic, difficulty)}",
       whereArgs: [topic.name, difficulty.name, mode.name, modeValue],
       orderBy: 'score DESC, started_at DESC',
       limit: 1,
@@ -61,7 +67,6 @@ class StatsRepository {
     int modeValue, {
     int limit = 10,
   }) async {
-    if (topic == Topic.mixed || difficulty == Difficulty.mixed) return null;
     final db = await _dbHelper.database;
     final results = await db.rawQuery(
       '''
@@ -72,7 +77,7 @@ class StatsRepository {
           AND mode = ? 
           AND mode_value = ?
           AND completed = 1
-          AND kind = 'drill'
+          AND ${_kindCondition(topic, difficulty)}
         ORDER BY started_at DESC
         LIMIT ?
       )
@@ -96,7 +101,6 @@ class StatsRepository {
     int modeValue, {
     int limit = 3,
   }) async {
-    if (topic == Topic.mixed || difficulty == Difficulty.mixed) return [];
     final db = await _dbHelper.database;
     final String orderClause;
     final String conditionClause;
@@ -117,7 +121,7 @@ class StatsRepository {
         AND mode = ? 
         AND mode_value = ?
         AND completed = 1
-        AND kind = 'drill'
+        AND ${_kindCondition(topic, difficulty)}
         AND ((accuracy >= 0.8 AND accuracy <= 1.0) OR accuracy >= 80.0)
         AND $conditionClause
       ORDER BY $orderClause
@@ -149,10 +153,9 @@ class StatsRepository {
     int? limit,
     DateTime? since,
   }) async {
-    if (topic == Topic.mixed || difficulty == Difficulty.mixed) return [];
     final db = await _dbHelper.database;
     String whereClause =
-        "topic = ? AND difficulty = ? AND mode = ? AND mode_value = ? AND completed = 1 AND kind = 'drill'";
+        "topic = ? AND difficulty = ? AND mode = ? AND mode_value = ? AND completed = 1 AND ${_kindCondition(topic, difficulty)}";
     final List<dynamic> whereArgs = [
       topic.name,
       difficulty.name,

@@ -67,8 +67,8 @@ Widget _buildTestApp({
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('PracticeSetupScreen Widget Tests (Phase 7A.2)', () {
-    testWidgets('defaults for a new user: All topics, Auto, Questions, 20', (tester) async {
+  group('PracticeSetupScreen Widget Tests', () {
+    testWidgets('defaults for a new user: All topics, Easy, Questions, 10', (tester) async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
 
@@ -78,19 +78,32 @@ void main() {
       // Screen title: "Practice"
       expect(find.text(AppStrings.practice), findsOneWidget);
 
-      // Summary line should reflect defaults
+      // Summary line should reflect defaults: Easy difficulty & 10 questions
       expect(
-        find.text('Mixed practice (All topics) • Auto difficulty • 20 questions'),
+        find.text('Mixed practice (All topics) • Easy • 10 questions'),
         findsOneWidget,
       );
 
-      // Auto explanation visible
+      // Auto explanation not visible by default since Easy is selected
+      expect(find.text(AppStrings.autoDifficultyExplanation), findsNothing);
+
+      // Tapping Auto reveals the explanation
+      await tester.tap(find.text('Auto'));
+      await tester.pumpAndSettle();
       expect(find.text(AppStrings.autoDifficultyExplanation), findsOneWidget);
 
-      // Focus on weak areas switch visible
+      // Scroll to focus on weak areas switch in the vertical list
+      final verticalScrollable = find.byWidgetPredicate(
+        (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+      );
+      await tester.scrollUntilVisible(
+        find.text(AppStrings.focusWeakAreas),
+        200,
+        scrollable: verticalScrollable,
+      );
       expect(find.text(AppStrings.focusWeakAreas), findsOneWidget);
 
-      // Start Practice button present
+      // Start Practice button present (sticky at bottom)
       expect(find.text(AppStrings.startPractice), findsOneWidget);
     });
 
@@ -119,9 +132,9 @@ void main() {
       await tester.tap(find.text('Division - Hard'));
       await tester.pumpAndSettle();
 
-      // Live summary line updates to single topic drill
+      // Live summary line updates to single topic drill with 10 questions
       expect(
-        find.text('Division • Hard • 20 questions'),
+        find.text('Division • Hard • 10 questions'),
         findsOneWidget,
       );
 
@@ -136,22 +149,22 @@ void main() {
       await tester.pumpWidget(_buildTestApp(prefs: prefs));
       await tester.pumpAndSettle();
 
-      // Initial state: all 9 topics selected. Tap Addition to toggle off.
-      await tester.tap(find.widgetWithText(FilterChip, 'Addition'));
+      // Initial state: all 25 standard topics selected. Tap Addition to toggle off.
+      await tester.tap(find.text('Addition'));
       await tester.pumpAndSettle();
 
-      // Now 8 topics selected
+      // Now 24 topics selected
       expect(
-        find.text('Mixed practice (8 topics) • Auto difficulty • 20 questions'),
+        find.text('Mixed practice (24 topics) • Easy • 10 questions'),
         findsOneWidget,
       );
 
-      // Tap "All topics" to select all 9 topics again
-      await tester.tap(find.widgetWithText(FilterChip, 'All topics'));
+      // Tap "Select all topics" to select all 25 topics again
+      await tester.tap(find.text('Select all topics'));
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Mixed practice (All topics) • Auto difficulty • 20 questions'),
+        find.text('Mixed practice (All topics) • Easy • 10 questions'),
         findsOneWidget,
       );
     });
@@ -163,8 +176,7 @@ void main() {
       await tester.pumpWidget(_buildTestApp(prefs: prefs));
       await tester.pumpAndSettle();
 
-      // Switch to Timer mode
-      await tester.scrollUntilVisible(find.text('Timer'), 200);
+      // Switch to Timer mode (in sticky top deck)
       await tester.tap(find.text('Timer'));
       await tester.pumpAndSettle();
 
@@ -180,7 +192,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Mixed practice (All topics) • Auto difficulty • 5 min timer'),
+        find.text('Mixed practice (All topics) • Easy • 5 min timer'),
         findsOneWidget,
       );
 
@@ -188,18 +200,18 @@ void main() {
       await tester.tap(find.text('Questions'));
       await tester.pumpAndSettle();
 
-      // Questions pills: 10Q, 20Q, 30Q, 50Q
-      expect(find.text('10Q'), findsOneWidget);
-      expect(find.text('20Q'), findsOneWidget);
-      expect(find.text('30Q'), findsOneWidget);
-      expect(find.text('50Q'), findsOneWidget);
+      // Questions pills: 10 Qs, 20 Qs, 30 Qs, 50 Qs
+      expect(find.text('10 Qs'), findsOneWidget);
+      expect(find.text('20 Qs'), findsOneWidget);
+      expect(find.text('30 Qs'), findsOneWidget);
+      expect(find.text('50 Qs'), findsOneWidget);
 
-      // Tap 50Q
-      await tester.tap(find.text('50Q'));
+      // Tap 50 Qs
+      await tester.tap(find.text('50 Qs'));
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Mixed practice (All topics) • Auto difficulty • 50 questions'),
+        find.text('Mixed practice (All topics) • Easy • 50 questions'),
         findsOneWidget,
       );
     });
@@ -215,14 +227,21 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Scroll to card
-      await tester.scrollUntilVisible(find.text(AppStrings.practiceMyMistakes), 300);
+      // Scroll to card in the vertical ListView
+      final verticalScrollable = find.byWidgetPredicate(
+        (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+      );
+      await tester.scrollUntilVisible(
+        find.text('Revise your mistakes'),
+        300,
+        scrollable: verticalScrollable,
+      );
 
       // Card title & count
-      expect(find.text(AppStrings.practiceMyMistakes), findsOneWidget);
-      expect(find.text('7 mistakes to revise'), findsOneWidget);
+      expect(find.text('Revise your mistakes'), findsOneWidget);
+      expect(find.text('7 questions waiting'), findsOneWidget);
       expect(find.text('Practice 7'), findsOneWidget);
-      expect(find.text(AppStrings.seeAll), findsOneWidget);
+      expect(find.text('See all'), findsOneWidget);
     });
 
     testWidgets('initialTopic pre-selects that topic on open', (tester) async {
@@ -234,9 +253,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Summary should show Squares drill
+      // Summary should show Squares drill with Easy and 10 questions
       expect(
-        find.text('Squares • Easy • 20 questions'),
+        find.text('Squares • Easy • 10 questions'),
         findsOneWidget,
       );
     });

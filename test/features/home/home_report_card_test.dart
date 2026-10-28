@@ -11,10 +11,10 @@ import 'package:speed_math_with_ai/features/home/widgets/home_report_card.dart';
 import 'package:speed_math_with_ai/features/practice_session/models/practice_models.dart';
 
 void main() {
-  testWidgets('HomeReportCard shows unlock message when < 20 questions', (tester) async {
+  testWidgets('HomeReportCard shows unlock message when < 10 questions', (tester) async {
     final data = ReportData(
       generatedAt: DateTime(2026, 10, 16),
-      totalQuestionsAllTime: 12,
+      totalQuestionsAllTime: 5,
       overallSpeedScore: null,
       speedScoreLabel: null,
       weeklyComparison: WeeklyComparison(
@@ -50,8 +50,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Performance Report'), findsOneWidget);
-    expect(find.text('Practice to unlock (12/20 Q)'), findsOneWidget);
-    expect(find.text('View'), findsOneWidget);
+    expect(find.text('Practice to unlock (5/10 Q)'), findsOneWidget);
+    expect(find.text('Ask Coach'), findsOneWidget);
   });
 
   testWidgets('HomeReportCard shows Speed Score and plan progress when >= 20 questions', (tester) async {

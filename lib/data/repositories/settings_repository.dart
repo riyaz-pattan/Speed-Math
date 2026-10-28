@@ -264,7 +264,8 @@ class SettingsRepository {
 
   Difficulty? get practiceDifficulty {
     final val = _prefs.getString(_keyPracticeDifficulty);
-    if (val == null || val == 'auto') return null;
+    if (val == null) return Difficulty.easy;
+    if (val == 'auto') return null;
     return Difficulty.values.firstWhere(
       (d) => d.name == val,
       orElse: () => Difficulty.easy,

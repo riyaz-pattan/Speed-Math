@@ -112,34 +112,46 @@ class _FirstRunSetupScreenState extends ConsumerState<FirstRunSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.canvasBackground,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: _buildProgressIndicator(),
-        actions: [
-          TextButton(
-            onPressed: _finishSetupAndGoHome,
-            child: const Text(
-              'Skip',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.textSecondary,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          if (_currentStep > 0) {
+            setState(() => _currentStep--);
+          } else {
+            _finishSetupAndGoHome();
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.canvasBackground,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          title: _buildProgressIndicator(),
+          actions: [
+            TextButton(
+              onPressed: _finishSetupAndGoHome,
+              child: const Text(
+                'Skip',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textSecondary,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 250),
-            child: _buildCurrentStepContent(),
+            const SizedBox(width: 8),
+          ],
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              child: _buildCurrentStepContent(),
+            ),
           ),
         ),
       ),
@@ -185,153 +197,164 @@ class _FirstRunSetupScreenState extends ConsumerState<FirstRunSetupScreen> {
 
   // --- Step 1: Welcome ---
   Widget _buildStepWelcome() {
-    return Column(
+    return LayoutBuilder(
       key: const ValueKey(0),
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        const Spacer(),
-        Container(
-          width: 76,
-          height: 76,
-          decoration: BoxDecoration(
-            color: AppTheme.primaryTint,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: AppTheme.primaryColor.withValues(alpha: 0.2),
-              width: 2,
-            ),
-          ),
-          child: const Center(
-            child: Icon(
-              Icons.bolt_rounded,
-              size: 42,
-              color: AppTheme.primaryColor,
-            ),
-          ),
-        ),
-        const SizedBox(height: 20),
-        const Text(
-          'Mental Calculation Tricks',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w900,
-            color: AppTheme.textPrimary,
-            letterSpacing: -0.5,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Master rapid mental calculations with clean visual shortcuts and adaptive daily drills.',
-          style: TextStyle(
-            fontSize: 14,
-            color: AppTheme.textSecondary,
-            height: 1.45,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 28),
-
-        _buildFeatureItem(
-          icon: Icons.flash_on_rounded,
-          iconColor: const Color(0xFFF59E0B),
-          title: 'Adaptive Practice',
-          subtitle: 'Drills that adapt to your speed and targeting your weak areas.',
-        ),
-        const SizedBox(height: 14),
-        _buildFeatureItem(
-          icon: Icons.menu_book_rounded,
-          iconColor: const Color(0xFF10B981),
-          title: 'Shortcut Notebooks',
-          subtitle: 'Visual, step-by-step methods for multiplication, divisibility, and roots.',
-        ),
-        const SizedBox(height: 14),
-        _buildFeatureItem(
-          icon: Icons.insights_rounded,
-          iconColor: AppTheme.primaryColor,
-          title: 'Progress & Habits',
-          subtitle: 'Personal performance analytics and daily streak tracking.',
-        ),
-        const SizedBox(height: 20),
-
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppTheme.surfaceCard,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.borderLight),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.shield_outlined, size: 16, color: Color(0xFF10B981)),
-              SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  'Practice works offline. Your practice data stays on your phone. Ads, when you are online, are provided by Google AdMob.',
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textSecondary,
-                    height: 1.35,
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Spacer(),
+                  Container(
+                    width: 76,
+                    height: 76,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryTint,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.2),
+                        width: 2,
+                      ),
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.bolt_rounded,
+                        size: 42,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
-          ),
-        ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Mental Calculation Tricks',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: AppTheme.textPrimary,
+                      letterSpacing: -0.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Master rapid mental calculations with clean visual shortcuts and adaptive daily drills.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.textSecondary,
+                      height: 1.45,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 28),
 
-        const Spacer(),
-        SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: FilledButton(
-            onPressed: _nextStep,
-            style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                  _buildFeatureItem(
+                    icon: Icons.flash_on_rounded,
+                    iconColor: const Color(0xFFF59E0B),
+                    title: 'Adaptive Practice',
+                    subtitle: 'Drills that adapt to your speed and targeting your weak areas.',
+                  ),
+                  const SizedBox(height: 14),
+                  _buildFeatureItem(
+                    icon: Icons.menu_book_rounded,
+                    iconColor: const Color(0xFF10B981),
+                    title: 'Shortcut Notebooks',
+                    subtitle: 'Visual, step-by-step methods for multiplication, divisibility, and roots.',
+                  ),
+                  const SizedBox(height: 14),
+                  _buildFeatureItem(
+                    icon: Icons.insights_rounded,
+                    iconColor: AppTheme.primaryColor,
+                    title: 'Progress & Habits',
+                    subtitle: 'Personal performance analytics and daily streak tracking.',
+                  ),
+                  const SizedBox(height: 20),
+
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceCard,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppTheme.borderLight),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.shield_outlined, size: 16, color: Color(0xFF10B981)),
+                        SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'Practice works offline. Your practice data stays on your phone. Ads, when you are online, are provided by Google AdMob.',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textSecondary,
+                              height: 1.35,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const Spacer(),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: FilledButton(
+                      onPressed: _nextStep,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.primaryColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        'Get Started',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Center(
+                    child: GestureDetector(
+                      onTap: () async {
+                        HapticFeedback.selectionClick();
+                        final uri = Uri.parse(AdConfig.privacyPolicyUrl);
+                        final ctx = context;
+                        try {
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          } else if (ctx.mounted) {
+                            AppToast.show(ctx, message: 'Please turn on the internet to view our Privacy Policy.', type: AppToastType.warning);
+                          }
+                        } catch (_) {
+                          if (ctx.mounted) {
+                            AppToast.show(ctx, message: 'Please turn on the internet to view our Privacy Policy.', type: AppToastType.warning);
+                          }
+                        }
+                      },
+                      child: const Text(
+                        'Privacy Policy',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primaryColor,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
               ),
             ),
-            child: const Text(
-              'Get Started',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
           ),
-        ),
-        const SizedBox(height: 10),
-        Center(
-          child: GestureDetector(
-            onTap: () async {
-              HapticFeedback.selectionClick();
-              final uri = Uri.parse(AdConfig.privacyPolicyUrl);
-              final ctx = context;
-              try {
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                } else if (ctx.mounted) {
-                  AppToast.show(ctx, message: 'Please turn on the internet to view our Privacy Policy.', type: AppToastType.warning);
-                }
-              } catch (_) {
-                if (ctx.mounted) {
-                  AppToast.show(ctx, message: 'Please turn on the internet to view our Privacy Policy.', type: AppToastType.warning);
-                }
-              }
-            },
-            child: const Text(
-              'Privacy Policy',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.primaryColor,
-                decoration: TextDecoration.underline,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-      ],
+        );
+      },
     );
   }
 

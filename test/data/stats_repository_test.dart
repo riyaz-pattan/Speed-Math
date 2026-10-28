@@ -34,9 +34,12 @@ class FakeDatabase implements Database {
       final modeVal = whereArgs[3] as int;
 
       filtered = filtered.where((s) {
-        final matchesKind = where?.contains("kind = 'drill'") == true
+        final matchesKind = where?.contains("kind = 'drill'") == true &&
+                where?.contains("kind = 'mixed'") != true
             ? (s['kind'] == 'drill' || s['kind'] == null)
-            : true;
+            : (where?.contains("kind = 'mixed'") == true
+                ? (s['kind'] == 'mixed' || s['kind'] == 'drill')
+                : true);
         return s['topic'] == topic &&
             s['difficulty'] == diff &&
             s['mode'] == mode &&
@@ -74,9 +77,12 @@ class FakeDatabase implements Database {
       final modeVal = arguments[3] as int;
 
       filtered = filtered.where((s) {
-        final matchesKind = sql.contains("kind = 'drill'")
+        final matchesKind = sql.contains("kind = 'drill'") &&
+                !sql.contains("kind = 'mixed'")
             ? (s['kind'] == 'drill' || s['kind'] == null)
-            : true;
+            : (sql.contains("kind = 'mixed'")
+                ? (s['kind'] == 'mixed' || s['kind'] == 'drill')
+                : true);
         return s['topic'] == topic &&
             s['difficulty'] == diff &&
             s['mode'] == mode &&
@@ -334,6 +340,133 @@ void main() {
       );
       expect(history.length, 1);
       expect(history.first.score, 200.0);
+    });
+
+    test('auto difficulty mode sessions are queryable and returned in stats', () async {
+      fakeDb.sessions.add(createSessionMap(
+        topic: Topic.addition,
+        difficulty: Difficulty.mixed,
+        mode: PracticeMode.questions,
+        modeValue: 10,
+        kind: SessionKind.mixed,
+        score: 350.0,
+        accuracy: 0.95,
+        durationMs: 14000,
+        avgTimeMs: 1400,
+        completed: true,
+      ));
+
+      final bestAuto = await statsRepo.getBestScore(
+        Topic.addition,
+        Difficulty.mixed,
+        PracticeMode.questions,
+        10,
+      );
+      expect(bestAuto, 350.0);
+
+      final historyAuto = await statsRepo.getSessionHistory(
+        Topic.addition,
+        Difficulty.mixed,
+        PracticeMode.questions,
+        10,
+      );
+      expect(historyAuto.length, 1);
+      expect(historyAuto.first.score, 350.0);
+    });
+
+    test('expert and genius difficulty sessions are queryable and returned in stats', () async {
+      fakeDb.sessions.add(createSessionMap(
+        topic: Topic.multiplication,
+        difficulty: Difficulty.expert,
+        mode: PracticeMode.questions,
+        modeValue: 20,
+        kind: SessionKind.drill,
+        score: 600.0,
+        accuracy: 0.90,
+        durationMs: 30000,
+        avgTimeMs: 1500,
+        completed: true,
+      ));
+      fakeDb.sessions.add(createSessionMap(
+        topic: Topic.multiplication,
+        difficulty: Difficulty.genius,
+        mode: PracticeMode.questions,
+        modeValue: 20,
+        kind: SessionKind.drill,
+        score: 950.0,
+        accuracy: 0.95,
+        durationMs: 28000,
+        avgTimeMs: 1400,
+        completed: true,
+      ));
+
+      final bestExpert = await statsRepo.getBestScore(
+        Topic.multiplication,
+        Difficulty.expert,
+        PracticeMode.questions,
+        20,
+      );
+      expect(bestExpert, 600.0);
+
+      final bestGenius = await statsRepo.getBestScore(
+        Topic.multiplication,
+        Difficulty.genius,
+        PracticeMode.questions,
+        20,
+      );
+      expect(bestGenius, 950.0);
+    });
+
+    test('mixed topics practice sessions are queryable and returned in stats', () async {
+      fakeDb.sessions.add(createSessionMap(
+        topic: Topic.mixed,
+        difficulty: Difficulty.mixed,
+        mode: PracticeMode.timer,
+        modeValue: 60,
+        kind: SessionKind.mixed,
+        score: 420.0,
+        accuracy: 0.88,
+        durationMs: 60000,
+        avgTimeMs: 1800,
+        completed: true,
+      ));
+      fakeDb.sessions.add(createSessionMap(
+        topic: Topic.mixed,
+        difficulty: Difficulty.hard,
+        mode: PracticeMode.timer,
+        modeValue: 60,
+        kind: SessionKind.mixed,
+        score: 510.0,
+        accuracy: 0.92,
+        durationMs: 60000,
+        avgTimeMs: 1600,
+        completed: true,
+      ));
+
+      final bestMixedAuto = await statsRepo.getBestScore(
+        Topic.mixed,
+        Difficulty.mixed,
+        PracticeMode.timer,
+        60,
+      );
+      expect(bestMixedAuto, 420.0);
+
+      final bestMixedHard = await statsRepo.getBestScore(
+        Topic.mixed,
+        Difficulty.hard,
+        PracticeMode.timer,
+        60,
+      );
+      expect(bestMixedHard, 510.0);
+
+      final historyMixed = await statsRepo.getSessionHistory(
+        Topic.mixed,
+        Difficulty.hard,
+        PracticeMode.timer,
+        60,
+      );
+      expect(historyMixed.length, 1);
+      expect(historyMixed.first.score, 510.0);
     });
   });
 }

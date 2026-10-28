@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/ads/ad_config.dart';
 import '../../core/ads/ad_service.dart';
 import '../../core/ads/interstitial_ad_manager.dart';
@@ -171,17 +172,38 @@ class _DataCheckScreenState extends ConsumerState<DataCheckScreen> {
     final reportAsync = ref.watch(reportViewModelProvider);
     final coachState = ref.watch(coachControllerProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Data Check (Diagnostics)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Refresh',
-            onPressed: _fetchRawDbData,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/settings');
+          }
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Data Check (Diagnostics)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/settings');
+              }
+            },
           ),
-        ],
-      ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh_rounded),
+              tooltip: 'Refresh',
+              onPressed: _fetchRawDbData,
+            ),
+          ],
+        ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -376,6 +398,7 @@ class _DataCheckScreenState extends ConsumerState<DataCheckScreen> {
                 const SizedBox(height: 24),
               ],
             ),
+      ),
     );
   }
 

@@ -1,7 +1,7 @@
 name: speed_math_with_ai
 description: "Mental Calculation Tricks - Master rapid mental calculation shortcuts and techniques"
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ^3.9.2

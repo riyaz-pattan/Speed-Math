@@ -140,18 +140,38 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Scaffold(
-      backgroundColor: AppTheme.canvasBackground,
-      body: Column(
-        children: [
-          ScreenHeader(
-            title: AppStrings.history,
-            subtitle: 'Timeline of your practice rounds',
-            leading: HeaderIconButton(
-              icon: Icons.arrow_back_rounded,
-              onPressed: () => context.pop(),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/home');
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.canvasBackground,
+        body: SafeArea(
+          top: true,
+          bottom: false,
+          child: Column(
+            children: [
+              ScreenHeader(
+              title: AppStrings.history,
+              subtitle: 'Timeline of your practice rounds',
+              leading: HeaderIconButton(
+                icon: Icons.arrow_back_rounded,
+                onPressed: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/home');
+                  }
+                },
+              ),
             ),
-          ),
           Expanded(
             child: Column(
               children: [
@@ -302,9 +322,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           ],
         ),
       ),
-      if (_sessions.isNotEmpty && !_isLoading) const BannerAdContainer(),
-    ],
+        if (_sessions.isNotEmpty && !_isLoading) const BannerAdContainer(),
+      ],
+    ),
   ),
+),
 );
   }
 

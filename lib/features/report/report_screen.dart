@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
 import '../../core/ads/widgets/banner_ad_container.dart';
 import '../../core/enums/enums.dart';
+import 'package:speed_math_with_ai/core/widgets/double_back_exit_scope.dart';
 import 'package:speed_math_with_ai/core/widgets/screen_header.dart';
 import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
 import '../../data/repositories/habit_repository.dart';
@@ -30,17 +31,18 @@ class ReportScreen extends ConsumerWidget {
       ref.invalidate(reportViewModelProvider);
     });
 
-    return Scaffold(
-      backgroundColor: AppTheme.canvasBackground,
-      body: Column(
-        children: [
-          ScreenHeader(
-            title: 'Performance Report',
-            subtitle: 'Speed score and mastery insights',
-            actions: [
-              HeaderIconButton(
-                icon: Icons.psychology_rounded,
-                tooltip: 'Ask Coach',
+    return DoubleBackExitScope(
+      child: Scaffold(
+        backgroundColor: AppTheme.canvasBackground,
+        body: Column(
+          children: [
+            ScreenHeader(
+              title: 'Performance Report',
+              subtitle: 'Speed score and mastery insights',
+              actions: [
+                HeaderIconButton(
+                  icon: Icons.psychology_rounded,
+                  tooltip: 'Ask Coach',
                 onPressed: () => context.push('/coach'),
               ),
             ],
@@ -161,6 +163,7 @@ class ReportScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

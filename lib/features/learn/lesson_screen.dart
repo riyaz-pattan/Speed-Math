@@ -1036,7 +1036,11 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
         widget.initialVariantId == null) {
       setState(() => _phase = _Phase.variantChooser);
     } else {
-      context.pop();
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/learn');
+      }
     }
   }
 
@@ -1053,18 +1057,36 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
   @override
   Widget build(BuildContext context) {
     if (_meta == null) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('Lesson not found.'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => context.pop(),
-                child: const Text('Go back'),
-              ),
-            ],
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/learn');
+            }
+          }
+        },
+        child: Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('Lesson not found.'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go('/learn');
+                    }
+                  },
+                  child: const Text('Go back'),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -1080,7 +1102,13 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
         meta: _meta!,
         progressMap: map,
         onSelect: _onVariantSelected,
-        onBack: () => context.pop(),
+        onBack: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/learn');
+          }
+        },
       );
     }
 

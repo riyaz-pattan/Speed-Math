@@ -6,8 +6,7 @@ import '../../app/theme.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/enums/enums.dart';
 import '../../core/strings/app_strings.dart';
-import '../../core/widgets/app_segmented_control.dart';
-import '../../core/widgets/screen_header.dart';
+import 'package:speed_math_with_ai/core/widgets/double_back_exit_scope.dart';
 import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
 import '../../data/repositories/mistake_repository.dart';
 import '../../data/repositories/settings_repository.dart';
@@ -77,14 +76,15 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
         if (_selectedTopics.isEmpty) {
           _selectedTopics = List.from(Topic.standardTopics);
         }
-        _selectedDifficulty = settings.practiceDifficulty;
+        _selectedDifficulty = settings.practiceDifficulty ?? Difficulty.easy;
       }
 
       _focusOnWeakAreas = settings.practiceFocusWeakAreas;
       _selectedMode = settings.lastMode == PracticeMode.timer
           ? PracticeMode.timer
           : PracticeMode.questions;
-      _selectedTimerDuration = settings.lastTimerDuration;
+      final savedTimer = settings.lastTimerDuration;
+      _selectedTimerDuration = (savedTimer == 120 || savedTimer <= 0) ? 60 : savedTimer;
       _selectedQuestionCount = settings.lastQuestionCount;
 
       _loadData();
@@ -296,8 +296,10 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
   @override
   Widget build(BuildContext context) {
     if (!_initialized) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return const DoubleBackExitScope(
+        child: Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
       );
     }
 
@@ -309,67 +311,55 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Scaffold(
-      backgroundColor: AppTheme.canvasBackground,
-      body: Column(
-        children: [
-          const ScreenHeader(
-            title: AppStrings.practice,
-            subtitle: 'Customize your calculation drill',
-          ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              children: [
-                // 1. Weak Spots quick chips (if available)
-                if (_weakSpots.isNotEmpty) ...[
-                  _buildWeakSpotsRow(colorScheme),
-                  const SizedBox(height: 20),
-                ],
+    return DoubleBackExitScope(
+      child: Scaffold(
+        backgroundColor: AppTheme.canvasBackground,
+        body: Column(
+          children: [
+            // 1. Sticky Top Control Deck: Header + Difficulty Tabs + Mode & Target
+            _buildTopStickyDeck(colorScheme),
 
-                // 2. Topics Selector
-                _buildSectionHeader(
-                  'Topics',
-                  subtitle: '${_selectedTopics.length} of ${Topic.standardTopics.length} selected',
-                ),
-                const SizedBox(height: 10),
-                _buildTopicsChips(colorScheme),
-                const SizedBox(height: 24),
+            // 2. Scrollable Section: Topics, Weak Areas, Mistakes, and Shortcut Tricks
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                children: [
+                  // Weak Spots quick chips (if available)
+                  if (_weakSpots.isNotEmpty) ...[
+                    _buildWeakSpotsRow(colorScheme),
+                    const SizedBox(height: 16),
+                  ],
 
-                // 3. Difficulty Selector
-                _buildSectionHeader('Difficulty'),
-                const SizedBox(height: 10),
-                _buildDifficultySegmented(colorScheme),
-                const SizedBox(height: 20),
+                  // Topics Selector
+                  _buildSectionHeader(
+                    'Topics',
+                    subtitle: '${_selectedTopics.length} of ${Topic.standardTopics.length} selected',
+                  ),
+                  const SizedBox(height: 10),
+                  _buildTopicsChips(colorScheme),
+                  const SizedBox(height: 24),
 
-                // 4. "Focus on my weak areas" Switch (shown in every case)
-                _buildWeakAreasSwitch(colorScheme),
-                const SizedBox(height: 20),
+                  // "Focus on my weak areas" Switch (placed at the bottom of topics)
+                  _buildWeakAreasSwitch(colorScheme),
+                  const SizedBox(height: 16),
 
-                // 5. Practice Mode & Target
-                _buildSectionHeader('Practice Mode'),
-                const SizedBox(height: 10),
-                _buildModeSelector(colorScheme),
-                const SizedBox(height: 14),
-                _buildTargetPills(colorScheme),
-                const SizedBox(height: 28),
+                  // Practice My Mistakes Card (placed at the bottom)
+                  if (_mistakeCount > 0) ...[
+                    _buildMistakesCard(colorScheme),
+                    const SizedBox(height: 16),
+                  ],
 
-                // 6. Practice My Mistakes Card
-                if (_mistakeCount > 0) ...[
-                  _buildMistakesCard(colorScheme),
+                  // Shortcut Tricks (placed at the bottom)
+                  _buildShortcutTricksRow(),
                   const SizedBox(height: 16),
                 ],
-
-                // 7. Shortcut Tricks
-                _buildShortcutTricksRow(),
-                const SizedBox(height: 16),
-              ],
+              ),
             ),
-          ),
 
-          // Sticky Bottom Section: Summary line + Start Practice Button
-          _buildStickyBottom(colorScheme),
-        ],
+            // 3. Sticky Bottom Section: Summary line + Start Practice Button
+            _buildStickyBottom(colorScheme),
+          ],
+        ),
       ),
     );
   }
@@ -617,70 +607,173 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
     );
   }
 
-  Widget _buildDifficultySegmented(ColorScheme colorScheme) {
-    const row1 = <(Difficulty?, String)>[
+  Widget _buildTopStickyDeck(ColorScheme colorScheme) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceCard,
+        border: const Border(
+          bottom: BorderSide(color: AppTheme.borderLight, width: 1.0),
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x080F172A),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Header Bar: Title, subtitle & topic badge
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 6),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        AppStrings.practice,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: -0.3,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Customize your calculation drill',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryTint,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${_selectedTopics.length} selected',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 4),
+
+          // 2. Difficulty Horizontally Scrollable Pill Tabs
+          _buildDifficultyPillTabs(colorScheme),
+
+          // 3. Auto Difficulty Subtitle (Only shown when Auto is selected)
+          if (_selectedDifficulty == null) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 4, 18, 2),
+              child: Row(
+                children: [
+                  const Icon(Icons.auto_awesome, size: 13, color: AppTheme.primaryColor),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      AppStrings.autoDifficultyExplanation,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 8),
+
+          // 4. Practice Mode & Target: Compact Inline Row
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: _buildCompactModeAndTarget(colorScheme),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDifficultyPillTabs(ColorScheme colorScheme) {
+    const items = <(Difficulty?, String)>[
       (null, 'Auto'),
       (Difficulty.easy, 'Easy'),
       (Difficulty.medium, 'Medium'),
-    ];
-    const row2 = <(Difficulty?, String)>[
       (Difficulty.hard, 'Hard'),
       (Difficulty.expert, 'Expert'),
       (Difficulty.genius, 'Genius'),
     ];
 
-    Widget buildSegmentRow(List<(Difficulty?, String)> items) {
-      return Row(
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
         children: items.map((item) {
           final isSelected = _selectedDifficulty == item.$1;
-          return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () {
-                    setState(() {
-                      _selectedDifficulty = item.$1;
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeInOutCubic,
-                    padding: const EdgeInsets.symmetric(vertical: 9),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
+          return Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  setState(() {
+                    _selectedDifficulty = item.$1;
+                  });
+                },
+                borderRadius: BorderRadius.circular(14),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOutCubic,
+                  padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6.5),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppTheme.primaryColor
+                        : AppTheme.surfaceSecondary,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
                       color: isSelected
-                          ? colorScheme.primary
-                          : colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected
-                            ? colorScheme.primary
-                            : colorScheme.outline.withValues(alpha: 0.15),
-                        width: 1.0,
-                      ),
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: colorScheme.primary.withValues(alpha: 0.25),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ]
-                          : null,
+                          ? AppTheme.primaryColor
+                          : AppTheme.borderLight,
+                      width: 1.0,
                     ),
-                    child: Text(
-                      item.$2,
-                      maxLines: 1,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                        color: isSelected
-                            ? colorScheme.onPrimary
-                            : colorScheme.onSurfaceVariant,
-                      ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: AppTheme.primaryColor.withValues(alpha: 0.25),
+                              blurRadius: 5,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Text(
+                    item.$2,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                      color: isSelected ? Colors.white : AppTheme.textPrimary,
                     ),
                   ),
                 ),
@@ -688,38 +781,7 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
             ),
           );
         }).toList(),
-      );
-    }
-
-    String? explanation;
-    if (_selectedDifficulty == null) {
-      explanation = AppStrings.autoDifficultyExplanation;
-    } else if (_selectedDifficulty == Difficulty.expert) {
-      explanation = 'Expert: Advanced drills (e.g. 100 to 150 for squares)';
-    } else if (_selectedDifficulty == Difficulty.genius) {
-      explanation = 'Genius: Peak mastery challenge (e.g. 150 to 200 for squares)';
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        buildSegmentRow(row1),
-        const SizedBox(height: 6),
-        buildSegmentRow(row2),
-        if (explanation != null) ...[
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.only(left: 4),
-            child: Text(
-              explanation,
-              style: TextStyle(
-                fontSize: 12,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ],
-      ],
+      ),
     );
   }
 
@@ -774,124 +836,173 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
     );
   }
 
-  Widget _buildModeSelector(ColorScheme colorScheme) {
-    return AppSegmentedControl<PracticeMode>(
-      selectedValue: _selectedMode,
-      items: const [
-        AppSegmentedItem<PracticeMode>(
-          value: PracticeMode.questions,
-          icon: Icons.format_list_numbered_rounded,
-          label: 'Questions',
-        ),
-        AppSegmentedItem<PracticeMode>(
-          value: PracticeMode.timer,
-          icon: Icons.timer_outlined,
-          label: 'Timer',
-        ),
-      ],
-      onValueChanged: (mode) {
-        setState(() {
-          _selectedMode = mode;
-        });
-      },
+  Widget _buildCompactModeAndTarget(ColorScheme colorScheme) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceSecondary,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.borderLight, width: 1.0),
+      ),
+      child: Row(
+        children: [
+          // Mode Toggle (Timer vs Questions)
+          Container(
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceCard,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppTheme.borderLight, width: 0.8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildModeTabButton(
+                  mode: PracticeMode.timer,
+                  icon: Icons.timer_outlined,
+                  label: 'Timer',
+                ),
+                _buildModeTabButton(
+                  mode: PracticeMode.questions,
+                  icon: Icons.format_list_numbered_rounded,
+                  label: 'Questions',
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(width: 8),
+
+          // Divider
+          Container(
+            width: 1,
+            height: 22,
+            color: AppTheme.borderLight,
+          ),
+
+          const SizedBox(width: 8),
+
+          // Target Options (1m, 2m... or 10, 20...)
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: _selectedMode == PracticeMode.timer
+                    ? AppConstants.timerModeOptions.map((seconds) {
+                        final isSelected = _selectedTimerDuration == seconds;
+                        final mins = seconds ~/ 60;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 5),
+                          child: InkWell(
+                            onTap: () => setState(() => _selectedTimerDuration = seconds),
+                            borderRadius: BorderRadius.circular(8),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 160),
+                              curve: Curves.easeOutCubic,
+                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppTheme.primaryColor
+                                    : AppTheme.surfaceCard,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? AppTheme.primaryColor
+                                      : AppTheme.borderLight,
+                                  width: 1.0,
+                                ),
+                              ),
+                              child: Text(
+                                '${mins}m',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                  color: isSelected ? Colors.white : AppTheme.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList()
+                    : AppConstants.questionModeOptions.map((count) {
+                        final isSelected = _selectedQuestionCount == count;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 5),
+                          child: InkWell(
+                            onTap: () => setState(() => _selectedQuestionCount = count),
+                            borderRadius: BorderRadius.circular(8),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 160),
+                              curve: Curves.easeOutCubic,
+                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppTheme.primaryColor
+                                    : AppTheme.surfaceCard,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? AppTheme.primaryColor
+                                      : AppTheme.borderLight,
+                                  width: 1.0,
+                                ),
+                              ),
+                              child: Text(
+                                '$count Qs',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                  color: isSelected ? Colors.white : AppTheme.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildTargetPills(ColorScheme colorScheme) {
-    if (_selectedMode == PracticeMode.timer) {
-      // 1, 2, 3, 5, 10 min
-      return Row(
-        children: AppConstants.timerModeOptions.map((seconds) {
-          final isSelected = _selectedTimerDuration == seconds;
-          final mins = seconds ~/ 60;
-          return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOutCubic,
-                decoration: BoxDecoration(
-                  color: isSelected ? AppTheme.primaryColor : AppTheme.surfaceCard,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: isSelected ? AppTheme.primaryColor : AppTheme.borderLight,
-                    width: 1.2,
-                  ),
-                  boxShadow: isSelected ? AppTheme.primaryGlow : AppTheme.cardShadow,
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(14),
-                  child: InkWell(
-                    onTap: () => setState(() => _selectedTimerDuration = seconds),
-                    borderRadius: BorderRadius.circular(14),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Center(
-                        child: Text(
-                          '${mins}m',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: isSelected ? Colors.white : AppTheme.textPrimary,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+  Widget _buildModeTabButton({
+    required PracticeMode mode,
+    required IconData icon,
+    required String label,
+  }) {
+    final isSelected = _selectedMode == mode;
+    return InkWell(
+      onTap: () => setState(() => _selectedMode = mode),
+      borderRadius: BorderRadius.circular(9),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.primaryTint : Colors.transparent,
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 14,
+              color: isSelected ? AppTheme.primaryColor : AppTheme.textSecondary,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                color: isSelected ? AppTheme.primaryColor : AppTheme.textSecondary,
               ),
             ),
-          );
-        }).toList(),
-      );
-    } else {
-      // 10, 20, 30, 50 questions
-      return Row(
-        children: AppConstants.questionModeOptions.map((count) {
-          final isSelected = _selectedQuestionCount == count;
-          return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOutCubic,
-                decoration: BoxDecoration(
-                  color: isSelected ? AppTheme.primaryColor : AppTheme.surfaceCard,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: isSelected ? AppTheme.primaryColor : AppTheme.borderLight,
-                    width: 1.2,
-                  ),
-                  boxShadow: isSelected ? AppTheme.primaryGlow : AppTheme.cardShadow,
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(14),
-                  child: InkWell(
-                    onTap: () => setState(() => _selectedQuestionCount = count),
-                    borderRadius: BorderRadius.circular(14),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Center(
-                        child: Text(
-                          '${count}Q',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: isSelected ? Colors.white : AppTheme.textPrimary,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      );
-    }
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildMistakesCard(ColorScheme colorScheme) {

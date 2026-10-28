@@ -429,7 +429,7 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
           if (parsed == target) {
             _recordCorrectAndAdvance(userAnswer: parsed);
           } else if (digitsOnly.length >= targetLength && (target >= 0 || newInput.startsWith('-'))) {
-            // Wrong answer reached target length: mark wrong internally, do NOT advance, keep input!
+            // Wrong answer reached target length: mark wrong internally, auto-clear input so user can retry!
             _markWrongTry(userAnswer: parsed);
           }
         }
@@ -693,20 +693,21 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
     _startNextQuestion();
   }
 
-  /// Marks the current question wrong internally on the first wrong try.
-  /// Does NOT advance, and keeps the typed input intact.
+  /// Marks the current question wrong internally on a wrong try.
+  /// Automatically clears the entered answer so the user can immediately enter the right answer.
   void _markWrongTry({required int userAnswer}) {
-    if (state.currentQuestionHasWrongTry) {
-      return;
-    }
-
     if (state.config.wrongSoundEnabled) {
       _soundService?.playWrong();
     }
 
     state = state.copyWith(
       currentQuestionHasWrongTry: true,
-      currentQuestionFirstWrongAnswer: userAnswer,
+      currentQuestionFirstWrongAnswer: state.currentQuestionHasWrongTry
+          ? state.currentQuestionFirstWrongAnswer
+          : userAnswer,
+      currentInput: '',
+      secondaryInput: '',
+      activeInputBox: 0,
       feedback: AnswerFeedback.wrong,
       feedbackTick: state.feedbackTick + 1,
     );
@@ -1081,15 +1082,12 @@ class PracticeSessionController extends StateNotifier<PracticeSessionState> {
       completed: completed,
     );
 
-    final isDrill = state.config.kind == SessionKind.drill &&
-        state.config.topic != Topic.mixed &&
-        state.config.difficulty != Difficulty.mixed &&
-        state.config.mode != PracticeMode.mistakes;
+    final isTrackable = state.config.mode != PracticeMode.mistakes;
 
     bool isNewBestScore = false;
     bool isNewTop3Time = false;
 
-    if (completed && isDrill) {
+    if (completed && isTrackable) {
       isNewBestScore = await _evaluateBestScore(sessionRecord.score);
       isNewTop3Time = await _evaluateTop3Time(sessionRecord);
     }

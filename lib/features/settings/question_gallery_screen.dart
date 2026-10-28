@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:speed_math_with_ai/app/theme.dart';
 import 'package:speed_math_with_ai/core/enums/enums.dart';
 import 'package:speed_math_with_ai/core/widgets/app_segmented_control.dart';
@@ -65,13 +66,34 @@ class _QuestionGalleryScreenState extends State<QuestionGalleryScreen> {
       data: MediaQuery.of(context).copyWith(
         textScaler: TextScaler.linear(_textScale),
       ),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            'Question Gallery',
-            style: TextStyle(fontWeight: FontWeight.bold),
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/settings');
+            }
+          }
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text(
+              'Question Gallery',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_rounded),
+              onPressed: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/settings');
+                }
+              },
+            ),
           ),
-        ),
         body: Column(
           children: [
             // Controls header: Width and Text Scale
@@ -247,6 +269,7 @@ class _QuestionGalleryScreenState extends State<QuestionGalleryScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

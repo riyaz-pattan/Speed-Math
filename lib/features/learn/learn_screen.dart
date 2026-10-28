@@ -19,35 +19,47 @@ class LearnScreen extends ConsumerWidget {
     final showBanner =
         allAsync.hasValue && !allAsync.isLoading && !allAsync.hasError;
 
-    return Scaffold(
-      backgroundColor: AppTheme.canvasBackground,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: CustomScrollView(
-                slivers: [
-                  SliverToBoxAdapter(child: _Header(allAsync: allAsync)),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    sliver: allAsync.when(
-                      loading: () => const SliverFillRemaining(
-                        child: Center(child: CircularProgressIndicator()),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/home');
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.canvasBackground,
+        body: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(child: _Header(allAsync: allAsync)),
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      sliver: allAsync.when(
+                        loading: () => const SliverFillRemaining(
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                        error: (_, __) => const SliverFillRemaining(
+                          child: Center(child: Text('Could not load lessons.')),
+                        ),
+                        data: (list) {
+                          final map = {for (final p in list) p.lessonId: p};
+                          return _buildContent(context, map);
+                        },
                       ),
-                      error: (_, __) => const SliverFillRemaining(
-                        child: Center(child: Text('Could not load lessons.')),
-                      ),
-                      data: (list) {
-                        final map = {for (final p in list) p.lessonId: p};
-                        return _buildContent(context, map);
-                      },
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            if (showBanner) const BannerAdContainer(),
-          ],
+              if (showBanner) const BannerAdContainer(),
+            ],
+          ),
         ),
       ),
     );
@@ -196,7 +208,13 @@ class _Header extends StatelessWidget {
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => context.pop(),
+            onTap: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/home');
+              }
+            },
             child: Container(
               width: 36,
               height: 36,

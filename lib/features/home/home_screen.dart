@@ -7,6 +7,7 @@ import '../../core/ads/ad_service.dart';
 import '../../core/ads/interstitial_ad_manager.dart';
 import '../../core/ads/widgets/banner_ad_container.dart';
 import '../../core/enums/enums.dart';
+import 'package:speed_math_with_ai/core/widgets/double_back_exit_scope.dart';
 import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
 import '../../data/models/session.dart';
 import '../../data/repositories/report_repository.dart';
@@ -113,86 +114,88 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Scaffold(
-      backgroundColor: AppTheme.canvasBackground,
-      body: Column(
-        children: [
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _loadLastSession,
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  // Header Sliver
-                  SliverToBoxAdapter(
-                    child: _buildHeaderArea(),
-                  ),
-
-                  // Content List
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate([
-                        // "Last Session" or Welcome Card
-                        if (_isLoading)
-                          const SizedBox(
-                            height: 90,
-                            child: Center(child: CircularProgressIndicator()),
-                          )
-                        else if (_lastSession != null)
-                          _buildLastSessionCard(_lastSession!, colorScheme)
-                        else
-                          _buildWelcomeCard(colorScheme),
-
-                        const SizedBox(height: 18),
-
-                        // Home Performance Report Summary Card
-                        const HomeReportCard(),
-
-                        const SizedBox(height: 16),
-
-                        // Learn Shortcuts card
-                        _LearnShortcutsCard(),
-
-                        const SizedBox(height: 24),
-
-                        // Practice Topics Section Title
-                        Row(
-                          children: [
-                            Container(
-                              width: 4,
-                              height: 18,
-                              decoration: BoxDecoration(
-                                color: AppTheme.primaryColor,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Practice Topics',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: AppTheme.textPrimary,
-                                letterSpacing: -0.2,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-
-                        // Topic Practice Cards grouped by Arithmetic, Powers & Roots, Applied Maths
-                        _buildTopicGrid(colorScheme),
-                        const SizedBox(height: 24),
-                      ]),
+    return DoubleBackExitScope(
+      child: Scaffold(
+        backgroundColor: AppTheme.canvasBackground,
+        body: Column(
+          children: [
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _loadLastSession,
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    // Header Sliver
+                    SliverToBoxAdapter(
+                      child: _buildHeaderArea(),
                     ),
-                  ),
-                ],
+
+                    // Content List
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      sliver: SliverList(
+                        delegate: SliverChildListDelegate([
+                          // "Last Session" or Welcome Card
+                          if (_isLoading)
+                            const SizedBox(
+                              height: 90,
+                              child: Center(child: CircularProgressIndicator()),
+                            )
+                          else if (_lastSession != null)
+                            _buildLastSessionCard(_lastSession!, colorScheme)
+                          else
+                            _buildWelcomeCard(colorScheme),
+
+                          const SizedBox(height: 18),
+
+                          // Home Performance Report Summary Card
+                          const HomeReportCard(),
+
+                          const SizedBox(height: 16),
+
+                          // Learn Shortcuts card
+                          _LearnShortcutsCard(),
+
+                          const SizedBox(height: 24),
+
+                          // Practice Topics Section Title
+                          Row(
+                            children: [
+                              Container(
+                                width: 4,
+                                height: 18,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryColor,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Practice Topics',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppTheme.textPrimary,
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Topic Practice Cards grouped by Arithmetic, Powers & Roots, Applied Maths
+                          _buildTopicGrid(colorScheme),
+                          const SizedBox(height: 24),
+                        ]),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          const BannerAdContainer(),
-        ],
+            const BannerAdContainer(),
+          ],
+        ),
       ),
     );
   }

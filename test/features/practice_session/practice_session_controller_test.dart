@@ -318,7 +318,7 @@ void main() {
       expect(fakeSoundService.correctPlayCount, 1);
     });
 
-    test('auto-submit ON: wrong answer does NOT advance, keeps typed input, plays wrong sound', () {
+    test('auto-submit ON: wrong answer does NOT advance, clears typed input, plays wrong sound', () {
       final controller = createController(autoAdvance: true, soundEnabled: true);
       controller.start();
 
@@ -344,8 +344,8 @@ void main() {
       // Must NOT advance!
       expect(controller.state.attempts, isEmpty);
       expect(controller.state.currentQuestion, equals(firstQ));
-      // Input must be KEPT so user can backspace
-      expect(controller.state.currentInput, wrongStr);
+      // Input is automatically deleted/cleared so user can immediately enter right answer
+      expect(controller.state.currentInput, isEmpty);
       // Internally marked as wrong
       expect(controller.state.currentQuestionHasWrongTry, isTrue);
       expect(controller.state.currentQuestionFirstWrongAnswer, int.parse(wrongStr));
@@ -393,7 +393,7 @@ void main() {
       expect(fakeSoundService.correctPlayCount, 1);
     });
 
-    test('first try counts: typing multiple wrong answers only marks wrong once and plays sound once', () {
+    test('first try counts: typing multiple wrong answers preserves first wrong answer and clears input', () {
       final controller = createController(autoAdvance: true, soundEnabled: true);
       controller.start();
 
@@ -409,21 +409,22 @@ void main() {
       }
       expect(fakeSoundService.wrongPlayCount, 1);
       expect(controller.state.currentQuestionFirstWrongAnswer, int.parse(wrongStr1));
+      expect(controller.state.currentInput, isEmpty);
 
-      // Second wrong try
-      controller.clearInput();
+      // Second wrong try: auto-clearing allows direct entry
       var wrongStr2 = '7' * targetLength;
       if (int.parse(wrongStr2) == firstQ.correctAnswer) wrongStr2 = '6' * targetLength;
       for (var i = 0; i < wrongStr2.length; i++) {
         controller.inputDigit(wrongStr2[i]);
       }
 
-      // Still only 1 wrong count, sound not repeated, first wrong answer preserved
-      expect(fakeSoundService.wrongPlayCount, 1);
+      // Sound plays, input auto-clears again, first wrong answer preserved
+      expect(fakeSoundService.wrongPlayCount, 2);
       expect(controller.state.currentQuestionFirstWrongAnswer, int.parse(wrongStr1));
+      expect(controller.state.currentInput, isEmpty);
     });
 
-    test('auto-submit OFF: submit on wrong answer marks wrong, keeps input, does not advance', () {
+    test('auto-submit OFF: submit on wrong answer marks wrong, clears input, does not advance', () {
       final controller = createController(autoAdvance: false, soundEnabled: true);
       controller.start();
 
@@ -439,7 +440,7 @@ void main() {
       controller.submit();
 
       expect(controller.state.attempts, isEmpty);
-      expect(controller.state.currentInput, wrongStr);
+      expect(controller.state.currentInput, isEmpty);
       expect(controller.state.currentQuestionHasWrongTry, isTrue);
       expect(controller.state.currentQuestionFirstWrongAnswer, wrongAnswer);
       expect(fakeSoundService.wrongPlayCount, 1);

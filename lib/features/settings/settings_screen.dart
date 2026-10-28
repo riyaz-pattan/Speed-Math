@@ -17,6 +17,7 @@ import '../../core/services/sound_service.dart';
 import '../../core/strings/app_strings.dart';
 import '../../core/widgets/app_segmented_control.dart';
 import '../../core/widgets/app_toast.dart';
+import '../../core/widgets/double_back_exit_scope.dart';
 import '../../core/widgets/screen_header.dart';
 import 'package:speed_math_with_ai/core/widgets/tactile_card.dart';
 import '../../data/repositories/settings_repository.dart';
@@ -78,12 +79,13 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsRepositoryProvider);
 
-    return Scaffold(
-      backgroundColor: AppTheme.canvasBackground,
-      body: Column(
-        children: [
-          const ScreenHeader(
-            title: AppStrings.settings,
+    return DoubleBackExitScope(
+      child: Scaffold(
+        backgroundColor: AppTheme.canvasBackground,
+        body: Column(
+          children: [
+            const ScreenHeader(
+              title: AppStrings.settings,
             subtitle: 'App preferences and tactile feedback',
           ),
           Expanded(
@@ -383,6 +385,7 @@ class SettingsScreen extends ConsumerWidget {
           const BannerAdContainer(),
         ],
       ),
+      ),
     );
   }
 
@@ -432,15 +435,19 @@ class SettingsScreen extends ConsumerWidget {
                   children: [
                     const Icon(Icons.flag_rounded, size: 18, color: AppTheme.primaryColor),
                     const SizedBox(width: 8),
-                    const Text(
-                      'Daily practice goal',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.textPrimary,
+                    const Expanded(
+                      child: Text(
+                        'Daily practice goal',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 8),
                     Text(
                       '$dailyGoal min (${HabitConstants.goalLabel(dailyGoal)})',
                       style: const TextStyle(

@@ -612,4 +612,158 @@ class LessonRegistry {
     'Applied Maths',
     'Algebra & Equations',
   ];
+
+  /// Matches a question's topic, operands, and optional pattern to the most relevant Learn trick.
+  static ({LessonMeta lesson, List<int> operands, String? variantId})? findLessonForQuestion({
+    required Topic topic,
+    required List<int> operands,
+    String pattern = '',
+  }) {
+    switch (topic) {
+      case Topic.addition:
+        final l = findById('add_in_parts');
+        if (l != null) return (lesson: l, operands: operands, variantId: null);
+        break;
+
+      case Topic.subtraction:
+        final l = findById('subtract_in_parts');
+        if (l != null) return (lesson: l, operands: operands, variantId: null);
+        break;
+
+      case Topic.multiplication:
+      case Topic.patternMultiplication:
+      case Topic.powerOfFive:
+        if (operands.length >= 2) {
+          final a = operands[0];
+          final b = operands[1];
+          if (a == 11 || b == 11 || pattern.contains('eleven')) {
+            final l = findById('multiply_by_11');
+            if (l != null) return (lesson: l, operands: [a == 11 ? b : a, 11], variantId: null);
+          }
+          if (b == 5 || a == 5 || b == 25 || a == 25 || b == 125 || a == 125 || topic == Topic.powerOfFive) {
+            final l = findById('multiply_by_5_25');
+            final mult = (b == 5 || b == 25 || b == 125) ? b : ((a == 5 || a == 25 || a == 125) ? a : 5);
+            final n = (mult == b) ? a : b;
+            if (l != null) return (lesson: l, operands: [n, mult], variantId: 'x$mult');
+          }
+          if (b == 9 || a == 9 || b == 99 || a == 99 || b == 999 || a == 999 || pattern.contains('ninetynine')) {
+            final l = findById('multiply_by_99');
+            final mult = (b == 9 || b == 99 || b == 999) ? b : ((a == 9 || a == 99 || a == 999) ? a : 99);
+            final n = (mult == b) ? a : b;
+            if (l != null) return (lesson: l, operands: [n, mult], variantId: 'x$mult');
+          }
+          if (a >= 88 && a <= 112 && b >= 88 && b <= 112) {
+            final l = findById('near_100_mult');
+            if (l != null) return (lesson: l, operands: [a, b], variantId: null);
+          }
+          final lenA = '$a'.length;
+          final lenB = '$b'.length;
+          if (lenA >= 3 && lenB >= 3) {
+            final l = findById('multiply_3x3');
+            if (l != null) return (lesson: l, operands: [a, b], variantId: null);
+          } else if ((lenA >= 3 && lenB >= 2) || (lenA >= 2 && lenB >= 3)) {
+            final l = findById('multiply_3x2');
+            if (l != null) return (lesson: l, operands: [a, b], variantId: null);
+          } else {
+            final l = findById('multiply_2x2');
+            if (l != null) return (lesson: l, operands: [a, b], variantId: null);
+          }
+        }
+        break;
+
+      case Topic.division:
+        if (operands.length >= 2) {
+          final div = operands[1];
+          if (div == 5 || div == 25) {
+            final l = findById('divide_by_5_25');
+            if (l != null) return (lesson: l, operands: operands, variantId: 'd$div');
+          } else if (div == 9 || div == 99) {
+            final l = findById('divide_by_9_99');
+            if (l != null) return (lesson: l, operands: operands, variantId: 'd$div');
+          } else if (div > 3 && (div % 2 == 0 || div % 3 == 0 || div % 5 == 0)) {
+            final l = findById('factor_division');
+            if (l != null) return (lesson: l, operands: operands, variantId: null);
+          } else {
+            final l = findById('divide_by_5_25');
+            if (l != null) return (lesson: l, operands: operands, variantId: null);
+          }
+        }
+        break;
+
+      case Topic.squares:
+        if (operands.isNotEmpty) {
+          final n = operands[0];
+          // 1. Ending in 5 (e.g. 15, 25, 35, 45, 65...)
+          if (n % 10 == 5) {
+            final l = findById('squares_ending_5');
+            if (l != null) return (lesson: l, operands: [n], variantId: null);
+          }
+          // 2. Base 50 deviation (31 to 69, including 36!)
+          else if (n >= 31 && n <= 69) {
+            final l = findById('squares_base_50');
+            if (l != null) return (lesson: l, operands: [n], variantId: null);
+          }
+          // 3. Base 100 deviation (70 to 129)
+          else if (n >= 70 && n <= 129) {
+            final l = findById('squares_base_100');
+            if (l != null) return (lesson: l, operands: [n], variantId: null);
+          }
+          // 4. Base 150 deviation (130 to 174)
+          else if (n >= 130 && n <= 174) {
+            final l = findById('squares_base_150');
+            if (l != null) return (lesson: l, operands: [n], variantId: null);
+          }
+          // 5. Base 200 deviation (175 to 225)
+          else if (n >= 175 && n <= 225) {
+            final l = findById('squares_base_200');
+            if (l != null) return (lesson: l, operands: [n], variantId: null);
+          }
+          // 6. Base 25 deviation (21 to 30)
+          else if (n >= 21 && n <= 30) {
+            final l = findById('squares_base_25');
+            if (l != null) return (lesson: l, operands: [n], variantId: null);
+          }
+          // 7. General two-digit squaring via Criss-Cross 2x2 multiplication (n x n)
+          else if (n >= 10 && n <= 99) {
+            final l = findById('multiply_2x2');
+            if (l != null) return (lesson: l, operands: [n, n], variantId: null);
+          }
+          // 8. General three-digit squaring via 3x3 multiplication (n x n)
+          else if (n >= 100 && n <= 999) {
+            final l = findById('multiply_3x3');
+            if (l != null) return (lesson: l, operands: [n, n], variantId: null);
+          }
+        }
+        break;
+
+      case Topic.splitPercentages:
+      case Topic.percentages:
+      case Topic.basePercentages:
+        final l = findById('split_percentages');
+        if (l != null) return (lesson: l, operands: operands, variantId: null);
+        break;
+
+      case Topic.fractionPercentages:
+      case Topic.fractionReciprocals:
+      case Topic.derivedFractions:
+      case Topic.fractions:
+        final l = findById('fraction_pct_friends');
+        if (l != null) return (lesson: l, operands: operands, variantId: null);
+        break;
+
+      case Topic.quadraticEquations:
+      case Topic.linearEquations:
+        final l = findById('quadratic_hub');
+        if (l != null) return (lesson: l, operands: operands, variantId: null);
+        break;
+
+      default:
+        final lessons = forTopic(topic);
+        if (lessons.isNotEmpty) {
+          return (lesson: lessons.first, operands: operands, variantId: null);
+        }
+        break;
+    }
+    return null;
+  }
 }
